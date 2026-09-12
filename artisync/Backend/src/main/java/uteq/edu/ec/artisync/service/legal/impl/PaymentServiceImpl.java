@@ -48,7 +48,7 @@ public class PaymentServiceImpl implements IPaymentService {
     private static final String EVENTO_ORDEN_APROBADA = "CHECKOUT.ORDER.APPROVED";
     private static final String EVENTO_CAPTURA_COMPLETADA = "PAYMENT.CAPTURE.COMPLETED";
 
-    /** Valores válidos de {@code accionFondos} en cancelarPedidoConFondosRetenidos. */
+    /** Valores válidos de {@code accionFondos} en cancelOrderWithHeldFunds. */
     private static final String ACCION_REEMBOLSAR = "REEMBOLSAR";
     private static final String ACCION_LIBERAR = "LIBERAR";
 
@@ -96,12 +96,12 @@ public class PaymentServiceImpl implements IPaymentService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public PaymentResponse crearOrdenPayPal(Long idPedido, Long idCliente, BigDecimal monto) {
+    public PaymentResponse createPayPalOrder(Long idPedido, Long idCliente, BigDecimal monto) {
         Contract contrato = contratoRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("No existe contrato para el pedido"));
 
         // @PreAuthorize solo exige el rol CLIENTE, no que el pedido sea suyo:
-        // sin esto, cualquier cliente autenticado podía crear (y ver el estado
+        // sin esto, cualquier cliente autenticado podía create (y ver el estado
         // de) la orden de pago de un pedido ajeno.
         if (!contrato.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente)) {
             throw new BusinessRuleException("Solo el cliente del pedido puede iniciar el pago");
@@ -124,7 +124,7 @@ public class PaymentServiceImpl implements IPaymentService {
         try {
             // La respuesta de creación ya trae el id y los links: no hace falta
             // un GET posterior para leer el approvalUrl.
-            JsonNode orden = crearOrdenEnPayPal(idPedido, montoFinal);
+            JsonNode orden = createOrderInPayPal(idPedido, montoFinal);
             String orderId = orden.path("id").asText();
             String approvalUrl = extraerApprovalUrl(orden);
 
@@ -140,7 +140,7 @@ public class PaymentServiceImpl implements IPaymentService {
                 // insert/update: id_contrato es UNIQUE, así que dos clics casi
                 // simultáneos sobre el mismo contrato no pueden colar dos filas
                 // en pagos_garantia. Mismo patrón que
-                // WithdrawalRequestServiceImpl.solicitar.
+                // WithdrawalRequestServiceImpl.request.
                 throw new BusinessRuleException("Este pedido ya tiene un pago en curso");
             }
 
@@ -158,12 +158,12 @@ public class PaymentServiceImpl implements IPaymentService {
         } catch (BusinessRuleException | ResourceNotFoundException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Error al crear orden PayPal para pedido {}", idPedido, e);
+            log.error("Error al create orden PayPal para pedido {}", idPedido, e);
             throw new BusinessRuleException("Error al comunicarse con PayPal: " + e.getMessage());
         }
     }
 
-    private JsonNode crearOrdenEnPayPal(Long idPedido, BigDecimal montoFinal) {
+    private JsonNode createOrderInPayPal(Long idPedido, BigDecimal montoFinal) {
         // El retorno apunta a la propia pantalla de pago del pedido: allí se
         // consulta el estado real contra el backend, que es más fiable que
         // confiar en el parámetro con el que PayPal redirige.
@@ -229,7 +229,7 @@ public class PaymentServiceImpl implements IPaymentService {
      * @param transmissionSig firma de transmision
      * @param webhookId id del webhook
      */
-    public void procesarWebhookPayPal(String payload, String transmissionId, String transmissionTime,
+    public void processPayPalWebhook(String payload, String transmissionId, String transmissionTime,
                                       String transmissionSig, String certUrl, String authAlgo, String authVersion) {
         JsonNode evento;
         try {
@@ -239,7 +239,7 @@ public class PaymentServiceImpl implements IPaymentService {
             return;
         }
 
-        if (!firmaVerificada(evento, transmissionId, transmissionTime, transmissionSig, certUrl, authAlgo)) {
+        if (!signatureVerified(evento, transmissionId, transmissionTime, transmissionSig, certUrl, authAlgo)) {
             log.warn("Webhook PayPal rechazado: firma no verificada (transmissionId={})", transmissionId);
             return;
         }
@@ -267,7 +267,7 @@ public class PaymentServiceImpl implements IPaymentService {
             // de revisión, no un pago de garantía. La verificación de firma y
             // la resolución del orderId de arriba no cambian para ninguno de
             // los dos casos.
-            if (pagoTicketRevisionServicio.procesarWebhookOrden(orderId, tipoEvento)) {
+            if (pagoTicketRevisionServicio.processOrderWebhook(orderId, tipoEvento)) {
                 return;
             }
             log.warn("Webhook PayPal para la orden {}, que no corresponde a ningún pago registrado", orderId);
@@ -314,7 +314,7 @@ public class PaymentServiceImpl implements IPaymentService {
      * esta comprobación es lo único que separa un aviso real de un POST
      * falsificado que marque un pedido como pagado.
      */
-    private boolean firmaVerificada(JsonNode evento, String transmissionId, String transmissionTime,
+    private boolean signatureVerified(JsonNode evento, String transmissionId, String transmissionTime,
                                     String transmissionSig, String certUrl, String authAlgo) {
         if (paypalWebhookId == null || paypalWebhookId.isBlank()) {
             log.error("paypal.webhook-id sin configurar: no se puede verificar la firma del webhook");
@@ -386,12 +386,12 @@ public class PaymentServiceImpl implements IPaymentService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public PaymentResponse obtenerEstadoPago(Long idPedido, Long idUsuario) {
+    public PaymentResponse getPaymentStatus(Long idPedido, Long idUsuario) {
         Contract contrato = contratoRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("No existe contrato para el pedido"));
 
         // El controlador solo exige isAuthenticated(): sin esta verificación,
-        // cualquier usuario logueado podía consultar el monto retenido y el id
+        // cualquier usuario logueado podía query el monto retenido y el id
         // de orden de PayPal de un pedido ajeno.
         Order pedidoDelContrato = contrato.getPedido();
         boolean esCliente = pedidoDelContrato.getUsuarioCliente().getIdUsuario().equals(idUsuario);
@@ -436,7 +436,7 @@ public class PaymentServiceImpl implements IPaymentService {
      * @param motivo motivo de la cancelacion
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      */
-    public PaymentResponse cancelarPedidoConFondosRetenidos(Long idPedido, Long idUsuarioSolicitante,
+    public PaymentResponse cancelOrderWithHeldFunds(Long idPedido, Long idUsuarioSolicitante,
                                                            String accionFondos, String motivo) {
         Contract contrato = contratoRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("No existe contrato para el pedido"));
@@ -464,7 +464,7 @@ public class PaymentServiceImpl implements IPaymentService {
 
         // Reintentable: un reembolso que falló localmente (ReembolsoFallido)
         // puede reintentarse llamando este mismo endpoint, sin un endpoint
-        // "reintentar" aparte (mismo enfoque que WithdrawalRequestServiceImpl).
+        // "retry" aparte (mismo enfoque que WithdrawalRequestServiceImpl).
         if (!FONDOS_RETENIDO.equalsIgnoreCase(pago.getEstadoFondos())
                 && !FONDOS_REEMBOLSO_FALLIDO.equalsIgnoreCase(pago.getEstadoFondos())) {
             throw new BusinessRuleException(
@@ -472,15 +472,15 @@ public class PaymentServiceImpl implements IPaymentService {
         }
 
         if (ACCION_REEMBOLSAR.equals(accion)) {
-            ejecutarReembolso(pago);
+            executeRefund(pago);
         } else {
-            ejecutarLiberacionPorCancelacion(pago);
+            executeReleaseOnCancellation(pago);
         }
-        // Sin reasignar desde el retorno (a diferencia de crearOrdenPayPal,
+        // Sin reasignar desde el retorno (a diferencia de createPayPalOrder,
         // donde 'pago' puede ser una entidad recién construida sin id
         // generado todavía): aquí 'pago' ya viene de una carga existente con
         // id, y save() sobre una entidad administrada devuelve la misma
-        // instancia ya mutada in situ por ejecutarReembolso/ejecutarLiberacionPorCancelacion.
+        // instancia ya mutada in situ por executeRefund/executeReleaseOnCancellation.
         pagoGarantiaRepository.save(pago);
 
         log.info("Order {} cancelado con fondos retenidos por usuario {}: accion={}, estado final={}, motivo={}",
@@ -506,11 +506,11 @@ public class PaymentServiceImpl implements IPaymentService {
      * Reembolsa vía PayPal. Nunca propaga la excepción: un fallo de PayPal es
      * un resultado de negocio válido (ReembolsoFallido, reintentable), no un
      * error del sistema que deba abortar la transacción — mismo patrón que
-     * WithdrawalRequestServiceImpl.ejecutarPayoutYActualizarEstado.
+     * WithdrawalRequestServiceImpl.executePayoutAndUpdateStatus.
      */
-    private void ejecutarReembolso(EscrowPayment pago) {
+    private void executeRefund(EscrowPayment pago) {
         try {
-            String idCaptura = obtenerIdCaptura(pago.getIdOrdenPaypal());
+            String idCaptura = getCaptureId(pago.getIdOrdenPaypal());
             if (idCaptura == null) {
                 pago.setEstadoFondos(FONDOS_REEMBOLSO_FALLIDO);
                 pago.setMensajeError("No se encontró una captura completada para la orden "
@@ -542,7 +542,7 @@ public class PaymentServiceImpl implements IPaymentService {
     }
 
     /** Busca la captura COMPLETED de una orden; PayPal separa el id de orden del id de captura. */
-    private String obtenerIdCaptura(String orderId) {
+    private String getCaptureId(String orderId) {
         JsonNode orden = payPalClient.llamarPayPal("/v2/checkout/orders/" + orderId, HttpMethod.GET, null);
         for (JsonNode unidad : orden.path("purchase_units")) {
             for (JsonNode captura : unidad.path("payments").path("captures")) {
@@ -558,9 +558,9 @@ public class PaymentServiceImpl implements IPaymentService {
      * Libera los fondos al creador sin pasar por PayPal (decisión de un
      * administrador de que el trabajo ya se realizó pese a la cancelación).
      * Misma tasa de comisión y mismo par de transacciones Egreso/Comisión que
-     * DeliverableServiceImpl.aprobarEntrega.
+     * DeliverableServiceImpl.approveDelivery.
      */
-    private void ejecutarLiberacionPorCancelacion(EscrowPayment pago) {
+    private void executeReleaseOnCancellation(EscrowPayment pago) {
         pago.setEstadoFondos(FONDOS_LIBERADO);
         pago.setMensajeError(null);
 

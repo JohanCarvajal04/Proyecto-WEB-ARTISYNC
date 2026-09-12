@@ -86,7 +86,7 @@ class RevisionTicketPaymentServiceImplTest {
                 .willReturn(json("""
                         {"id":"ORDER-TICKET-1","links":[{"rel":"approve","href":"https://paypal/approve/1"}]}"""));
 
-        servicio.crearOrdenPago(ticket);
+        servicio.createPaymentOrder(ticket);
 
         var captor = org.mockito.ArgumentCaptor.forClass(RevisionTicketPayment.class);
         verify(pagoTicketRevisionRepository).save(captor.capture());
@@ -98,7 +98,7 @@ class RevisionTicketPaymentServiceImplTest {
     }
 
     @Test
-    @DisplayName("reutiliza la fila existente en vez de crear una nueva si el ticket ya tenia un intento")
+    @DisplayName("reutiliza la fila existente en vez de create una nueva si el ticket ya tenia un intento")
     void reutilizaFilaExistente_ok() {
         RevisionTicketPayment existente = RevisionTicketPayment.builder()
                 .idPagoTicket(3L).ticket(ticket).monto(new BigDecimal("5.00")).estadoPago("Pendiente").build();
@@ -107,57 +107,57 @@ class RevisionTicketPaymentServiceImplTest {
                 .willReturn(json("""
                         {"id":"ORDER-TICKET-2","links":[{"rel":"approve","href":"https://paypal/approve/2"}]}"""));
 
-        servicio.crearOrdenPago(ticket);
+        servicio.createPaymentOrder(ticket);
 
         verify(pagoTicketRevisionRepository).save(existente);
         assertThat(existente.getIdOrdenPaypal()).isEqualTo("ORDER-TICKET-2");
     }
 
     @Test
-    @DisplayName("si PayPal falla al crear la orden, no revienta ni persiste nada")
+    @DisplayName("si PayPal falla al create la orden, no revienta ni persiste nada")
     void fallaPaypalAlCrear_noRevienta() {
         given(pagoTicketRevisionRepository.findByTicketIdTicket(9L)).willReturn(Optional.empty());
         given(payPalClient.llamarPayPal(anyString(), any(HttpMethod.class), any()))
                 .willThrow(new RuntimeException("timeout"));
 
-        servicio.crearOrdenPago(ticket);
+        servicio.createPaymentOrder(ticket);
 
         verify(pagoTicketRevisionRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("obtenerUrlPagoPendiente devuelve null si el pago ya esta pagado")
+    @DisplayName("getPendingPaymentUrl devuelve null si el pago ya esta pagado")
     void obtenerUrlPagoPendiente_nullSiPagado() {
         RevisionTicketPayment pagado = RevisionTicketPayment.builder()
                 .ticket(ticket).monto(BigDecimal.TEN).estadoPago("Pagado").urlAprobacion("https://x").build();
         given(pagoTicketRevisionRepository.findByTicketIdTicket(9L)).willReturn(Optional.of(pagado));
 
-        assertThat(servicio.obtenerUrlPagoPendiente(9L)).isNull();
+        assertThat(servicio.getPendingPaymentUrl(9L)).isNull();
     }
 
     @Test
-    @DisplayName("obtenerUrlPagoPendiente devuelve la url si el pago sigue pendiente")
+    @DisplayName("getPendingPaymentUrl devuelve la url si el pago sigue pendiente")
     void obtenerUrlPagoPendiente_devuelveUrlSiPendiente() {
         RevisionTicketPayment pendiente = RevisionTicketPayment.builder()
                 .ticket(ticket).monto(BigDecimal.TEN).estadoPago("Pendiente").urlAprobacion("https://x").build();
         given(pagoTicketRevisionRepository.findByTicketIdTicket(9L)).willReturn(Optional.of(pendiente));
 
-        assertThat(servicio.obtenerUrlPagoPendiente(9L)).isEqualTo("https://x");
+        assertThat(servicio.getPendingPaymentUrl(9L)).isEqualTo("https://x");
     }
 
     @Test
-    @DisplayName("procesarWebhookOrden devuelve false si la orden no es de un ticket de revision")
+    @DisplayName("processOrderWebhook devuelve false si la orden no es de un ticket de revision")
     void procesarWebhookOrden_ordenAjena_false() {
         given(pagoTicketRevisionRepository.findByIdOrdenPaypal("ORDER-AJENA")).willReturn(Optional.empty());
 
-        boolean procesado = servicio.procesarWebhookOrden("ORDER-AJENA", "CHECKOUT.ORDER.APPROVED");
+        boolean procesado = servicio.processOrderWebhook("ORDER-AJENA", "CHECKOUT.ORDER.APPROVED");
 
         assertThat(procesado).isFalse();
         verify(payPalClient, never()).llamarPayPal(anyString(), any(), any());
     }
 
     @Test
-    @DisplayName("procesarWebhookOrden captura la orden aprobada y marca el pago como Pagado")
+    @DisplayName("processOrderWebhook captura la orden aprobada y marca el pago como Pagado")
     void procesarWebhookOrden_aprobada_capturaMarcaPagado() {
         RevisionTicketPayment pendiente = RevisionTicketPayment.builder()
                 .ticket(ticket).idOrdenPaypal("ORDER-TICKET-3").monto(new BigDecimal("5.00")).estadoPago("Pendiente").build();
@@ -166,7 +166,7 @@ class RevisionTicketPaymentServiceImplTest {
                 .willReturn(json("""
                         {"status":"COMPLETED"}"""));
 
-        boolean procesado = servicio.procesarWebhookOrden("ORDER-TICKET-3", "CHECKOUT.ORDER.APPROVED");
+        boolean procesado = servicio.processOrderWebhook("ORDER-TICKET-3", "CHECKOUT.ORDER.APPROVED");
 
         assertThat(procesado).isTrue();
         assertThat(pendiente.getEstadoPago()).isEqualTo("Pagado");
@@ -174,13 +174,13 @@ class RevisionTicketPaymentServiceImplTest {
     }
 
     @Test
-    @DisplayName("procesarWebhookOrden no reprocesa un pago que ya estaba Pagado (idempotencia)")
+    @DisplayName("processOrderWebhook no reprocesa un pago que ya estaba Pagado (idempotencia)")
     void procesarWebhookOrden_duplicado_noReprocesa() {
         RevisionTicketPayment pagado = RevisionTicketPayment.builder()
                 .ticket(ticket).idOrdenPaypal("ORDER-TICKET-4").monto(new BigDecimal("5.00")).estadoPago("Pagado").build();
         given(pagoTicketRevisionRepository.findByIdOrdenPaypal("ORDER-TICKET-4")).willReturn(Optional.of(pagado));
 
-        boolean procesado = servicio.procesarWebhookOrden("ORDER-TICKET-4", "PAYMENT.CAPTURE.COMPLETED");
+        boolean procesado = servicio.processOrderWebhook("ORDER-TICKET-4", "PAYMENT.CAPTURE.COMPLETED");
 
         assertThat(procesado).isTrue();
         verify(payPalClient, never()).llamarPayPal(anyString(), any(), any());

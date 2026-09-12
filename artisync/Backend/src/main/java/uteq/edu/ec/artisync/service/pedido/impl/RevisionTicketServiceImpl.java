@@ -91,7 +91,7 @@ public class RevisionTicketServiceImpl implements IRevisionTicketService {
         // ticket (asi lo exige el SRS: "genera un nuevo enlace de pago"), no en
         // un endpoint aparte que el cliente deba pedir.
         if (ticket.getCostoAdicionalGenerado().signum() > 0) {
-            pagoTicketRevisionServicio.crearOrdenPago(ticket);
+            pagoTicketRevisionServicio.createPaymentOrder(ticket);
         }
 
         return mapToRespuesta(ticket);
@@ -175,7 +175,7 @@ public class RevisionTicketServiceImpl implements IRevisionTicketService {
                 .descripcionCliente(ticket.getDescripcionCliente())
                 .estadoTicket(ticket.getEstadoTicket())
                 .costoAdicionalGenerado(ticket.getCostoAdicionalGenerado())
-                .urlPagoAdicional(pagoTicketRevisionServicio.obtenerUrlPagoPendiente(ticket.getIdTicket()))
+                .urlPagoAdicional(pagoTicketRevisionServicio.getPendingPaymentUrl(ticket.getIdTicket()))
                 .build();
     }
 }

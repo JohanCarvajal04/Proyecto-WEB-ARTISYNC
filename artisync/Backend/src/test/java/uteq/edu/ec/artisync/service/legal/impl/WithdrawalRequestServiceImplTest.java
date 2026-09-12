@@ -91,7 +91,7 @@ class WithdrawalRequestServiceImplTest {
         given(transaccionPagoRepository.sumEgresosPorCreador(ID_CREADOR)).willReturn(new BigDecimal("100.00"));
         given(solicitudRetiroRepository.sumMontosEnCursoPorCreador(anyLong(), any())).willReturn(new BigDecimal("30.00"));
 
-        CreatorBalanceResponse saldo = servicio.obtenerSaldo(ID_CREADOR);
+        CreatorBalanceResponse saldo = servicio.getBalance(ID_CREADOR);
 
         assertThat(saldo.saldoDisponible()).isEqualByComparingTo("70.00");
         assertThat(saldo.tieneCorreoPaypalConfigurado()).isTrue();
@@ -99,11 +99,11 @@ class WithdrawalRequestServiceImplTest {
     }
 
     @Test
-    @DisplayName("sin correo de PayPal configurado, no se puede solicitar")
+    @DisplayName("sin correo de PayPal configurado, no se puede request")
     void solicitar_sinCorreoConfigurado_rechaza() {
         given(datosPagoCreadorRepository.findByUsuarioIdUsuario(ID_CREADOR)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicio.solicitar(ID_CREADOR, peticion("20.00")))
+        assertThatThrownBy(() -> servicio.request(ID_CREADOR, peticion("20.00")))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("correo de PayPal");
         verify(solicitudRetiroRepository, never()).save(any());
@@ -112,7 +112,7 @@ class WithdrawalRequestServiceImplTest {
     @Test
     @DisplayName("un monto bajo el mínimo configurado se rechaza")
     void solicitar_bajoMontoMinimo_rechaza() {
-        assertThatThrownBy(() -> servicio.solicitar(ID_CREADOR, peticion("5.00")))
+        assertThatThrownBy(() -> servicio.request(ID_CREADOR, peticion("5.00")))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("mínimo");
         verify(solicitudRetiroRepository, never()).save(any());
@@ -123,7 +123,7 @@ class WithdrawalRequestServiceImplTest {
     void solicitar_porEncimaDelSaldo_rechaza() {
         given(transaccionPagoRepository.sumEgresosPorCreador(ID_CREADOR)).willReturn(new BigDecimal("50.00"));
 
-        assertThatThrownBy(() -> servicio.solicitar(ID_CREADOR, peticion("80.00")))
+        assertThatThrownBy(() -> servicio.request(ID_CREADOR, peticion("80.00")))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("saldo disponible");
         verify(solicitudRetiroRepository, never()).save(any());
@@ -134,7 +134,7 @@ class WithdrawalRequestServiceImplTest {
     void solicitar_conSolicitudEnCurso_rechaza() {
         given(solicitudRetiroRepository.existsByUsuarioCreadorIdUsuarioAndEstadoIn(anyLong(), any())).willReturn(true);
 
-        assertThatThrownBy(() -> servicio.solicitar(ID_CREADOR, peticion("20.00")))
+        assertThatThrownBy(() -> servicio.request(ID_CREADOR, peticion("20.00")))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("en curso");
         verify(solicitudRetiroRepository, never()).save(any());
@@ -143,7 +143,7 @@ class WithdrawalRequestServiceImplTest {
     @Test
     @DisplayName("una solicitud válida se crea Pendiente con el correo copiado de datos de pago")
     void solicitar_valida_creaPendiente() {
-        WithdrawalRequestResponse respuesta = servicio.solicitar(ID_CREADOR, peticion("20.00"));
+        WithdrawalRequestResponse respuesta = servicio.request(ID_CREADOR, peticion("20.00"));
 
         assertThat(respuesta.estado()).isEqualTo("Pendiente");
         assertThat(respuesta.correoPaypalDestino()).isEqualTo("ana@paypal.test");
@@ -154,38 +154,38 @@ class WithdrawalRequestServiceImplTest {
     }
 
     @Test
-    @DisplayName("rechazar sin nota es rechazado")
+    @DisplayName("reject sin nota es rechazado")
     void rechazar_sinNota_rechaza() {
-        assertThatThrownBy(() -> servicio.rechazar(1L, ID_ADMIN, "  "))
+        assertThatThrownBy(() -> servicio.reject(1L, ID_ADMIN, "  "))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("motivo");
         verify(solicitudRetiroRepository, never()).findByIdParaActualizar(any());
     }
 
     @Test
-    @DisplayName("rechazar una solicitud inexistente lanza recurso no encontrado")
+    @DisplayName("reject una solicitud inexistente lanza recurso no encontrado")
     void rechazar_solicitudInexistente_lanzaNoEncontrado() {
         given(solicitudRetiroRepository.findByIdParaActualizar(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicio.rechazar(1L, ID_ADMIN, "motivo válido"))
+        assertThatThrownBy(() -> servicio.reject(1L, ID_ADMIN, "motivo válido"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("rechazar una solicitud que ya no está Pendiente es rechazado")
+    @DisplayName("reject una solicitud que ya no está Pendiente es rechazado")
     void rechazar_noPendiente_rechaza() {
         WithdrawalRequest solicitud = WithdrawalRequest.builder()
                 .idSolicitud(1L).usuarioCreador(creador).estado("Aprobado")
                 .montoSolicitado(new BigDecimal("20.00")).correoPaypalDestino("ana@paypal.test").build();
         given(solicitudRetiroRepository.findByIdParaActualizar(1L)).willReturn(Optional.of(solicitud));
 
-        assertThatThrownBy(() -> servicio.rechazar(1L, ID_ADMIN, "motivo válido"))
+        assertThatThrownBy(() -> servicio.reject(1L, ID_ADMIN, "motivo válido"))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Pendiente");
     }
 
     @Test
-    @DisplayName("rechazar una solicitud Pendiente con nota la deja Rechazada")
+    @DisplayName("reject una solicitud Pendiente con nota la deja Rechazada")
     void rechazar_pendienteConNota_rechazaCorrectamente() {
         WithdrawalRequest solicitud = WithdrawalRequest.builder()
                 .idSolicitud(1L).usuarioCreador(creador).estado("Pendiente")
@@ -193,13 +193,13 @@ class WithdrawalRequestServiceImplTest {
         given(solicitudRetiroRepository.findByIdParaActualizar(1L)).willReturn(Optional.of(solicitud));
         given(solicitudRetiroRepository.save(any(WithdrawalRequest.class))).willAnswer(inv -> inv.getArgument(0));
 
-        WithdrawalRequestResponse respuesta = servicio.rechazar(1L, ID_ADMIN, "No cumple los requisitos");
+        WithdrawalRequestResponse respuesta = servicio.reject(1L, ID_ADMIN, "No cumple los requisitos");
 
         assertThat(respuesta.estado()).isEqualTo("Rechazado");
         assertThat(respuesta.notaAdmin()).isEqualTo("No cumple los requisitos");
     }
 
-    // El camino feliz de aprobar() (y reintentar()) ejecuta un payout real
+    // El camino feliz de approve() (y retry()) ejecuta un payout real
     // contra PayPal: se prueba en SolicitudRetiroServicioImplPayoutTest, con
     // RestTemplate mockeado, no aquí (este archivo es solo reglas de negocio
     // que no tocan PayPal).
@@ -212,13 +212,13 @@ class WithdrawalRequestServiceImplTest {
                 .montoSolicitado(new BigDecimal("20.00")).correoPaypalDestino("ana@paypal.test").build();
         given(solicitudRetiroRepository.findByIdParaActualizar(1L)).willReturn(Optional.of(solicitud));
 
-        assertThatThrownBy(() -> servicio.aprobar(1L, ID_ADMIN))
+        assertThatThrownBy(() -> servicio.approve(1L, ID_ADMIN))
                 .isInstanceOf(BusinessRuleException.class);
         verify(solicitudRetiroRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("misSolicitudes devuelve el historial del creador mapeado")
+    @DisplayName("myRequests devuelve el historial del creador mapeado")
     void misSolicitudes_devuelveHistorial() {
         WithdrawalRequest solicitud = WithdrawalRequest.builder()
                 .idSolicitud(1L).usuarioCreador(creador).estado("Pagado")
@@ -226,7 +226,7 @@ class WithdrawalRequestServiceImplTest {
         given(solicitudRetiroRepository.findByUsuarioCreadorIdUsuarioOrderByFechaSolicitudDesc(ID_CREADOR))
                 .willReturn(List.of(solicitud));
 
-        List<WithdrawalRequestResponse> historial = servicio.misSolicitudes(ID_CREADOR);
+        List<WithdrawalRequestResponse> historial = servicio.myRequests(ID_CREADOR);
 
         assertThat(historial).hasSize(1);
         assertThat(historial.get(0).estado()).isEqualTo("Pagado");

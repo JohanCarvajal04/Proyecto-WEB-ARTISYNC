@@ -50,7 +50,7 @@ class ContractTemplateAdminServiceImplTest {
     }
 
     @Test
-    @DisplayName("crear — nueva plantilla marcada como predeterminada desmarca la anterior")
+    @DisplayName("create — nueva plantilla marcada como predeterminada desmarca la anterior")
     void crear_predeterminada_desmarcaAnterior() {
         CreateContractTemplateRequest peticion = CreateContractTemplateRequest.builder()
                 .nombrePlantilla("Diseño gráfico").versionLegal("v-diseno")
@@ -62,7 +62,7 @@ class ContractTemplateAdminServiceImplTest {
         given(plantillaContratoRepository.findByEsPredeterminadaTrue()).willReturn(Optional.of(predeterminadaActual));
         given(plantillaContratoRepository.save(any(ContractTemplate.class))).willAnswer(inv -> inv.getArgument(0));
 
-        ContractTemplateResponse respuesta = servicio.crear(peticion);
+        ContractTemplateResponse respuesta = servicio.create(peticion);
 
         assertThat(respuesta.getEsPredeterminada()).isTrue();
         assertThat(predeterminadaActual.getEsPredeterminada()).isFalse();
@@ -70,18 +70,18 @@ class ContractTemplateAdminServiceImplTest {
     }
 
     @Test
-    @DisplayName("crear — rechaza version_legal duplicada")
+    @DisplayName("create — rechaza version_legal duplicada")
     void crear_versionDuplicada_rechaza() {
         CreateContractTemplateRequest peticion = CreateContractTemplateRequest.builder()
                 .nombrePlantilla("Otra").versionLegal("v1.0").cuerpoHtmlPlantilla("<html></html>").build();
         given(plantillaContratoRepository.findByVersionLegal("v1.0")).willReturn(Optional.of(predeterminadaActual));
 
-        assertThatThrownBy(() -> servicio.crear(peticion)).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> servicio.create(peticion)).isInstanceOf(BusinessRuleException.class);
         verify(plantillaContratoRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("editar — quitarle la condición de predeterminada sin asignar otra se rechaza")
+    @DisplayName("update — quitarle la condición de predeterminada sin asignar otra se rechaza")
     void editar_quitarPredeterminadaSinReemplazo_rechaza() {
         given(plantillaContratoRepository.findById(1L)).willReturn(Optional.of(predeterminadaActual));
 
@@ -90,27 +90,27 @@ class ContractTemplateAdminServiceImplTest {
                 .esPredeterminada(false).activa(true)
                 .build();
 
-        assertThatThrownBy(() -> servicio.editar(1L, peticion)).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> servicio.update(1L, peticion)).isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
-    @DisplayName("desactivar — rechaza desactivar la plantilla predeterminada")
+    @DisplayName("deactivate — rechaza deactivate la plantilla predeterminada")
     void desactivar_predeterminada_rechaza() {
         given(plantillaContratoRepository.findById(1L)).willReturn(Optional.of(predeterminadaActual));
 
-        assertThatThrownBy(() -> servicio.desactivar(1L)).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> servicio.deactivate(1L)).isInstanceOf(BusinessRuleException.class);
         verify(plantillaContratoRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("desactivar — una plantilla no predeterminada se desactiva correctamente")
+    @DisplayName("deactivate — una plantilla no predeterminada se desactiva correctamente")
     void desactivar_noPredeterminada_ok() {
         ContractTemplate otra = ContractTemplate.builder().idPlantilla(2L).versionLegal("v2")
                 .nombrePlantilla("Otra").cuerpoHtmlPlantilla("<html></html>")
                 .esPredeterminada(false).activa(true).build();
         given(plantillaContratoRepository.findById(2L)).willReturn(Optional.of(otra));
 
-        RespuestaMensaje respuesta = servicio.desactivar(2L);
+        RespuestaMensaje respuesta = servicio.deactivate(2L);
 
         assertThat(respuesta.getMessage()).contains("desactivada");
         assertThat(otra.getActiva()).isFalse();
@@ -118,20 +118,20 @@ class ContractTemplateAdminServiceImplTest {
     }
 
     @Test
-    @DisplayName("desactivar — plantilla inexistente lanza recurso no encontrado")
+    @DisplayName("deactivate — plantilla inexistente lanza recurso no encontrado")
     void desactivar_inexistente_lanzaExcepcion() {
         given(plantillaContratoRepository.findById(99L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicio.desactivar(99L)).isInstanceOf(ResourceNotFoundException.class);
+        assertThatThrownBy(() -> servicio.deactivate(99L)).isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("listarActivas — solo devuelve las activas, en el DTO liviano del selector del creador")
+    @DisplayName("listActive — solo devuelve las activas, en el DTO liviano del selector del creador")
     void listarActivas_devuelveResumen() {
         given(plantillaContratoRepository.findByActivaTrueOrderByNombrePlantillaAsc())
                 .willReturn(List.of(predeterminadaActual));
 
-        var resultado = servicio.listarActivas();
+        var resultado = servicio.listActive();
 
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).getIdPlantilla()).isEqualTo(1L);
@@ -140,7 +140,7 @@ class ContractTemplateAdminServiceImplTest {
     }
 
     @Test
-    @DisplayName("listarActivasVisiblesPara (V45) — marca esPropia solo en las plantillas privadas del creador que consulta")
+    @DisplayName("listActiveVisibleTo (V45) — marca esPropia solo en las plantillas privadas del creador que consulta")
     void listarActivasVisiblesPara_marcaEsPropia() {
         ContractTemplate propia = ContractTemplate.builder().idPlantilla(5L).versionLegal("propia-7-abcd1234")
                 .nombrePlantilla("Mi plantilla").cuerpoHtmlPlantilla("<html></html>")
@@ -148,7 +148,7 @@ class ContractTemplateAdminServiceImplTest {
         given(plantillaContratoRepository.findActivasVisiblesParaCreador(7L))
                 .willReturn(List.of(predeterminadaActual, propia));
 
-        var resultado = servicio.listarActivasVisiblesPara(7L);
+        var resultado = servicio.listActiveVisibleTo(7L);
 
         assertThat(resultado).hasSize(2);
         assertThat(resultado.get(0).isEsPropia()).isFalse();

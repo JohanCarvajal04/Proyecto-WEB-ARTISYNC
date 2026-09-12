@@ -38,7 +38,7 @@ public class ContractIntegrityController {
     @Operation(summary = "Verificar la integridad de un contrato firmado")
     @PostMapping("/{idContrato}/verificar-integridad")
     @PreAuthorize("hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')")
-    public ResponseEntity<IntegrityVerificationResponse> verificarIntegridad(@PathVariable Long idContrato) {
-        return ResponseEntity.ok(contratoServicio.verificarIntegridadHash(idContrato));
+    public ResponseEntity<IntegrityVerificationResponse> verifyIntegrity(@PathVariable Long idContrato) {
+        return ResponseEntity.ok(contratoServicio.verifyHashIntegrity(idContrato));
     }
 }

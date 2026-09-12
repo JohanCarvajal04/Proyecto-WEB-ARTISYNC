@@ -53,7 +53,7 @@ public class ContractReportServiceImpl implements IContractReportService {
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public PagedResponse<ContractReportRow> listar(ContractReportFilter filtro, int page, int size) {
+    public PagedResponse<ContractReportRow> list(ContractReportFilter filtro, int page, int size) {
         Page<ContractReportRow> resultado = contratoRepository.buscarParaReporte(
                 filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),
                 PageRequest.of(page, size));
@@ -75,7 +75,7 @@ public class ContractReportServiceImpl implements IContractReportService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public GeneratedDocument exportar(ContractReportFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante) {
+    public GeneratedDocument export(ContractReportFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante) {
         Page<ContractReportRow> pagina;
         String titulo = "Contratos";
         String subtitulo = "Reporte de contratos formalizados";
@@ -99,7 +99,7 @@ public class ContractReportServiceImpl implements IContractReportService {
                 throw new BusinessRuleException(
                         "El reporte devuelve " + pagina.getTotalElements() + " contratos, más de los "
                                 + formato.topeFilas() + " que admite una exportación en " + formato
-                                + ". Acote el rango de fechas o utilice la opción de exportar por partes.");
+                                + ". Acote el rango de fechas o utilice la opción de export por partes.");
             }
         }
 
@@ -121,7 +121,7 @@ public class ContractReportServiceImpl implements IContractReportService {
                         ReportColumn.booleano("Firmado (cliente)", ContractReportRow::firmadoCliente),
                         ReportColumn.booleano("Firmado (creador)", ContractReportRow::firmadoCreador)))
                 .filas(pagina.getContent())
-                .totales(List.of(new ReportTotal("Importe pactado total", sumarPrecios(pagina.getContent()), ColumnType.MONEDA)))
+                .totales(List.of(new ReportTotal("Importe pactado total", sumPrices(pagina.getContent()), ColumnType.MONEDA)))
                 .generadoPor(correoSolicitante)
                 .build();
 
@@ -139,11 +139,11 @@ public class ContractReportServiceImpl implements IContractReportService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public GeneratedDocument exportar(ContractReportFilter filtro, ReportFormat formato, String correoSolicitante) {
-        return exportar(filtro, formato, null, null, correoSolicitante);
+    public GeneratedDocument export(ContractReportFilter filtro, ReportFormat formato, String correoSolicitante) {
+        return export(filtro, formato, null, null, correoSolicitante);
     }
 
-    private BigDecimal sumarPrecios(List<ContractReportRow> filas) {
+    private BigDecimal sumPrices(List<ContractReportRow> filas) {
         return filas.stream()
                 .map(ContractReportRow::precioPactado)
                 .filter(java.util.Objects::nonNull)

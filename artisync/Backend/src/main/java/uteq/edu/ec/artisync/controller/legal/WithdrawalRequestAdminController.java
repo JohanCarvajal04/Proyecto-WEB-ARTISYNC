@@ -36,8 +36,8 @@ public class WithdrawalRequestAdminController {
      */
     @GetMapping
     @PreAuthorize("hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<Page<WithdrawalRequestResponse>> listar(WithdrawalRequestFilter filtro, Pageable pageable) {
-        return ResponseEntity.ok(solicitudRetiroServicio.listarCola(filtro, pageable));
+    public ResponseEntity<Page<WithdrawalRequestResponse>> list(WithdrawalRequestFilter filtro, Pageable pageable) {
+        return ResponseEntity.ok(solicitudRetiroServicio.listQueue(filtro, pageable));
     }
 
     /**
@@ -51,10 +51,10 @@ public class WithdrawalRequestAdminController {
      */
     @PostMapping("/{idSolicitud}/aprobar")
     @PreAuthorize("hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<WithdrawalRequestResponse> aprobar(
+    public ResponseEntity<WithdrawalRequestResponse> approve(
             @PathVariable Long idSolicitud,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(solicitudRetiroServicio.aprobar(idSolicitud, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(solicitudRetiroServicio.approve(idSolicitud, userDetails.getIdUsuario()));
     }
 
     /**
@@ -69,16 +69,16 @@ public class WithdrawalRequestAdminController {
      */
     @PostMapping("/{idSolicitud}/rechazar")
     @PreAuthorize("hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<WithdrawalRequestResponse> rechazar(
+    public ResponseEntity<WithdrawalRequestResponse> reject(
             @PathVariable Long idSolicitud,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody WithdrawalDecisionRequest peticion) {
-        return ResponseEntity.ok(solicitudRetiroServicio.rechazar(
+        return ResponseEntity.ok(solicitudRetiroServicio.reject(
                 idSolicitud, userDetails.getIdUsuario(), peticion.getNotaAdmin()));
     }
 
     /**
-     * Solo tiene efecto sobre una solicitud en estado "Fallido" (ver IWithdrawalRequestService.reintentar).
+     * Solo tiene efecto sobre una solicitud en estado "Fallido" (ver IWithdrawalRequestService.retry).
      *
      * @param idSolicitud identificador de la solicitud de retiro
      * @param userDetails administrador autenticado que reintenta la solicitud
@@ -88,9 +88,9 @@ public class WithdrawalRequestAdminController {
      */
     @PostMapping("/{idSolicitud}/reintentar")
     @PreAuthorize("hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<WithdrawalRequestResponse> reintentar(
+    public ResponseEntity<WithdrawalRequestResponse> retry(
             @PathVariable Long idSolicitud,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(solicitudRetiroServicio.reintentar(idSolicitud, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(solicitudRetiroServicio.retry(idSolicitud, userDetails.getIdUsuario()));
     }
 }

@@ -40,8 +40,8 @@ public class FinancialReportController {
     @Operation(summary = "Reporte de comisiones de un creador: bruto, comisión, neto y detalle de transacciones")
     @GetMapping
     @PreAuthorize("hasAuthority('TRANSACCION_VER') or hasRole('ADMIN')")
-    public ResponseEntity<CommissionReportResponse> obtener(FinancialReportFilter filtro) {
-        return ResponseEntity.ok(reporteFinancieroServicio.obtenerReporteComisiones(filtro));
+    public ResponseEntity<CommissionReportResponse> get(FinancialReportFilter filtro) {
+        return ResponseEntity.ok(reporteFinancieroServicio.getCommissionReport(filtro));
     }
 
     /**
@@ -57,20 +57,20 @@ public class FinancialReportController {
     @Operation(summary = "Exportar el reporte de comisiones en CSV, XLSX o PDF con soporte de paginación / división en partes")
     @GetMapping("/exportar")
     @PreAuthorize("hasAuthority('REPORTE_FINANCIERO_EXPORTAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> exportar(
+    public ResponseEntity<byte[]> export(
             FinancialReportFilter filtro,
             @RequestParam ReportFormat formato,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             Authentication authentication) {
         GeneratedDocument documento = (page != null || size != null)
-                ? reporteFinancieroServicio.exportar(filtro, formato, page, size, authentication.getName())
-                : reporteFinancieroServicio.exportar(filtro, formato, authentication.getName());
+                ? reporteFinancieroServicio.export(filtro, formato, page, size, authentication.getName())
+                : reporteFinancieroServicio.export(filtro, formato, authentication.getName());
         return DocumentResponse.de(documento);
     }
 
     /**
-     * Sobrecarga de conveniencia para exportar el reporte de comisiones sin paginación (documento completo).
+     * Sobrecarga de conveniencia para export el reporte de comisiones sin paginación (documento completo).
      *
      * @param filtro criterios para acotar el reporte (creador, rango de fechas, etc.)
      * @param formato formato del documento a generar (CSV, XLSX o PDF)
@@ -78,10 +78,10 @@ public class FinancialReportController {
      * @return el documento generado con la totalidad de los registros que cumplen el filtro
      */
     @PreAuthorize("hasAuthority('REPORTE_FINANCIERO_EXPORTAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> exportar(
+    public ResponseEntity<byte[]> export(
             FinancialReportFilter filtro,
             ReportFormat formato,
             Authentication authentication) {
-        return exportar(filtro, formato, null, null, authentication);
+        return export(filtro, formato, null, null, authentication);
     }
 }

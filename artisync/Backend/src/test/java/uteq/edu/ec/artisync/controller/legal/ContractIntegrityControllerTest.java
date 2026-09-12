@@ -39,7 +39,7 @@ class ContractIntegrityControllerTest {
         @Bean
         IContractService contratoServicio() {
             IContractService servicio = mock(IContractService.class);
-            when(servicio.verificarIntegridadHash(anyLong())).thenReturn(
+            when(servicio.verifyHashIntegrity(anyLong())).thenReturn(
                     IntegrityVerificationResponse.builder().idContrato(1L).integro(true).build());
             return servicio;
         }
@@ -72,7 +72,7 @@ class ContractIntegrityControllerTest {
     void conPagoAuditar_estaAutorizado() {
         autenticar("PAGO_AUDITAR");
 
-        assertDoesNotThrow(() -> controlador.verificarIntegridad(1L));
+        assertDoesNotThrow(() -> controlador.verifyIntegrity(1L));
     }
 
     @Test
@@ -80,7 +80,7 @@ class ContractIntegrityControllerTest {
     void admin_pasaPorElBypassDeRol() {
         autenticar("ROLE_ADMIN");
 
-        assertDoesNotThrow(() -> controlador.verificarIntegridad(1L));
+        assertDoesNotThrow(() -> controlador.verifyIntegrity(1L));
     }
 
     @Test
@@ -88,6 +88,6 @@ class ContractIntegrityControllerTest {
     void sinPermiso_esRechazado() {
         autenticar("ROLE_CLIENTE");
 
-        assertThrows(AccessDeniedException.class, () -> controlador.verificarIntegridad(1L));
+        assertThrows(AccessDeniedException.class, () -> controlador.verifyIntegrity(1L));
     }
 }

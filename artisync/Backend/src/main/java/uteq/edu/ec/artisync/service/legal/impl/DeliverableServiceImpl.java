@@ -60,7 +60,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
      */
     @Override
     @Transactional
-    public DeliverableResponse subirEntregable(Long idPedido, Long idCreador,
+    public DeliverableResponse uploadDeliverable(Long idPedido, Long idCreador,
                                                 MultipartFile versionMarcaAgua, MultipartFile versionLimpia) {
         FilePolicy.ENTREGABLE.validar(versionMarcaAgua);
         FilePolicy.ENTREGABLE.validar(versionLimpia);
@@ -91,8 +91,8 @@ public class DeliverableServiceImpl implements IDeliverableService {
                 almacenamiento.guardar(versionLimpia, StoragePrefix.ENTREGABLES));
 
         entregable = entregableRepository.save(entregable);
-        eliminarSiExiste(anteriorMarcaAgua);
-        eliminarSiExiste(anteriorLimpia);
+        deleteIfExists(anteriorMarcaAgua);
+        deleteIfExists(anteriorLimpia);
 
         log.info("Entregable subido para pedido {} por creador {}", idPedido, idCreador);
 
@@ -103,7 +103,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
      * El archivo viejo ya no se referencia; que no se pueda borrar no debe
      * tumbar una subida que por lo demás salió bien.
      */
-    private void eliminarSiExiste(String referencia) {
+    private void deleteIfExists(String referencia) {
         if (referencia == null || referencia.isBlank()) {
             return;
         }
@@ -124,7 +124,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public DeliverableResponse obtenerEntregable(Long idPedido, Long idUsuario) {
+    public DeliverableResponse getDeliverable(Long idPedido, Long idUsuario) {
         FinalDeliverable entregable = entregableRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("No hay entregable para este pedido"));
 
@@ -151,13 +151,13 @@ public class DeliverableServiceImpl implements IDeliverableService {
      * @param idCliente identificador unico que referencia de manera univoca al registro
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void aprobarEntrega(Long idPedido, Long idCliente) {
+    public void approveDelivery(Long idPedido, Long idCliente) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
 
         // Verificar que el usuario es el cliente
         if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {
-            throw new BusinessRuleException("Solo el cliente puede aprobar la entrega");
+            throw new BusinessRuleException("Solo el cliente puede approve la entrega");
         }
 
         FinalDeliverable entregable = entregableRepository.findByPedidoIdPedidoParaActualizar(idPedido)
@@ -176,12 +176,12 @@ public class DeliverableServiceImpl implements IDeliverableService {
             EscrowPayment pago = pagoOpt.get();
 
             // REQ-NF-019: sin este guard, un pedido ya cancelado-y-reembolsado
-            // (o liberado) por cancelarPedidoConFondosRetenidos podía aprobarse
+            // (o liberado) por cancelOrderWithHeldFunds podía aprobarse
             // aquí después y pagar al creador una segunda vez sobre el mismo
             // dinero, o liberar fondos que ya se le devolvieron al cliente.
             if (!"Retenido".equalsIgnoreCase(pago.getEstadoFondos())) {
                 throw new BusinessRuleException(
-                        "No se puede aprobar: el pago de este pedido no está en estado Retenido (estado actual: "
+                        "No se puede approve: el pago de este pedido no está en estado Retenido (estado actual: "
                                 + pago.getEstadoFondos() + ")");
             }
 
@@ -225,7 +225,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ArchivoDescargado descargarVersionLimpia(Long idPedido, Long idCliente) {
+    public ArchivoDescargado downloadCleanVersion(Long idPedido, Long idCliente) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
 
@@ -262,7 +262,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ArchivoDescargado descargarVersionMarcaAgua(Long idPedido, Long idUsuario) {
+    public ArchivoDescargado downloadWatermarkedVersion(Long idPedido, Long idUsuario) {
         FinalDeliverable entregable = entregableRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("No hay entregable para este pedido"));
 
@@ -297,11 +297,11 @@ public class DeliverableServiceImpl implements IDeliverableService {
         return DeliverableResponse.builder()
                 .idEntregable(entregable.getIdEntregable())
                 .idPedido(idPedido)
-                .urlVersionMarcaAgua(urlDescarga(
+                .urlVersionMarcaAgua(downloadUrl(
                         entregable.getUrlVersionMarcaAgua(),
                         "/api/v1/pedidos/" + idPedido + "/entregable/descargar/marca-agua"))
                 .urlVersionLimpia(mostrarVersionLimpia
-                        ? urlDescarga(entregable.getUrlVersionLimpia(),
+                        ? downloadUrl(entregable.getUrlVersionLimpia(),
                                 "/api/v1/pedidos/" + idPedido + "/entregable/descargar")
                         : null)
                 .estaLiberado(entregable.getEstaLiberado())
@@ -313,7 +313,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
      * pueda pedir. Con Azure se entrega un SAS firmado y el archivo viaja
      * directo desde el blob; sin él, la ruta del endpoint que sirve los bytes.
      */
-    private String urlDescarga(String referencia, String rutaProxy) {
+    private String downloadUrl(String referencia, String rutaProxy) {
         if (referencia == null || referencia.isBlank()) {
             return null;
         }

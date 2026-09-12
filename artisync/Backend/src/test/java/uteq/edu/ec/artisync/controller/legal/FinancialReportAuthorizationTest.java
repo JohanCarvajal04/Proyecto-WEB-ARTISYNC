@@ -32,7 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * TRANSACCION_VER (ver) y REPORTE_FINANCIERO_EXPORTAR (exportar) son permisos
+ * TRANSACCION_VER (ver) y REPORTE_FINANCIERO_EXPORTAR (export) son permisos
  * deliberadamente distintos (V19__permisos_reportes.sql), mismo criterio que
  * AuditoriaAutorizacionTest para AUDITORIA_VER/AUDITORIA_EXPORTAR.
  */
@@ -47,9 +47,9 @@ class FinancialReportAuthorizationTest {
         @Bean
         IFinancialReportService reporteFinancieroServicio() {
             IFinancialReportService servicio = mock(IFinancialReportService.class);
-            when(servicio.obtenerReporteComisiones(any())).thenReturn(
+            when(servicio.getCommissionReport(any())).thenReturn(
                     new CommissionReportResponse(1L, null, null, null, 0, 0, null, null, null, List.of()));
-            when(servicio.exportar(any(), any(), any()))
+            when(servicio.export(any(), any(), any()))
                     .thenReturn(new GeneratedDocument(new byte[0], "text/csv", "comisiones.csv"));
             return servicio;
         }
@@ -86,16 +86,16 @@ class FinancialReportAuthorizationTest {
     void obtener_auditorFinancieroConTransaccionVer_estaAutorizado() {
         autenticar("ROLE_AUDITOR_FINANCIERO", "TRANSACCION_VER");
 
-        assertDoesNotThrow(() -> controlador.obtener(new FinancialReportFilter()));
+        assertDoesNotThrow(() -> controlador.get(new FinancialReportFilter()));
     }
 
     @Test
-    @DisplayName("Con TRANSACCION_VER pero sin REPORTE_FINANCIERO_EXPORTAR, exportar() devuelve 403")
+    @DisplayName("Con TRANSACCION_VER pero sin REPORTE_FINANCIERO_EXPORTAR, export() devuelve 403")
     void conSoloTransaccionVer_noPuedeExportar() {
         autenticar("TRANSACCION_VER");
 
-        assertDoesNotThrow(() -> controlador.obtener(new FinancialReportFilter()));
-        assertThrows(AccessDeniedException.class, () -> controlador.exportar(
+        assertDoesNotThrow(() -> controlador.get(new FinancialReportFilter()));
+        assertThrows(AccessDeniedException.class, () -> controlador.export(
                 new FinancialReportFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
@@ -104,8 +104,8 @@ class FinancialReportAuthorizationTest {
     void admin_pasaAmbosEndpoints() {
         autenticar("ROLE_ADMIN");
 
-        assertDoesNotThrow(() -> controlador.obtener(new FinancialReportFilter()));
-        assertDoesNotThrow(() -> controlador.exportar(new FinancialReportFilter(), ReportFormat.CSV, autenticacionActual()));
+        assertDoesNotThrow(() -> controlador.get(new FinancialReportFilter()));
+        assertDoesNotThrow(() -> controlador.export(new FinancialReportFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
     @Test
@@ -113,8 +113,8 @@ class FinancialReportAuthorizationTest {
     void creadorSinPermisos_esRechazadoEnAmbosEndpoints() {
         autenticar("ROLE_CREADOR");
 
-        assertThrows(AccessDeniedException.class, () -> controlador.obtener(new FinancialReportFilter()));
-        assertThrows(AccessDeniedException.class, () -> controlador.exportar(
+        assertThrows(AccessDeniedException.class, () -> controlador.get(new FinancialReportFilter()));
+        assertThrows(AccessDeniedException.class, () -> controlador.export(
                 new FinancialReportFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 }

@@ -66,7 +66,7 @@ public class ContractServiceImpl implements IContractService {
      *         el servicio no tiene plantilla asignada y tampoco existe una predeterminada
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el pedido ya tiene un contrato
      */
-    public ContractResponse generarContrato(Long idPedido, Long idUsuarioSolicitante) {
+    public ContractResponse generateContract(Long idPedido, Long idUsuarioSolicitante) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
         // H-02: evita que cualquier autenticado genere un contrato sobre un pedido ajeno.
@@ -119,12 +119,12 @@ public class ContractServiceImpl implements IContractService {
      * @throws org.springframework.security.access.AccessDeniedException si quien firma no es
      *         ni el creador ni el cliente del pedido
      */
-    public ContractResponse firmarContrato(Long idContrato, Long idUsuario) {
+    public ContractResponse signContract(Long idContrato, Long idUsuario) {
         Contract contrato = contratoRepository.findByIdParaFirmar(idContrato)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract no encontrado"));
 
         Order pedido = contrato.getPedido();
-        String hash = generarHashFirma(idContrato, idUsuario);
+        String hash = generateSignatureHash(idContrato, idUsuario);
 
         Long idCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();
         Long idCliente = pedido.getUsuarioCliente().getIdUsuario();
@@ -170,7 +170,7 @@ public class ContractServiceImpl implements IContractService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el contrato aún no está
      *         firmado por ambas partes y por lo tanto no tiene contenido congelado
      */
-    public IntegrityVerificationResponse verificarIntegridadHash(Long idContrato) {
+    public IntegrityVerificationResponse verifyHashIntegrity(Long idContrato) {
         Contract contrato = contratoRepository.findById(idContrato)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract no encontrado"));
 
@@ -207,7 +207,7 @@ public class ContractServiceImpl implements IContractService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien consulta no es parte
      *         del pedido asociado ni administrador
      */
-    public ContractResponse obtenerContrato(Long idContrato, Long idUsuarioSolicitante) {
+    public ContractResponse getContract(Long idContrato, Long idUsuarioSolicitante) {
         Contract contrato = contratoRepository.findById(idContrato)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract no encontrado"));
         // H-02: evita el acceso a contratos ajenos (IDOR).
@@ -225,7 +225,7 @@ public class ContractServiceImpl implements IContractService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien consulta no es parte
      *         del pedido ni administrador
      */
-    public ContractResponse obtenerContratoPorPedido(Long idPedido, Long idUsuarioSolicitante) {
+    public ContractResponse getContractByOrder(Long idPedido, Long idUsuarioSolicitante) {
         Contract contrato = contratoRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("No existe contrato para el pedido con ID: " + idPedido));
         // H-02: evita el acceso a contratos ajenos (IDOR).
@@ -243,7 +243,7 @@ public class ContractServiceImpl implements IContractService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien consulta no es parte
      *         del pedido asociado ni administrador
      */
-    public SignatureStatusResponse obtenerEstadoFirma(Long idContrato, Long idUsuarioSolicitante) {
+    public SignatureStatusResponse getSignatureStatus(Long idContrato, Long idUsuarioSolicitante) {
         Contract contrato = contratoRepository.findById(idContrato)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract no encontrado"));
         // H-02: evita el acceso a contratos ajenos (IDOR).
@@ -275,7 +275,7 @@ public class ContractServiceImpl implements IContractService {
 
     @Override
     @Transactional(readOnly = true)
-    public byte[] generarPdf(Long idContrato, Long idUsuarioSolicitante) {
+    public byte[] generatePdf(Long idContrato, Long idUsuarioSolicitante) {
         long start = System.currentTimeMillis();
 
         Contract contrato = contratoRepository.findById(idContrato)
@@ -283,8 +283,8 @@ public class ContractServiceImpl implements IContractService {
         // H-02: evita descargar el PDF de un contrato ajeno (IDOR).
         OrderOwnershipValidator.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
 
-        String html = renderizarContratoCompleto(contrato);
-        byte[] pdf = pdfGeneracionServicio.generarPdfDesdeHtml(html);
+        String html = renderFullContract(contrato);
+        byte[] pdf = pdfGeneracionServicio.generatePdfFromHtml(html);
 
         long elapsed = System.currentTimeMillis() - start;
         log.info("PDF generado para contrato {} en {} ms (RNF-06: max 5000ms)", idContrato, elapsed);
@@ -318,7 +318,7 @@ public class ContractServiceImpl implements IContractService {
      * NO se escapa: es la plantilla legal en si, solo sembrable por migracion
      * (V13__seed_plantilla_contrato.sql), sin ningun endpoint que la edite.
      */
-    private String generarContratoHtml(ContractTemplate plantilla, Contract contrato) {
+    private String generateContractHtml(ContractTemplate plantilla, Contract contrato) {
         Order pedido = contrato.getPedido();
         User creador = pedido.getServicio().getPerfil().getUsuario();
         User cliente = pedido.getUsuarioCliente();
@@ -346,12 +346,12 @@ public class ContractServiceImpl implements IContractService {
         return html;
     }
 
-    private String renderizarContratoCompleto(Contract contrato) {
-        String html = generarContratoHtml(contrato.getPlantilla(), contrato);
+    private String renderFullContract(Contract contrato) {
+        String html = generateContractHtml(contrato.getPlantilla(), contrato);
 
         // Agregar hashes de firma al pie del documento. No requieren
         // HtmlUtils.htmlEscape: son hex SHA-256 calculados en servidor por
-        // generarHashFirma(), no texto libre de usuario.
+        // generateSignatureHash(), no texto libre de usuario.
         StringBuilder footer = new StringBuilder();
         // openhtmltopdf usa un parser XML estricto (XHTML): un <hr> sin cerrar
         // rompe el render con SAXParseException, que el catch genérico de
@@ -375,21 +375,21 @@ public class ContractServiceImpl implements IContractService {
         return html;
     }
 
-    private String generarHashFirma(Long idContrato, Long idUsuario) {
+    private String generateSignatureHash(Long idContrato, Long idUsuario) {
         String data = idContrato + ":" + idUsuario + ":" + Instant.now().toString();
         return sha256Hex(data);
     }
 
     /**
      * REQ-NF-020: congela el HTML ya renderizado (mismo contenido que
-     * generarPdf ya produce) y guarda su hash SHA-256, una sola vez, al
+     * generatePdf ya produce) y guarda su hash SHA-256, una sola vez, al
      * completarse la segunda firma. La re-verificación posterior solo vuelve
      * a hashear ESTE contenido guardado -- nunca vuelve a llamar a
-     * generarContratoHtml, que incluye {{fecha_actual}} = LocalDate.now() y
+     * generateContractHtml, que incluye {{fecha_actual}} = LocalDate.now() y
      * por lo tanto no es reproducible día a día.
      */
     private void congelarContenidoYHash(Contract contrato) {
-        String contenido = generarContratoHtml(contrato.getPlantilla(), contrato);
+        String contenido = generateContractHtml(contrato.getPlantilla(), contrato);
         contrato.setContenidoCongelado(contenido);
         contrato.setHashContenido(sha256Hex(contenido));
         contrato.setFechaHashContenido(LocalDateTime.now());
@@ -418,7 +418,7 @@ public class ContractServiceImpl implements IContractService {
         User creador = pedido.getServicio().getPerfil().getUsuario();
         User cliente = pedido.getUsuarioCliente();
 
-        String htmlRenderizado = generarContratoHtml(contrato.getPlantilla(), contrato);
+        String htmlRenderizado = generateContractHtml(contrato.getPlantilla(), contrato);
 
         return ContractResponse.builder()
                 .idContrato(contrato.getIdContrato())

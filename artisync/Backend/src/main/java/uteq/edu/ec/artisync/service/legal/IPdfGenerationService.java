@@ -8,5 +8,5 @@ public interface IPdfGenerationService {
      * @param html contenido HTML a renderizar
      * @return los bytes del PDF generado
      */
-    byte[] generarPdfDesdeHtml(String html);
+    byte[] generatePdfFromHtml(String html);
 }

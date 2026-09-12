@@ -57,18 +57,18 @@ class WithdrawalRequestAuthorizationTest {
         @Bean
         IWithdrawalRequestService solicitudRetiroServicio() {
             IWithdrawalRequestService servicio = mock(IWithdrawalRequestService.class);
-            when(servicio.obtenerSaldo(anyLong())).thenReturn(CreatorBalanceResponse.builder()
+            when(servicio.getBalance(anyLong())).thenReturn(CreatorBalanceResponse.builder()
                     .saldoDisponible(BigDecimal.ZERO).montoMinimoRetiro(BigDecimal.TEN)
                     .tieneCorreoPaypalConfigurado(true).tieneSolicitudPendiente(false).build());
-            when(servicio.solicitar(anyLong(), any())).thenReturn(
+            when(servicio.request(anyLong(), any())).thenReturn(
                     WithdrawalRequestResponse.builder().idSolicitud(1L).estado("Pendiente").build());
-            when(servicio.misSolicitudes(anyLong())).thenReturn(List.of());
-            when(servicio.listarCola(any(), any())).thenReturn(Page.empty());
-            when(servicio.aprobar(anyLong(), anyLong())).thenReturn(
+            when(servicio.myRequests(anyLong())).thenReturn(List.of());
+            when(servicio.listQueue(any(), any())).thenReturn(Page.empty());
+            when(servicio.approve(anyLong(), anyLong())).thenReturn(
                     WithdrawalRequestResponse.builder().idSolicitud(1L).estado("Aprobado").build());
-            when(servicio.rechazar(anyLong(), anyLong(), anyString())).thenReturn(
+            when(servicio.reject(anyLong(), anyLong(), anyString())).thenReturn(
                     WithdrawalRequestResponse.builder().idSolicitud(1L).estado("Rechazado").build());
-            when(servicio.reintentar(anyLong(), anyLong())).thenReturn(
+            when(servicio.retry(anyLong(), anyLong())).thenReturn(
                     WithdrawalRequestResponse.builder().idSolicitud(1L).estado("Pagado").build());
             return servicio;
         }
@@ -111,18 +111,18 @@ class WithdrawalRequestAuthorizationTest {
     }
 
     private void llamarEndpointsCreador() {
-        controladorCreador.obtenerSaldo(userDetails());
-        controladorCreador.solicitar(userDetails(), new CreateWithdrawalRequest());
-        controladorCreador.misSolicitudes(userDetails());
+        controladorCreador.getBalance(userDetails());
+        controladorCreador.request(userDetails(), new CreateWithdrawalRequest());
+        controladorCreador.myRequests(userDetails());
     }
 
     private void llamarEndpointsAdmin() {
-        controladorAdmin.listar(new WithdrawalRequestFilter(), PageRequest.of(0, 20));
-        controladorAdmin.aprobar(1L, userDetails());
+        controladorAdmin.list(new WithdrawalRequestFilter(), PageRequest.of(0, 20));
+        controladorAdmin.approve(1L, userDetails());
         WithdrawalDecisionRequest peticion = new WithdrawalDecisionRequest();
         peticion.setNotaAdmin("motivo");
-        controladorAdmin.rechazar(1L, userDetails(), peticion);
-        controladorAdmin.reintentar(1L, userDetails());
+        controladorAdmin.reject(1L, userDetails(), peticion);
+        controladorAdmin.retry(1L, userDetails());
     }
 
     @Test
@@ -139,8 +139,8 @@ class WithdrawalRequestAuthorizationTest {
         autenticar("ROLE_CREADOR", "RETIROS_SOLICITAR");
 
         assertThrows(AccessDeniedException.class,
-                () -> controladorAdmin.listar(new WithdrawalRequestFilter(), PageRequest.of(0, 20)));
-        assertThrows(AccessDeniedException.class, () -> controladorAdmin.aprobar(1L, userDetails()));
+                () -> controladorAdmin.list(new WithdrawalRequestFilter(), PageRequest.of(0, 20)));
+        assertThrows(AccessDeniedException.class, () -> controladorAdmin.approve(1L, userDetails()));
     }
 
     @Test
@@ -152,11 +152,11 @@ class WithdrawalRequestAuthorizationTest {
     }
 
     @Test
-    @DisplayName("AUDITOR_FINANCIERO con solo RETIROS_GESTIONAR no puede solicitar su propio retiro")
+    @DisplayName("AUDITOR_FINANCIERO con solo RETIROS_GESTIONAR no puede request su propio retiro")
     void auditorConSoloRetirosGestionar_noPuedeSolicitarRetiro() {
         autenticar("ROLE_AUDITOR_FINANCIERO", "RETIROS_GESTIONAR");
 
-        assertThrows(AccessDeniedException.class, () -> controladorCreador.obtenerSaldo(userDetails()));
+        assertThrows(AccessDeniedException.class, () -> controladorCreador.getBalance(userDetails()));
     }
 
     @Test
@@ -170,13 +170,13 @@ class WithdrawalRequestAuthorizationTest {
     @Test
     @DisplayName("ADMIN sin RETIROS_SOLICITAR no puede usar los endpoints propios del creador")
     void admin_sinRetirosSolicitar_noPuedeUsarEndpointsDeCreador() {
-        // Los endpoints del creador (solicitar/ver saldo/mi historial) solo llevan
+        // Los endpoints del creador (request/ver saldo/mi historial) solo llevan
         // RETIROS_SOLICITAR, sin comodín de rol: no tiene sentido de negocio que
         // un ADMIN "solicite su propio retiro" (a diferencia de la cola de
         // gestión, donde el comodín sí aplica, ver WithdrawalRequestAdminController).
         autenticar("ROLE_ADMIN");
 
-        assertThrows(AccessDeniedException.class, () -> controladorCreador.obtenerSaldo(userDetails()));
+        assertThrows(AccessDeniedException.class, () -> controladorCreador.getBalance(userDetails()));
     }
 
     @Test
@@ -184,8 +184,8 @@ class WithdrawalRequestAuthorizationTest {
     void clienteSinPermisos_esRechazadoEnTodosLosEndpoints() {
         autenticar("ROLE_CLIENTE");
 
-        assertThrows(AccessDeniedException.class, () -> controladorCreador.obtenerSaldo(userDetails()));
+        assertThrows(AccessDeniedException.class, () -> controladorCreador.getBalance(userDetails()));
         assertThrows(AccessDeniedException.class,
-                () -> controladorAdmin.listar(new WithdrawalRequestFilter(), PageRequest.of(0, 20)));
+                () -> controladorAdmin.list(new WithdrawalRequestFilter(), PageRequest.of(0, 20)));
     }
 }

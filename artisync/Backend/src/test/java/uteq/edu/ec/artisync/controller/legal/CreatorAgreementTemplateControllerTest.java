@@ -37,10 +37,10 @@ class CreatorAgreementTemplateControllerTest {
         CustomUserDetails usuario = creador(1L);
         CreateOwnAgreementTemplateRequest peticion = CreateOwnAgreementTemplateRequest.builder()
                 .nombrePlantilla("Mi plantilla").cuerpoHtmlPlantilla("<p>...</p>").build();
-        when(plantillaAcuerdoCreadorServicio.crear(1L, peticion))
+        when(plantillaAcuerdoCreadorServicio.create(1L, peticion))
                 .thenReturn(ContractTemplateResponse.builder().idPlantilla(2L).idCreador(1L).build());
 
-        ResponseEntity<ContractTemplateResponse> result = controlador.crear(peticion, usuario);
+        ResponseEntity<ContractTemplateResponse> result = controlador.create(peticion, usuario);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(result.getBody().getIdCreador()).isEqualTo(1L);
@@ -51,10 +51,10 @@ class CreatorAgreementTemplateControllerTest {
         CustomUserDetails usuario = creador(1L);
         UpdateOwnAgreementTemplateRequest peticion = UpdateOwnAgreementTemplateRequest.builder()
                 .nombrePlantilla("Actualizada").cuerpoHtmlPlantilla("<p>nueva</p>").activa(true).build();
-        when(plantillaAcuerdoCreadorServicio.editar(1L, 2L, peticion))
+        when(plantillaAcuerdoCreadorServicio.update(1L, 2L, peticion))
                 .thenReturn(ContractTemplateResponse.builder().idPlantilla(2L).nombrePlantilla("Actualizada").build());
 
-        ResponseEntity<ContractTemplateResponse> result = controlador.editar(2L, peticion, usuario);
+        ResponseEntity<ContractTemplateResponse> result = controlador.update(2L, peticion, usuario);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getNombrePlantilla()).isEqualTo("Actualizada");
@@ -63,10 +63,10 @@ class CreatorAgreementTemplateControllerTest {
     @Test
     void listarPropias_DebeRetornarLasPlantillasDelCreadorAutenticado() {
         CustomUserDetails usuario = creador(1L);
-        when(plantillaAcuerdoCreadorServicio.listarPropias(1L))
+        when(plantillaAcuerdoCreadorServicio.listOwn(1L))
                 .thenReturn(List.of(ContractTemplateResponse.builder().idPlantilla(2L).idCreador(1L).build()));
 
-        ResponseEntity<List<ContractTemplateResponse>> result = controlador.listarPropias(usuario);
+        ResponseEntity<List<ContractTemplateResponse>> result = controlador.listOwn(usuario);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody()).hasSize(1);
@@ -75,10 +75,10 @@ class CreatorAgreementTemplateControllerTest {
     @Test
     void desactivar_DebeRetornarMensajeDeConfirmacion() {
         CustomUserDetails usuario = creador(1L);
-        when(plantillaAcuerdoCreadorServicio.desactivar(1L, 2L))
+        when(plantillaAcuerdoCreadorServicio.deactivate(1L, 2L))
                 .thenReturn(new RespuestaMensaje("Plantilla desactivada"));
 
-        ResponseEntity<RespuestaMensaje> result = controlador.desactivar(2L, usuario);
+        ResponseEntity<RespuestaMensaje> result = controlador.deactivate(2L, usuario);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getMensaje()).isEqualTo("Plantilla desactivada");

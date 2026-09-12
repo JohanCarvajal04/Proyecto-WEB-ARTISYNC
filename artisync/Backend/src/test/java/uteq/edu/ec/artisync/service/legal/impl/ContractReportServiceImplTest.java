@@ -51,34 +51,34 @@ class ContractReportServiceImplTest {
     }
 
     @Test
-    @DisplayName("listar delega en el repositorio y mapea la pagina a PagedResponse")
+    @DisplayName("list delega en el repositorio y mapea la pagina a PagedResponse")
     void listar_delegaYMapea() {
         ContractReportRow fila = filaDe(1L, new BigDecimal("100.00"));
         Page<ContractReportRow> pagina = new PageImpl<>(List.of(fila));
         given(contratoRepository.buscarParaReporte(any(), any(), any(), any(), any(Pageable.class)))
                 .willReturn(pagina);
 
-        PagedResponse<ContractReportRow> resultado = reporteContratoServicio.listar(new ContractReportFilter(), 0, 20);
+        PagedResponse<ContractReportRow> resultado = reporteContratoServicio.list(new ContractReportFilter(), 0, 20);
 
         assertThat(resultado.getContent()).containsExactly(fila);
     }
 
     @Test
-    @DisplayName("exportar lanza BusinessRuleException cuando el filtro supera el tope de filas del formato")
+    @DisplayName("export lanza BusinessRuleException cuando el filtro supera el tope de filas del formato")
     void exportar_excedeTope_lanzaExcepcion() {
         Page<ContractReportRow> paginaEnorme = new PageImpl<>(
                 List.of(filaDe(1L, BigDecimal.TEN)), PageRequest.of(0, ReportFormat.CSV.topeFilas()), 50_001);
         given(contratoRepository.buscarParaReporte(any(), any(), any(), any(), any(Pageable.class)))
                 .willReturn(paginaEnorme);
 
-        assertThatThrownBy(() -> reporteContratoServicio.exportar(new ContractReportFilter(), ReportFormat.CSV, "admin@artisync.dev"))
+        assertThatThrownBy(() -> reporteContratoServicio.export(new ContractReportFilter(), ReportFormat.CSV, "admin@artisync.dev"))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("50001")
                 .hasMessageContaining("Acote el rango de fechas");
     }
 
     @Test
-    @DisplayName("exportar suma el precio pactado de las filas y construye el modelo con todos los filtros")
+    @DisplayName("export suma el precio pactado de las filas y construye el modelo con todos los filtros")
     void exportar_construyeModeloConTotalesYFiltrosCompletos() {
         ContractReportRow fila1 = filaDe(1L, new BigDecimal("100.00"));
         ContractReportRow fila2 = filaDe(2L, null);
@@ -94,7 +94,7 @@ class ContractReportServiceImplTest {
         filtro.setIdPerfilCreador(7L);
         filtro.setSoloFirmados(true);
 
-        GeneratedDocument resultado = reporteContratoServicio.exportar(filtro, ReportFormat.CSV, "admin@artisync.dev");
+        GeneratedDocument resultado = reporteContratoServicio.export(filtro, ReportFormat.CSV, "admin@artisync.dev");
 
         assertThat(resultado).isSameAs(esperado);
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
@@ -110,7 +110,7 @@ class ContractReportServiceImplTest {
     }
 
     @Test
-    @DisplayName("exportar reporta 'No' cuando soloFirmados es false y omite los filtros no informados")
+    @DisplayName("export reporta 'No' cuando soloFirmados es false y omite los filtros no informados")
     void exportar_soloFirmadosFalse_yFiltrosVacios() {
         Page<ContractReportRow> pagina = new PageImpl<>(List.of(filaDe(1L, BigDecimal.ONE)));
         given(contratoRepository.buscarParaReporte(any(), any(), any(), any(), any(Pageable.class)))
@@ -121,7 +121,7 @@ class ContractReportServiceImplTest {
         ContractReportFilter filtro = new ContractReportFilter();
         filtro.setSoloFirmados(false);
 
-        reporteContratoServicio.exportar(filtro, ReportFormat.CSV, "admin@artisync.dev");
+        reporteContratoServicio.export(filtro, ReportFormat.CSV, "admin@artisync.dev");
 
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
         verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.CSV));
@@ -129,7 +129,7 @@ class ContractReportServiceImplTest {
     }
 
     @Test
-    @DisplayName("exportar con page y size permite exportar por lotes sin exceder el tope")
+    @DisplayName("export con page y size permite export por lotes sin exceder el tope")
     void exportar_conPaginacion_permiteExportarPorLotes() {
         ContractReportRow fila1 = filaDe(1L, new BigDecimal("50.00"));
         Page<ContractReportRow> paginaParte = new PageImpl<>(
@@ -139,7 +139,7 @@ class ContractReportServiceImplTest {
         GeneratedDocument esperado = new GeneratedDocument(new byte[]{1, 2}, "application/pdf", "contratos_parte_1.pdf");
         given(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.PDF))).willReturn(esperado);
 
-        GeneratedDocument resultado = reporteContratoServicio.exportar(
+        GeneratedDocument resultado = reporteContratoServicio.export(
                 new ContractReportFilter(), ReportFormat.PDF, 0, 5000, "admin@artisync.dev");
 
         assertThat(resultado).isSameAs(esperado);

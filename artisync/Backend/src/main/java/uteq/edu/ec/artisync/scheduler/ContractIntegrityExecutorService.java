@@ -12,7 +12,7 @@ import uteq.edu.ec.artisync.service.legal.IContractService;
  * Extraído de ContractIntegrityScheduler para que REQUIRES_NEW funcione de
  * verdad (mismo motivo documentado en RaffleExecutorService). A diferencia de
  * PayPalReconciliationExecutorService y RevisionTicketExpirationService, sí
- * reutiliza el servicio principal (IContractService.verificarIntegridadHash):
+ * reutiliza el servicio principal (IContractService.verifyHashIntegrity):
  * es una lectura sin efectos secundarios financieros, así que el riesgo que
  * justificaba autocontenerse en los otros dos casos no aplica aquí.
  *
@@ -37,7 +37,7 @@ public class ContractIntegrityExecutorService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void verificar(Long idContrato) {
-        IntegrityVerificationResponse resultado = contratoServicio.verificarIntegridadHash(idContrato);
+        IntegrityVerificationResponse resultado = contratoServicio.verifyHashIntegrity(idContrato);
         if (!resultado.isIntegro()) {
             log.error("[ContractIntegrityExecutorService] Discrepancia de integridad detectada en el contrato {}",
                     idContrato);

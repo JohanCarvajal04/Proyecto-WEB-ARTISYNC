@@ -16,29 +16,29 @@ public interface IContractReportService {
      * @param size   tamaño de página
      * @return la página de filas que cumplen el filtro
      */
-    PagedResponse<ContractReportRow> listar(ContractReportFilter filtro, int page, int size);
+    PagedResponse<ContractReportRow> list(ContractReportFilter filtro, int page, int size);
 
     /**
      * Genera un documento con las filas del reporte de contratos que cumplen el filtro indicado.
      *
-     * @param filtro            criterios de filtrado a exportar
+     * @param filtro            criterios de filtrado a export
      * @param formato           formato del documento a generar
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con las filas filtradas
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el filtro devuelve más filas que el tope admitido por el formato
      */
-    GeneratedDocument exportar(ContractReportFilter filtro, ReportFormat formato, String correoSolicitante);
+    GeneratedDocument export(ContractReportFilter filtro, ReportFormat formato, String correoSolicitante);
 
     /**
      * Genera un documento con las filas del reporte de contratos que cumplen el filtro indicado,
      * admitiendo paginación / división en partes para grandes volúmenes de datos.
      *
-     * @param filtro            criterios de filtrado a exportar
+     * @param filtro            criterios de filtrado a export
      * @param formato           formato del documento a generar
-     * @param page              número de página / parte (base 0), o null para exportar sin paginación
+     * @param page              número de página / parte (base 0), o null para export sin paginación
      * @param size              tamaño de página / parte, o null para usar el tope del formato
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con las filas filtradas
      */
-    GeneratedDocument exportar(ContractReportFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante);
+    GeneratedDocument export(ContractReportFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante);
 }

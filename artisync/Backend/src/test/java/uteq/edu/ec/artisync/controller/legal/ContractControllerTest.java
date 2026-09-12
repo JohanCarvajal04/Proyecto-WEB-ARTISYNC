@@ -37,9 +37,9 @@ class ContractControllerTest {
     void generarContrato_devuelveCreated() {
         CustomUserDetails user = mockUserDetails();
         ContractResponse respuesta = new ContractResponse();
-        when(contratoServicio.generarContrato(10L, 1L)).thenReturn(respuesta);
+        when(contratoServicio.generateContract(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<ContractResponse> res = controlador.generarContrato(10L, user);
+        ResponseEntity<ContractResponse> res = controlador.generateContract(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -48,9 +48,9 @@ class ContractControllerTest {
     void firmarContrato_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         ContractResponse respuesta = new ContractResponse();
-        when(contratoServicio.firmarContrato(10L, 1L)).thenReturn(respuesta);
+        when(contratoServicio.signContract(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<ContractResponse> res = controlador.firmarContrato(10L, user);
+        ResponseEntity<ContractResponse> res = controlador.signContract(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -59,9 +59,9 @@ class ContractControllerTest {
     void obtenerContrato_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         ContractResponse respuesta = new ContractResponse();
-        when(contratoServicio.obtenerContrato(10L, 1L)).thenReturn(respuesta);
+        when(contratoServicio.getContract(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<ContractResponse> res = controlador.obtenerContrato(10L, user);
+        ResponseEntity<ContractResponse> res = controlador.getContract(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -70,9 +70,9 @@ class ContractControllerTest {
     void obtenerContratoPorPedido_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         ContractResponse respuesta = new ContractResponse();
-        when(contratoServicio.obtenerContratoPorPedido(10L, 1L)).thenReturn(respuesta);
+        when(contratoServicio.getContractByOrder(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<ContractResponse> res = controlador.obtenerContratoPorPedido(10L, user);
+        ResponseEntity<ContractResponse> res = controlador.getContractByOrder(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -81,9 +81,9 @@ class ContractControllerTest {
     void obtenerEstadoFirma_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         SignatureStatusResponse respuesta = new SignatureStatusResponse(10L, true, false, false, "En proceso");
-        when(contratoServicio.obtenerEstadoFirma(10L, 1L)).thenReturn(respuesta);
+        when(contratoServicio.getSignatureStatus(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<SignatureStatusResponse> res = controlador.obtenerEstadoFirma(10L, user);
+        ResponseEntity<SignatureStatusResponse> res = controlador.getSignatureStatus(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -92,9 +92,9 @@ class ContractControllerTest {
     void descargarPdf_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         byte[] pdf = new byte[]{1, 2, 3};
-        when(contratoServicio.generarPdf(10L, 1L)).thenReturn(pdf);
+        when(contratoServicio.generatePdf(10L, 1L)).thenReturn(pdf);
 
-        ResponseEntity<byte[]> res = controlador.descargarPdf(10L, user);
+        ResponseEntity<byte[]> res = controlador.downloadPdf(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PDF);
         assertThat(res.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION)).contains("attachment");

@@ -74,20 +74,20 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      * @return el saldo disponible para retiro, el monto mínimo, y si ya tiene
      *         correo de PayPal configurado o una solicitud en curso
      */
-    public CreatorBalanceResponse obtenerSaldo(Long idUsuarioCreador) {
+    public CreatorBalanceResponse getBalance(Long idUsuarioCreador) {
         boolean tieneCorreo = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuarioCreador).isPresent();
         boolean tienePendiente = solicitudRetiroRepository
                 .existsByUsuarioCreadorIdUsuarioAndEstadoIn(idUsuarioCreador, ESTADOS_EN_CURSO);
 
         return CreatorBalanceResponse.builder()
-                .saldoDisponible(calcularSaldoDisponible(idUsuarioCreador))
+                .saldoDisponible(calculateAvailableBalance(idUsuarioCreador))
                 .montoMinimoRetiro(montoMinimo)
                 .tieneCorreoPaypalConfigurado(tieneCorreo)
                 .tieneSolicitudPendiente(tienePendiente)
                 .build();
     }
 
-    private BigDecimal calcularSaldoDisponible(Long idUsuarioCreador) {
+    private BigDecimal calculateAvailableBalance(Long idUsuarioCreador) {
         BigDecimal totalEgresos = transaccionPagoRepository.sumEgresosPorCreador(idUsuarioCreador);
         BigDecimal enCurso = solicitudRetiroRepository
                 .sumMontosEnCursoPorCreador(idUsuarioCreador, ESTADOS_DESCUENTAN_SALDO);
@@ -110,10 +110,10 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      *         PayPal configurado, si ya tiene una solicitud en curso, si el monto es menor al mínimo,
      *         o si supera el saldo disponible
      */
-    public WithdrawalRequestResponse solicitar(Long idUsuarioCreador, CreateWithdrawalRequest peticion) {
+    public WithdrawalRequestResponse request(Long idUsuarioCreador, CreateWithdrawalRequest peticion) {
         CreatorPaymentDetails datosPago = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuarioCreador)
                 .orElseThrow(() -> new BusinessRuleException(
-                        "Debes configurar tu correo de PayPal antes de solicitar un retiro"));
+                        "Debes configurar tu correo de PayPal antes de request un retiro"));
 
         if (solicitudRetiroRepository.existsByUsuarioCreadorIdUsuarioAndEstadoIn(idUsuarioCreador, ESTADOS_EN_CURSO)) {
             throw new BusinessRuleException("Ya tienes una solicitud de retiro en curso");
@@ -124,7 +124,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
             throw new BusinessRuleException("El monto mínimo de retiro es $" + montoMinimo);
         }
 
-        BigDecimal saldoDisponible = calcularSaldoDisponible(idUsuarioCreador);
+        BigDecimal saldoDisponible = calculateAvailableBalance(idUsuarioCreador);
         if (monto.compareTo(saldoDisponible) > 0) {
             throw new BusinessRuleException("El monto solicitado supera tu saldo disponible");
         }
@@ -162,7 +162,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      * @param idUsuarioCreador identificador del creador
      * @return las solicitudes de retiro del creador, más recientes primero
      */
-    public List<WithdrawalRequestResponse> misSolicitudes(Long idUsuarioCreador) {
+    public List<WithdrawalRequestResponse> myRequests(Long idUsuarioCreador) {
         return solicitudRetiroRepository.findByUsuarioCreadorIdUsuarioOrderByFechaSolicitudDesc(idUsuarioCreador)
                 .stream()
                 .map(this::mapear)
@@ -178,7 +178,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      * @param pageable paginación y ordenamiento solicitados
      * @return la página de solicitudes que cumplen el filtro
      */
-    public Page<WithdrawalRequestResponse> listarCola(WithdrawalRequestFilter filtro, Pageable pageable) {
+    public Page<WithdrawalRequestResponse> listQueue(WithdrawalRequestFilter filtro, Pageable pageable) {
         var spec = WithdrawalRequestSpecification.conFiltros(
                 filtro.getEstado(), filtro.getIdUsuarioCreador(), filtro.getDesde(), filtro.getHasta());
 
@@ -193,19 +193,19 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      * Aprueba una solicitud de retiro pendiente y ejecuta el payout a PayPal;
      * el estado final depende de la respuesta de PayPal (pagado, en proceso o fallido).
      *
-     * @param idSolicitud identificador de la solicitud a aprobar
+     * @param idSolicitud identificador de la solicitud a approve
      * @param idAdmin identificador del admin que decide
      * @return la solicitud con su estado final tras el intento de payout
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la solicitud o el admin no existen
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la solicitud no está en estado {@code Pendiente}
      */
-    public WithdrawalRequestResponse aprobar(Long idSolicitud, Long idAdmin) {
-        WithdrawalRequest solicitud = obtenerConEstado(idSolicitud, ESTADO_PENDIENTE);
-        User admin = obtenerAdmin(idAdmin);
+    public WithdrawalRequestResponse approve(Long idSolicitud, Long idAdmin) {
+        WithdrawalRequest solicitud = getWithStatus(idSolicitud, ESTADO_PENDIENTE);
+        User admin = getAdmin(idAdmin);
 
         solicitud.setAdminDecisor(admin);
         solicitud.setFechaDecision(LocalDateTime.now());
-        ejecutarPayoutYActualizarEstado(solicitud);
+        executePayoutAndUpdateStatus(solicitud);
 
         solicitud = solicitudRetiroRepository.save(solicitud);
         log.info("Solicitud de retiro {} aprobada por admin {}: estado final {}",
@@ -220,7 +220,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
     /**
      * Rechaza una solicitud de retiro pendiente.
      *
-     * @param idSolicitud identificador de la solicitud a rechazar
+     * @param idSolicitud identificador de la solicitud a reject
      * @param idAdmin identificador del admin que decide
      * @param notaAdmin justificación del rechazo, obligatoria
      * @return la solicitud ya marcada como rechazada
@@ -228,13 +228,13 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si no se indica motivo, o si la
      *         solicitud no está en estado {@code Pendiente}
      */
-    public WithdrawalRequestResponse rechazar(Long idSolicitud, Long idAdmin, String notaAdmin) {
+    public WithdrawalRequestResponse reject(Long idSolicitud, Long idAdmin, String notaAdmin) {
         if (notaAdmin == null || notaAdmin.isBlank()) {
-            throw new BusinessRuleException("Debes indicar un motivo para rechazar la solicitud");
+            throw new BusinessRuleException("Debes indicar un motivo para reject la solicitud");
         }
 
-        WithdrawalRequest solicitud = obtenerConEstado(idSolicitud, ESTADO_PENDIENTE);
-        User admin = obtenerAdmin(idAdmin);
+        WithdrawalRequest solicitud = getWithStatus(idSolicitud, ESTADO_PENDIENTE);
+        User admin = getAdmin(idAdmin);
 
         solicitud.setEstado(ESTADO_RECHAZADO);
         solicitud.setNotaAdmin(notaAdmin);
@@ -253,19 +253,19 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
     /**
      * Reintenta el payout de una solicitud que había fallado.
      *
-     * @param idSolicitud identificador de la solicitud a reintentar
+     * @param idSolicitud identificador de la solicitud a retry
      * @param idAdmin identificador del admin que decide
      * @return la solicitud con su estado final tras el nuevo intento de payout
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la solicitud o el admin no existen
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la solicitud no está en estado {@code Fallido}
      */
-    public WithdrawalRequestResponse reintentar(Long idSolicitud, Long idAdmin) {
-        WithdrawalRequest solicitud = obtenerConEstado(idSolicitud, ESTADO_FALLIDO);
-        User admin = obtenerAdmin(idAdmin);
+    public WithdrawalRequestResponse retry(Long idSolicitud, Long idAdmin) {
+        WithdrawalRequest solicitud = getWithStatus(idSolicitud, ESTADO_FALLIDO);
+        User admin = getAdmin(idAdmin);
 
         solicitud.setAdminDecisor(admin);
         solicitud.setFechaDecision(LocalDateTime.now());
-        ejecutarPayoutYActualizarEstado(solicitud);
+        executePayoutAndUpdateStatus(solicitud);
 
         solicitud = solicitudRetiroRepository.save(solicitud);
         log.info("Solicitud de retiro {} reintentada por admin {}: estado final {}",
@@ -281,9 +281,9 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      * un resultado de negocio válido (ESTADO_FALLIDO), no un error del sistema
      * que deba abortar la transacción y perder el registro de qué pasó.
      */
-    private void ejecutarPayoutYActualizarEstado(WithdrawalRequest solicitud) {
+    private void executePayoutAndUpdateStatus(WithdrawalRequest solicitud) {
         try {
-            JsonNode respuesta = ejecutarPayout(solicitud);
+            JsonNode respuesta = executePayout(solicitud);
             String estadoLote = respuesta.path("batch_header").path("batch_status").asText();
             String payoutBatchId = respuesta.path("batch_header").path("payout_batch_id").asText(null);
             solicitud.setIdPayoutPaypal(payoutBatchId);
@@ -311,7 +311,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
         }
     }
 
-    private JsonNode ejecutarPayout(WithdrawalRequest solicitud) {
+    private JsonNode executePayout(WithdrawalRequest solicitud) {
         ObjectNode raiz = objectMapper.createObjectNode();
 
         // sender_batch_id idempotente: un reintento sobre la misma solicitud
@@ -336,7 +336,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
     // ── Auxiliares ───────────────────────────────────────────────────────────
 
     /** Con bloqueo pesimista (ver WithdrawalRequestRepository.findByIdParaActualizar): serializa decisiones concurrentes. */
-    private WithdrawalRequest obtenerConEstado(Long idSolicitud, String estadoEsperado) {
+    private WithdrawalRequest getWithStatus(Long idSolicitud, String estadoEsperado) {
         WithdrawalRequest solicitud = solicitudRetiroRepository.findByIdParaActualizar(idSolicitud)
                 .orElseThrow(() -> new ResourceNotFoundException("Solicitud de retiro no encontrada"));
 
@@ -347,7 +347,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
         return solicitud;
     }
 
-    private User obtenerAdmin(Long idAdmin) {
+    private User getAdmin(Long idAdmin) {
         return usuarioRepository.findById(idAdmin)
                 .orElseThrow(() -> new ResourceNotFoundException("User no encontrado"));
     }

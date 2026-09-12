@@ -51,7 +51,7 @@ class CreatorAgreementTemplateServiceImplTest {
     }
 
     @Test
-    @DisplayName("crear — la plantilla queda marcada con el id del creador, nunca como predeterminada")
+    @DisplayName("create — la plantilla queda marcada con el id del creador, nunca como predeterminada")
     void crear_quedaMarcadaConIdCreador() {
         CreateOwnAgreementTemplateRequest peticion = CreateOwnAgreementTemplateRequest.builder()
                 .nombrePlantilla("Diseño de logo")
@@ -59,7 +59,7 @@ class CreatorAgreementTemplateServiceImplTest {
                 .build();
         given(plantillaContratoRepository.save(any(ContractTemplate.class))).willAnswer(inv -> inv.getArgument(0));
 
-        ContractTemplateResponse respuesta = servicio.crear(ID_CREADOR, peticion);
+        ContractTemplateResponse respuesta = servicio.create(ID_CREADOR, peticion);
 
         assertThat(respuesta.getIdCreador()).isEqualTo(ID_CREADOR);
         assertThat(respuesta.getEsPredeterminada()).isFalse();
@@ -68,7 +68,7 @@ class CreatorAgreementTemplateServiceImplTest {
     }
 
     @Test
-    @DisplayName("editar — actualiza nombre, cuerpo y estado de una plantilla propia")
+    @DisplayName("update — actualiza nombre, cuerpo y estado de una plantilla propia")
     void editar_propia_actualiza() {
         given(plantillaContratoRepository.findByIdPlantillaAndIdCreador(10L, ID_CREADOR))
                 .willReturn(Optional.of(plantillaPropia));
@@ -80,14 +80,14 @@ class CreatorAgreementTemplateServiceImplTest {
                 .activa(false)
                 .build();
 
-        ContractTemplateResponse respuesta = servicio.editar(ID_CREADOR, 10L, peticion);
+        ContractTemplateResponse respuesta = servicio.update(ID_CREADOR, 10L, peticion);
 
         assertThat(respuesta.getNombrePlantilla()).isEqualTo("Diseño de logo v2");
         assertThat(respuesta.getActiva()).isFalse();
     }
 
     @Test
-    @DisplayName("editar — una plantilla de OTRO creador no se encuentra (no se revela su existencia)")
+    @DisplayName("update — una plantilla de OTRO creador no se encuentra (no se revela su existencia)")
     void editar_deOtroCreador_lanzaNoEncontrado() {
         given(plantillaContratoRepository.findByIdPlantillaAndIdCreador(10L, 999L))
                 .willReturn(Optional.empty());
@@ -95,30 +95,30 @@ class CreatorAgreementTemplateServiceImplTest {
         UpdateOwnAgreementTemplateRequest peticion = UpdateOwnAgreementTemplateRequest.builder()
                 .nombrePlantilla("x").cuerpoHtmlPlantilla("<html></html>").activa(true).build();
 
-        assertThatThrownBy(() -> servicio.editar(999L, 10L, peticion))
+        assertThatThrownBy(() -> servicio.update(999L, 10L, peticion))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(plantillaContratoRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("listarPropias — solo las plantillas de ese creador")
+    @DisplayName("listOwn — solo las plantillas de ese creador")
     void listarPropias_filtraPorCreador() {
         given(plantillaContratoRepository.findByIdCreadorOrderByNombrePlantillaAsc(ID_CREADOR))
                 .willReturn(List.of(plantillaPropia));
 
-        List<ContractTemplateResponse> resultado = servicio.listarPropias(ID_CREADOR);
+        List<ContractTemplateResponse> resultado = servicio.listOwn(ID_CREADOR);
 
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).getIdCreador()).isEqualTo(ID_CREADOR);
     }
 
     @Test
-    @DisplayName("desactivar — marca la plantilla propia como inactiva")
+    @DisplayName("deactivate — marca la plantilla propia como inactiva")
     void desactivar_propia_ok() {
         given(plantillaContratoRepository.findByIdPlantillaAndIdCreador(10L, ID_CREADOR))
                 .willReturn(Optional.of(plantillaPropia));
 
-        RespuestaMensaje respuesta = servicio.desactivar(ID_CREADOR, 10L);
+        RespuestaMensaje respuesta = servicio.deactivate(ID_CREADOR, 10L);
 
         assertThat(respuesta.getMessage()).contains("desactivada");
         assertThat(plantillaPropia.getActiva()).isFalse();
@@ -126,12 +126,12 @@ class CreatorAgreementTemplateServiceImplTest {
     }
 
     @Test
-    @DisplayName("desactivar — una plantilla que no le pertenece lanza recurso no encontrado")
+    @DisplayName("deactivate — una plantilla que no le pertenece lanza recurso no encontrado")
     void desactivar_deOtroCreador_lanzaNoEncontrado() {
         given(plantillaContratoRepository.findByIdPlantillaAndIdCreador(10L, 999L))
                 .willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicio.desactivar(999L, 10L))
+        assertThatThrownBy(() -> servicio.deactivate(999L, 10L))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(plantillaContratoRepository, never()).save(any());
     }

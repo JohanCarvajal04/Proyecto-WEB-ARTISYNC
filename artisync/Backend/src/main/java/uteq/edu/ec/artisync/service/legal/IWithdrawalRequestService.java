@@ -18,7 +18,7 @@ public interface IWithdrawalRequestService {
      * @param idUsuarioCreador id del usuario creador
      * @return el saldo disponible y el estado de configuración/solicitud del creador
      */
-    CreatorBalanceResponse obtenerSaldo(Long idUsuarioCreador);
+    CreatorBalanceResponse getBalance(Long idUsuarioCreador);
 
     /**
      * Crea una solicitud de retiro para un creador, contra su saldo disponible.
@@ -29,7 +29,7 @@ public interface IWithdrawalRequestService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el creador no ha configurado su correo de PayPal, ya tiene una solicitud en curso, el monto es menor al mínimo permitido, o supera su saldo disponible
      */
-    WithdrawalRequestResponse solicitar(Long idUsuarioCreador, CreateWithdrawalRequest peticion);
+    WithdrawalRequestResponse request(Long idUsuarioCreador, CreateWithdrawalRequest peticion);
 
     /**
      * Lista las solicitudes de retiro de un creador.
@@ -37,7 +37,7 @@ public interface IWithdrawalRequestService {
      * @param idUsuarioCreador id del usuario creador
      * @return las solicitudes del creador
      */
-    List<WithdrawalRequestResponse> misSolicitudes(Long idUsuarioCreador);
+    List<WithdrawalRequestResponse> myRequests(Long idUsuarioCreador);
 
     /**
      * Lista, paginadas, las solicitudes de retiro que cumplen el filtro indicado (cola de administración).
@@ -46,7 +46,7 @@ public interface IWithdrawalRequestService {
      * @param pageable configuración de paginación y orden
      * @return la página de solicitudes que cumplen el filtro
      */
-    Page<WithdrawalRequestResponse> listarCola(WithdrawalRequestFilter filtro, Pageable pageable);
+    Page<WithdrawalRequestResponse> listQueue(WithdrawalRequestFilter filtro, Pageable pageable);
 
     /**
      * Ejecuta el payout real a PayPal (POST /v1/payments/payouts). Según la
@@ -54,25 +54,25 @@ public interface IWithdrawalRequestService {
      * (PENDING/UNCLAIMED, PayPal la resuelve más tarde) o pasa a "Fallido"
      * (error/DENIED), con {@code mensajeError} poblado en ese último caso.
      *
-     * @param idSolicitud id de la solicitud a aprobar, debe estar en estado "Pendiente"
+     * @param idSolicitud id de la solicitud a approve, debe estar en estado "Pendiente"
      * @param idAdmin     id del administrador que aprueba
      * @return la solicitud con su estado final ya actualizado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la solicitud o el administrador no existen
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la solicitud no está en estado "Pendiente"
      */
-    WithdrawalRequestResponse aprobar(Long idSolicitud, Long idAdmin);
+    WithdrawalRequestResponse approve(Long idSolicitud, Long idAdmin);
 
     /**
      * Rechaza una solicitud de retiro pendiente, con un motivo obligatorio.
      *
-     * @param idSolicitud id de la solicitud a rechazar, debe estar en estado "Pendiente"
+     * @param idSolicitud id de la solicitud a reject, debe estar en estado "Pendiente"
      * @param idAdmin     id del administrador que rechaza
      * @param notaAdmin   motivo del rechazo, obligatorio
      * @return la solicitud ya marcada como rechazada
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la solicitud o el administrador no existen
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si no se indica un motivo, o si la solicitud no está en estado "Pendiente"
      */
-    WithdrawalRequestResponse rechazar(Long idSolicitud, Long idAdmin, String notaAdmin);
+    WithdrawalRequestResponse reject(Long idSolicitud, Long idAdmin, String notaAdmin);
 
     /**
      * Solo permitido desde "Fallido". Reintenta el mismo payout reusando el
@@ -80,11 +80,11 @@ public interface IWithdrawalRequestService {
      * procesado el intento anterior pese al error de red/respuesta, el batch
      * id idéntico hace que PayPal deduplique en vez de cobrar dos veces.
      *
-     * @param idSolicitud id de la solicitud a reintentar, debe estar en estado "Fallido"
+     * @param idSolicitud id de la solicitud a retry, debe estar en estado "Fallido"
      * @param idAdmin     id del administrador que reintenta
      * @return la solicitud con su estado final ya actualizado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la solicitud o el administrador no existen
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la solicitud no está en estado "Fallido"
      */
-    WithdrawalRequestResponse reintentar(Long idSolicitud, Long idAdmin);
+    WithdrawalRequestResponse retry(Long idSolicitud, Long idAdmin);
 }

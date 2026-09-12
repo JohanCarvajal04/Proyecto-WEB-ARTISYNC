@@ -41,9 +41,9 @@ class WithdrawalRequestControllerTest {
         CreatorBalanceResponse saldo = CreatorBalanceResponse.builder()
                 .saldoDisponible(new BigDecimal("50.00")).montoMinimoRetiro(new BigDecimal("10.00"))
                 .tieneCorreoPaypalConfigurado(true).tieneSolicitudPendiente(false).build();
-        when(solicitudRetiroServicio.obtenerSaldo(200L)).thenReturn(saldo);
+        when(solicitudRetiroServicio.getBalance(200L)).thenReturn(saldo);
 
-        ResponseEntity<CreatorBalanceResponse> res = controlador.obtenerSaldo(user);
+        ResponseEntity<CreatorBalanceResponse> res = controlador.getBalance(user);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(saldo);
@@ -56,9 +56,9 @@ class WithdrawalRequestControllerTest {
         peticion.setMontoSolicitado(new BigDecimal("20.00"));
         WithdrawalRequestResponse respuesta = WithdrawalRequestResponse.builder()
                 .idSolicitud(1L).estado("Pendiente").build();
-        when(solicitudRetiroServicio.solicitar(200L, peticion)).thenReturn(respuesta);
+        when(solicitudRetiroServicio.request(200L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<WithdrawalRequestResponse> res = controlador.solicitar(user, peticion);
+        ResponseEntity<WithdrawalRequestResponse> res = controlador.request(user, peticion);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
@@ -68,9 +68,9 @@ class WithdrawalRequestControllerTest {
     void misSolicitudes_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         WithdrawalRequestResponse respuesta = WithdrawalRequestResponse.builder().idSolicitud(1L).build();
-        when(solicitudRetiroServicio.misSolicitudes(200L)).thenReturn(List.of(respuesta));
+        when(solicitudRetiroServicio.myRequests(200L)).thenReturn(List.of(respuesta));
 
-        ResponseEntity<List<WithdrawalRequestResponse>> res = controlador.misSolicitudes(user);
+        ResponseEntity<List<WithdrawalRequestResponse>> res = controlador.myRequests(user);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).containsExactly(respuesta);

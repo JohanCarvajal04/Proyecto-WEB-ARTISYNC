@@ -54,12 +54,12 @@ public class RevisionTicketPaymentServiceImpl implements IRevisionTicketPaymentS
      * @param ticket parametro requerido para la correcta ejecucion del procedimiento
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void crearOrdenPago(RevisionTicket ticket) {
+    public void createPaymentOrder(RevisionTicket ticket) {
         try {
             Order pedido = ticket.getPedido();
             BigDecimal monto = ticket.getCostoAdicionalGenerado();
 
-            JsonNode orden = crearOrdenEnPayPal(pedido.getIdPedido(), monto);
+            JsonNode orden = createOrderInPayPal(pedido.getIdPedido(), monto);
             String orderId = orden.path("id").asText();
             String approvalUrl = extraerApprovalUrl(orden);
 
@@ -76,14 +76,14 @@ public class RevisionTicketPaymentServiceImpl implements IRevisionTicketPaymentS
                     orderId, ticket.getIdTicket());
         } catch (Exception e) {
             // No debe impedir que el ticket quede creado: el cliente puede
-            // reintentar el pago más tarde (limitación aceptada: hoy no hay un
+            // retry el pago más tarde (limitación aceptada: hoy no hay un
             // mecanismo automático de reintento, ver docs/requisitos/SRS.md).
-            log.error("Error al crear la orden de pago del ticket de revision {}: {}",
+            log.error("Error al create la orden de pago del ticket de revision {}: {}",
                     ticket.getIdTicket(), e.getMessage(), e);
         }
     }
 
-    private JsonNode crearOrdenEnPayPal(Long idPedido, BigDecimal monto) {
+    private JsonNode createOrderInPayPal(Long idPedido, BigDecimal monto) {
         String retorno = frontendUrl + "/pedido/" + idPedido;
 
         ObjectNode raiz = objectMapper.createObjectNode();
@@ -120,7 +120,7 @@ public class RevisionTicketPaymentServiceImpl implements IRevisionTicketPaymentS
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public String obtenerUrlPagoPendiente(Long idTicket) {
+    public String getPendingPaymentUrl(Long idTicket) {
         return pagoTicketRevisionRepository.findByTicketIdTicket(idTicket)
                 .filter(pago -> ESTADO_PENDIENTE.equals(pago.getEstadoPago()))
                 .map(RevisionTicketPayment::getUrlAprobacion)
@@ -137,13 +137,13 @@ public class RevisionTicketPaymentServiceImpl implements IRevisionTicketPaymentS
      * @return valor logico verdadero si la comprobacion fue exitosa, o falso si no cumplio los requisitos
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public boolean procesarWebhookOrden(String idOrdenPaypal, String tipoEvento) {
+    public boolean processOrderWebhook(String idOrdenPaypal, String tipoEvento) {
         RevisionTicketPayment pago = pagoTicketRevisionRepository.findByIdOrdenPaypal(idOrdenPaypal).orElse(null);
         if (pago == null) {
             return false;
         }
 
-        // Misma idempotencia por estado que PaymentServiceImpl.procesarWebhookPayPal:
+        // Misma idempotencia por estado que PaymentServiceImpl.processPayPalWebhook:
         // un PAYMENT.CAPTURE.COMPLETED que llega despues de que CHECKOUT.ORDER.APPROVED
         // ya confirmo el pago se absorbe aqui como duplicado, sin volver a capturar.
         if (!ESTADO_PENDIENTE.equalsIgnoreCase(pago.getEstadoPago())) {

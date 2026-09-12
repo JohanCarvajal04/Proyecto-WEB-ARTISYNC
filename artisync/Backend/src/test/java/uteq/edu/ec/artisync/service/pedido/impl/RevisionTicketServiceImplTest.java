@@ -163,7 +163,7 @@ class RevisionTicketServiceImplTest {
 
         ticketRevisionServicio.createRevisionTicket(1L, 1L, peticion);
 
-        verify(pagoTicketRevisionServicio).crearOrdenPago(any(RevisionTicket.class));
+        verify(pagoTicketRevisionServicio).createPaymentOrder(any(RevisionTicket.class));
     }
 
     @Test
@@ -179,7 +179,7 @@ class RevisionTicketServiceImplTest {
 
         ticketRevisionServicio.createRevisionTicket(1L, 1L, peticion);
 
-        verify(pagoTicketRevisionServicio, never()).crearOrdenPago(any());
+        verify(pagoTicketRevisionServicio, never()).createPaymentOrder(any());
     }
 
     @Test

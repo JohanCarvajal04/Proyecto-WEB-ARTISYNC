@@ -30,10 +30,10 @@ public class PaymentController {
      */
     @PostMapping("/{idPedido}/pago")
     @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<PaymentResponse> crearOrdenPago(
+    public ResponseEntity<PaymentResponse> createPaymentOrder(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(pagoServicio.crearOrdenPayPal(idPedido, userDetails.getIdUsuario(), null));
+        return ResponseEntity.ok(pagoServicio.createPayPalOrder(idPedido, userDetails.getIdUsuario(), null));
     }
 
     /**
@@ -47,17 +47,17 @@ public class PaymentController {
      */
     @GetMapping("/{idPedido}/pago/estado")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<PaymentResponse> obtenerEstadoPago(
+    public ResponseEntity<PaymentResponse> getPaymentStatus(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(pagoServicio.obtenerEstadoPago(idPedido, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(pagoServicio.getPaymentStatus(idPedido, userDetails.getIdUsuario()));
     }
 
     /**
      * Cancela un pedido con fondos ya retenidos en escrow (REQ-NF-019),
      * reembolsando al cliente vía PayPal o (solo administrador) liberando los
      * fondos al creador. La autorización fina (cliente-o-admin, y que solo un
-     * admin pueda liberar) vive en el servicio, igual que en obtenerEstadoPago.
+     * admin pueda liberar) vive en el servicio, igual que en getPaymentStatus.
      *
      * @param idPedido    identificador del pedido a cancelar
      * @param userDetails usuario autenticado que solicita la cancelación
@@ -69,13 +69,13 @@ public class PaymentController {
      */
     @PostMapping("/{idPedido}/pago/cancelar")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<PaymentResponse> cancelarPago(
+    public ResponseEntity<PaymentResponse> cancelPayment(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody(required = false) CancelPaymentRequest peticion) {
         String accionFondos = peticion != null ? peticion.getAccionFondos() : null;
         String motivo = peticion != null ? peticion.getMotivo() : null;
-        return ResponseEntity.ok(pagoServicio.cancelarPedidoConFondosRetenidos(
+        return ResponseEntity.ok(pagoServicio.cancelOrderWithHeldFunds(
                 idPedido, userDetails.getIdUsuario(), accionFondos, motivo));
     }
 }

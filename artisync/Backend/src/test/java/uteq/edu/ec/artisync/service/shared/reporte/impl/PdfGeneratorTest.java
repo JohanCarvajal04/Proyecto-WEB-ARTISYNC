@@ -52,7 +52,7 @@ class PdfGeneratorTest {
     @Test
     @DisplayName("Escapa un valor con HTML/script embebido en una celda (Thymeleaf th:text)")
     void generar_EscapaContenidoMaliciosoDeCelda() {
-        when(pdfGeneracionServicio.generarPdfDesdeHtml(htmlCaptor.capture())).thenReturn(new byte[0]);
+        when(pdfGeneracionServicio.generatePdfFromHtml(htmlCaptor.capture())).thenReturn(new byte[0]);
         PdfGenerator generador = new PdfGenerator(crearTemplateEngine(), pdfGeneracionServicio);
 
         ReportModel<ReporteDePrueba> modelo = ReportModel.<ReporteDePrueba>builder()
@@ -75,7 +75,7 @@ class PdfGeneratorTest {
     @Test
     @DisplayName("Pasa los filtros aplicados y el título a la plantilla")
     void generar_IncluyeFiltrosYTitulo() {
-        when(pdfGeneracionServicio.generarPdfDesdeHtml(htmlCaptor.capture())).thenReturn(new byte[0]);
+        when(pdfGeneracionServicio.generatePdfFromHtml(htmlCaptor.capture())).thenReturn(new byte[0]);
         PdfGenerator generador = new PdfGenerator(crearTemplateEngine(), pdfGeneracionServicio);
 
         generador.generar(ReporteDePrueba.modeloBasico());
@@ -89,7 +89,7 @@ class PdfGeneratorTest {
     @Test
     @DisplayName("Content-Type es application/pdf")
     void generar_ContentTypeCorrecto() {
-        when(pdfGeneracionServicio.generarPdfDesdeHtml(htmlCaptor.capture())).thenReturn(new byte[]{1, 2, 3});
+        when(pdfGeneracionServicio.generatePdfFromHtml(htmlCaptor.capture())).thenReturn(new byte[]{1, 2, 3});
         PdfGenerator generador = new PdfGenerator(crearTemplateEngine(), pdfGeneracionServicio);
 
         GeneratedDocument documento = generador.generar(ReporteDePrueba.modeloBasico());

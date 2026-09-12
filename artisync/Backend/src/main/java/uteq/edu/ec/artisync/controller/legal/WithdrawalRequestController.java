@@ -14,7 +14,7 @@ import uteq.edu.ec.artisync.service.legal.IWithdrawalRequestService;
 
 import java.util.List;
 
-/** Lado creador: consultar saldo, solicitar retiro y ver el propio historial. */
+/** Lado creador: query saldo, request retiro y ver el propio historial. */
 @RestController
 @RequestMapping("/api/v1/retiros")
 @RequiredArgsConstructor
@@ -30,9 +30,9 @@ public class WithdrawalRequestController {
      */
     @GetMapping("/saldo")
     @PreAuthorize("hasAuthority('RETIROS_SOLICITAR')")
-    public ResponseEntity<CreatorBalanceResponse> obtenerSaldo(
+    public ResponseEntity<CreatorBalanceResponse> getBalance(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(solicitudRetiroServicio.obtenerSaldo(userDetails.getIdUsuario()));
+        return ResponseEntity.ok(solicitudRetiroServicio.getBalance(userDetails.getIdUsuario()));
     }
 
     /**
@@ -47,10 +47,10 @@ public class WithdrawalRequestController {
      */
     @PostMapping
     @PreAuthorize("hasAuthority('RETIROS_SOLICITAR')")
-    public ResponseEntity<WithdrawalRequestResponse> solicitar(
+    public ResponseEntity<WithdrawalRequestResponse> request(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody CreateWithdrawalRequest peticion) {
-        return ResponseEntity.ok(solicitudRetiroServicio.solicitar(userDetails.getIdUsuario(), peticion));
+        return ResponseEntity.ok(solicitudRetiroServicio.request(userDetails.getIdUsuario(), peticion));
     }
 
     /**
@@ -61,8 +61,8 @@ public class WithdrawalRequestController {
      */
     @GetMapping("/mis-solicitudes")
     @PreAuthorize("hasAuthority('RETIROS_SOLICITAR')")
-    public ResponseEntity<List<WithdrawalRequestResponse>> misSolicitudes(
+    public ResponseEntity<List<WithdrawalRequestResponse>> myRequests(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(solicitudRetiroServicio.misSolicitudes(userDetails.getIdUsuario()));
+        return ResponseEntity.ok(solicitudRetiroServicio.myRequests(userDetails.getIdUsuario()));
     }
 }

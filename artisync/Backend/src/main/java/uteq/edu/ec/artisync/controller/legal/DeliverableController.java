@@ -36,13 +36,13 @@ public class DeliverableController {
      */
     @PostMapping(value = "/{idPedido}/entregable", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<DeliverableResponse> subirEntregable(
+    public ResponseEntity<DeliverableResponse> uploadDeliverable(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam("versionMarcaAgua") MultipartFile versionMarcaAgua,
             @RequestParam("versionLimpia") MultipartFile versionLimpia) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(entregableServicio.subirEntregable(idPedido, userDetails.getIdUsuario(),
+                .body(entregableServicio.uploadDeliverable(idPedido, userDetails.getIdUsuario(),
                         versionMarcaAgua, versionLimpia));
     }
 
@@ -56,11 +56,11 @@ public class DeliverableController {
      */
     @GetMapping("/{idPedido}/entregable")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<DeliverableResponse> obtenerEntregable(
+    public ResponseEntity<DeliverableResponse> getDeliverable(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(
-                entregableServicio.obtenerEntregable(idPedido, userDetails.getIdUsuario()));
+                entregableServicio.getDeliverable(idPedido, userDetails.getIdUsuario()));
     }
 
     /**
@@ -74,10 +74,10 @@ public class DeliverableController {
      */
     @PostMapping("/{idPedido}/aprobar")
     @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('FONDOS_LIBERAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> aprobarEntrega(
+    public ResponseEntity<RespuestaMensaje> approveDelivery(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        entregableServicio.aprobarEntrega(idPedido, userDetails.getIdUsuario());
+        entregableServicio.approveDelivery(idPedido, userDetails.getIdUsuario());
         return ResponseEntity.ok(new RespuestaMensaje("Entrega aprobada exitosamente. Fondos liberados."));
     }
 
@@ -92,11 +92,11 @@ public class DeliverableController {
      */
     @GetMapping("/{idPedido}/entregable/descargar")
     @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> descargarVersionLimpia(
+    public ResponseEntity<byte[]> downloadCleanVersion(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return responderArchivo(
-                entregableServicio.descargarVersionLimpia(idPedido, userDetails.getIdUsuario()));
+        return respondWithFile(
+                entregableServicio.downloadCleanVersion(idPedido, userDetails.getIdUsuario()));
     }
 
     /**
@@ -110,11 +110,11 @@ public class DeliverableController {
      */
     @GetMapping("/{idPedido}/entregable/descargar/marca-agua")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<byte[]> descargarVersionMarcaAgua(
+    public ResponseEntity<byte[]> downloadWatermarkedVersion(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return responderArchivo(
-                entregableServicio.descargarVersionMarcaAgua(idPedido, userDetails.getIdUsuario()));
+        return respondWithFile(
+                entregableServicio.downloadWatermarkedVersion(idPedido, userDetails.getIdUsuario()));
     }
 
     /**
@@ -122,7 +122,7 @@ public class DeliverableController {
      * HTML o SVG, y servirlo para que el navegador lo interprete en el dominio
      * de la plataforma abriría la puerta a XSS almacenado.
      */
-    private ResponseEntity<byte[]> responderArchivo(IDeliverableService.ArchivoDescargado archivo) {
+    private ResponseEntity<byte[]> respondWithFile(IDeliverableService.ArchivoDescargado archivo) {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(archivo.contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,

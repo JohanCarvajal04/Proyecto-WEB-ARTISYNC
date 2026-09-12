@@ -33,7 +33,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * TRANSACCION_VER (ver) y REPORTE_CONTRATO_EXPORTAR (exportar) son permisos
+ * TRANSACCION_VER (ver) y REPORTE_CONTRATO_EXPORTAR (export) son permisos
  * deliberadamente distintos (V19__permisos_reportes.sql), mismo criterio que
  * ReporteFinancieroAutorizacionTest y AuditoriaAutorizacionTest.
  */
@@ -48,11 +48,11 @@ class ContractReportAuthorizationTest {
         @Bean
         IContractReportService reporteContratoServicio() {
             IContractReportService servicio = mock(IContractReportService.class);
-            when(servicio.listar(any(), anyInt(), anyInt())).thenReturn(
+            when(servicio.list(any(), anyInt(), anyInt())).thenReturn(
                     PagedResponse.<uteq.edu.ec.artisync.dto.respuesta.legal.ContractReportRow>builder()
                             .content(List.of()).pageNumber(0).pageSize(20).totalElements(0).totalPages(0).last(true)
                             .build());
-            when(servicio.exportar(any(), any(), any()))
+            when(servicio.export(any(), any(), any()))
                     .thenReturn(new GeneratedDocument(new byte[0], "text/csv", "contratos.csv"));
             return servicio;
         }
@@ -89,16 +89,16 @@ class ContractReportAuthorizationTest {
     void listar_auditorFinancieroConTransaccionVer_estaAutorizado() {
         autenticar("ROLE_AUDITOR_FINANCIERO", "TRANSACCION_VER");
 
-        assertDoesNotThrow(() -> controlador.listar(new ContractReportFilter(), 0, 20));
+        assertDoesNotThrow(() -> controlador.list(new ContractReportFilter(), 0, 20));
     }
 
     @Test
-    @DisplayName("Con TRANSACCION_VER pero sin REPORTE_CONTRATO_EXPORTAR, exportar() devuelve 403")
+    @DisplayName("Con TRANSACCION_VER pero sin REPORTE_CONTRATO_EXPORTAR, export() devuelve 403")
     void conSoloTransaccionVer_noPuedeExportar() {
         autenticar("TRANSACCION_VER");
 
-        assertDoesNotThrow(() -> controlador.listar(new ContractReportFilter(), 0, 20));
-        assertThrows(AccessDeniedException.class, () -> controlador.exportar(
+        assertDoesNotThrow(() -> controlador.list(new ContractReportFilter(), 0, 20));
+        assertThrows(AccessDeniedException.class, () -> controlador.export(
                 new ContractReportFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
@@ -107,8 +107,8 @@ class ContractReportAuthorizationTest {
     void conSoloContratoVer_esRechazadoEnAmbosEndpoints() {
         autenticar("CONTRATO_VER");
 
-        assertThrows(AccessDeniedException.class, () -> controlador.listar(new ContractReportFilter(), 0, 20));
-        assertThrows(AccessDeniedException.class, () -> controlador.exportar(
+        assertThrows(AccessDeniedException.class, () -> controlador.list(new ContractReportFilter(), 0, 20));
+        assertThrows(AccessDeniedException.class, () -> controlador.export(
                 new ContractReportFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
@@ -117,8 +117,8 @@ class ContractReportAuthorizationTest {
     void admin_pasaAmbosEndpoints() {
         autenticar("ROLE_ADMIN");
 
-        assertDoesNotThrow(() -> controlador.listar(new ContractReportFilter(), 0, 20));
-        assertDoesNotThrow(() -> controlador.exportar(new ContractReportFilter(), ReportFormat.CSV, autenticacionActual()));
+        assertDoesNotThrow(() -> controlador.list(new ContractReportFilter(), 0, 20));
+        assertDoesNotThrow(() -> controlador.export(new ContractReportFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
     @Test
@@ -126,8 +126,8 @@ class ContractReportAuthorizationTest {
     void creadorSinPermisos_esRechazadoEnAmbosEndpoints() {
         autenticar("ROLE_CREADOR");
 
-        assertThrows(AccessDeniedException.class, () -> controlador.listar(new ContractReportFilter(), 0, 20));
-        assertThrows(AccessDeniedException.class, () -> controlador.exportar(
+        assertThrows(AccessDeniedException.class, () -> controlador.list(new ContractReportFilter(), 0, 20));
+        assertThrows(AccessDeniedException.class, () -> controlador.export(
                 new ContractReportFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 }

@@ -15,7 +15,7 @@ public interface IContractService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe un contrato para este pedido
      */
-    ContractResponse generarContrato(Long idPedido, Long idUsuarioSolicitante);
+    ContractResponse generateContract(Long idPedido, Long idUsuarioSolicitante);
 
     /**
      * Registra la firma del cliente o del creador sobre un contrato.
@@ -27,7 +27,7 @@ public interface IContractService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si esa parte ya había firmado el contrato
      * @throws org.springframework.security.access.AccessDeniedException si el solicitante no es parte del contrato
      */
-    ContractResponse firmarContrato(Long idContrato, Long idUsuario);
+    ContractResponse signContract(Long idContrato, Long idUsuario);
 
     /**
      * Obtiene el detalle de un contrato por su id.
@@ -37,7 +37,7 @@ public interface IContractService {
      * @return el detalle del contrato
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el contrato no existe
      */
-    ContractResponse obtenerContrato(Long idContrato, Long idUsuarioSolicitante);
+    ContractResponse getContract(Long idContrato, Long idUsuarioSolicitante);
 
     /**
      * Obtiene el contrato asociado a un pedido.
@@ -47,7 +47,7 @@ public interface IContractService {
      * @return el contrato del pedido
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene contrato
      */
-    ContractResponse obtenerContratoPorPedido(Long idPedido, Long idUsuarioSolicitante);
+    ContractResponse getContractByOrder(Long idPedido, Long idUsuarioSolicitante);
 
     /**
      * Obtiene el estado de firma de un contrato (quién ha firmado y quién falta).
@@ -57,7 +57,7 @@ public interface IContractService {
      * @return el estado de firma del contrato
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el contrato no existe
      */
-    SignatureStatusResponse obtenerEstadoFirma(Long idContrato, Long idUsuarioSolicitante);
+    SignatureStatusResponse getSignatureStatus(Long idContrato, Long idUsuarioSolicitante);
 
     /**
      * Genera el PDF del contrato, con su hash de integridad si ya está firmado por ambas partes.
@@ -67,7 +67,7 @@ public interface IContractService {
      * @return los bytes del PDF generado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el contrato no existe
      */
-    byte[] generarPdf(Long idContrato, Long idUsuarioSolicitante);
+    byte[] generatePdf(Long idContrato, Long idUsuarioSolicitante);
 
     /**
      * Recalcula el hash SHA-256 del contenido congelado de un contrato y lo
@@ -78,5 +78,5 @@ public interface IContractService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el contrato no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el contrato aún no está firmado por ambas partes
      */
-    IntegrityVerificationResponse verificarIntegridadHash(Long idContrato);
+    IntegrityVerificationResponse verifyHashIntegrity(Long idContrato);
 }

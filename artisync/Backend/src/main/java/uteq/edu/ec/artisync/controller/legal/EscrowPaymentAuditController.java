@@ -41,8 +41,8 @@ public class EscrowPaymentAuditController {
     @Operation(summary = "Listado paginado y filtrado de pagos en garantía (escrow)")
     @GetMapping
     @PreAuthorize("hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')")
-    public ResponseEntity<Page<EscrowPaymentResponse>> listar(EscrowPaymentFilter filtro, Pageable pageable) {
-        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.listar(filtro, pageable));
+    public ResponseEntity<Page<EscrowPaymentResponse>> list(EscrowPaymentFilter filtro, Pageable pageable) {
+        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.list(filtro, pageable));
     }
 
     /**
@@ -55,8 +55,8 @@ public class EscrowPaymentAuditController {
     @Operation(summary = "Detalle de un pago en garantía, con su historial de transacciones")
     @GetMapping("/{idPago}")
     @PreAuthorize("hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')")
-    public ResponseEntity<EscrowPaymentDetailResponse> obtenerDetalle(@PathVariable Long idPago) {
-        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.obtenerDetalle(idPago));
+    public ResponseEntity<EscrowPaymentDetailResponse> getDetail(@PathVariable Long idPago) {
+        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.getDetail(idPago));
     }
 
     /**
@@ -67,7 +67,7 @@ public class EscrowPaymentAuditController {
     @Operation(summary = "Resumen agregado: cantidad y monto total de fondos por estado")
     @GetMapping("/resumen")
     @PreAuthorize("hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')")
-    public ResponseEntity<List<EscrowSummaryResponse>> obtenerResumen() {
-        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.obtenerResumen());
+    public ResponseEntity<List<EscrowSummaryResponse>> getSummary() {
+        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.getSummary());
     }
 }

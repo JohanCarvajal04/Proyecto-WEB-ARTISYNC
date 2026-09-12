@@ -143,7 +143,7 @@ class ContratoPdfTimingIT {
         List<Long> tiemposMs = new ArrayList<>();
         for (int i = 1; i <= NUMERO_CORRIDAS; i++) {
             long inicio = System.currentTimeMillis();
-            byte[] pdf = contratoServicio.generarPdf(idContrato, ID_CLIENTE);
+            byte[] pdf = contratoServicio.generatePdf(idContrato, ID_CLIENTE);
             long transcurrido = System.currentTimeMillis() - inicio;
             tiemposMs.add(transcurrido);
 

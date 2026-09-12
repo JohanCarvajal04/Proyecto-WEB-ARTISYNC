@@ -107,7 +107,7 @@ class PaymentServiceImplWebhookTest {
     void sinWebhookIdNoConfirma() {
         ReflectionTestUtils.setField(pagoServicio, "paypalWebhookId", "");
 
-        pagoServicio.procesarWebhookPayPal(EVENTO_APROBADO, "TX-1", "2026-01-01",
+        pagoServicio.processPayPalWebhook(EVENTO_APROBADO, "TX-1", "2026-01-01",
                 "firma", "https://cert", "SHA256withRSA", "1.0");
 
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Pendiente");
@@ -118,7 +118,7 @@ class PaymentServiceImplWebhookTest {
     @Test
     @DisplayName("sin las cabeceras de firma se rechaza la notificacion")
     void sinCabecerasDeFirmaRechaza() {
-        pagoServicio.procesarWebhookPayPal(EVENTO_APROBADO, null, null, null, null, null, null);
+        pagoServicio.processPayPalWebhook(EVENTO_APROBADO, null, null, null, null, null, null);
 
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Pendiente");
         verify(pagoGarantiaRepository, never()).save(any());
@@ -127,7 +127,7 @@ class PaymentServiceImplWebhookTest {
     @Test
     @DisplayName("un payload ilegible no revienta ni confirma nada")
     void payloadIlegible() {
-        pagoServicio.procesarWebhookPayPal("esto no es json", "TX-1", "2026-01-01",
+        pagoServicio.processPayPalWebhook("esto no es json", "TX-1", "2026-01-01",
                 "firma", "https://cert", "SHA256withRSA", "1.0");
 
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Pendiente");
@@ -140,7 +140,7 @@ class PaymentServiceImplWebhookTest {
         conRespuestasPayPal("""
                 {"verification_status":"FAILURE"}""");
 
-        pagoServicio.procesarWebhookPayPal(EVENTO_APROBADO, "TX-1", "2026-01-01",
+        pagoServicio.processPayPalWebhook(EVENTO_APROBADO, "TX-1", "2026-01-01",
                 "firma-falsa", "https://cert", "SHA256withRSA", "1.0");
 
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Pendiente");
@@ -163,7 +163,7 @@ class PaymentServiceImplWebhookTest {
                 """
                 {"status":"COMPLETED"}""");
 
-        pagoServicio.procesarWebhookPayPal(EVENTO_APROBADO, "TX-1", "2026-01-01",
+        pagoServicio.processPayPalWebhook(EVENTO_APROBADO, "TX-1", "2026-01-01",
                 "firma", "https://cert", "SHA256withRSA", "1.0");
 
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Retenido");
@@ -180,7 +180,7 @@ class PaymentServiceImplWebhookTest {
                 """
                 {"status":"PAYER_ACTION_REQUIRED"}""");
 
-        pagoServicio.procesarWebhookPayPal(EVENTO_APROBADO, "TX-1", "2026-01-01",
+        pagoServicio.processPayPalWebhook(EVENTO_APROBADO, "TX-1", "2026-01-01",
                 "firma", "https://cert", "SHA256withRSA", "1.0");
 
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Pendiente");
@@ -193,7 +193,7 @@ class PaymentServiceImplWebhookTest {
     @DisplayName("una orden que no es de pago de garantia se delega al pago de ticket de revision")
     void ordenDesconocida_seDelegaAPagoDeTicketRevision() {
         given(pagoGarantiaRepository.findByIdOrdenPaypal("ORDER-999")).willReturn(java.util.Optional.empty());
-        given(pagoTicketRevisionServicio.procesarWebhookOrden("ORDER-999", "CHECKOUT.ORDER.APPROVED"))
+        given(pagoTicketRevisionServicio.processOrderWebhook("ORDER-999", "CHECKOUT.ORDER.APPROVED"))
                 .willReturn(true);
         conRespuestasPayPal("""
                 {"verification_status":"SUCCESS"}""");
@@ -205,10 +205,10 @@ class PaymentServiceImplWebhookTest {
                   "resource": { "id": "ORDER-999" }
                 }
                 """;
-        pagoServicio.procesarWebhookPayPal(eventoOrdenDesconocida, "TX-1", "2026-01-01",
+        pagoServicio.processPayPalWebhook(eventoOrdenDesconocida, "TX-1", "2026-01-01",
                 "firma", "https://cert", "SHA256withRSA", "1.0");
 
-        verify(pagoTicketRevisionServicio).procesarWebhookOrden("ORDER-999", "CHECKOUT.ORDER.APPROVED");
+        verify(pagoTicketRevisionServicio).processOrderWebhook("ORDER-999", "CHECKOUT.ORDER.APPROVED");
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Pendiente");
     }
 
@@ -219,7 +219,7 @@ class PaymentServiceImplWebhookTest {
         conRespuestasPayPal("""
                 {"verification_status":"SUCCESS"}""");
 
-        pagoServicio.procesarWebhookPayPal(EVENTO_APROBADO, "TX-1", "2026-01-01",
+        pagoServicio.processPayPalWebhook(EVENTO_APROBADO, "TX-1", "2026-01-01",
                 "firma", "https://cert", "SHA256withRSA", "1.0");
 
         verify(transaccionPagoRepository, never()).save(any(PaymentTransaction.class));

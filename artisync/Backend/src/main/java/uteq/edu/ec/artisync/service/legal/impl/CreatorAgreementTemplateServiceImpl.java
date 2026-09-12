@@ -39,14 +39,14 @@ public class CreatorAgreementTemplateServiceImpl implements ICreatorAgreementTem
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ContractTemplateResponse crear(Long idUsuarioCreador, CreateOwnAgreementTemplateRequest peticion) {
+    public ContractTemplateResponse create(Long idUsuarioCreador, CreateOwnAgreementTemplateRequest peticion) {
         ContractTemplate plantilla = ContractTemplate.builder()
                 .nombrePlantilla(peticion.getNombrePlantilla().trim())
                 // No es un dato de negocio para una plantilla privada (a diferencia
                 // del catálogo general, donde el admin la declara a mano para
                 // versionar cambios legales revisados) — se genera solo para
                 // satisfacer la columna version_legal NOT NULL UNIQUE heredada de V13.
-                .versionLegal(generarVersionLegalPropia(idUsuarioCreador))
+                .versionLegal(generateOwnLegalVersion(idUsuarioCreador))
                 .cuerpoHtmlPlantilla(peticion.getCuerpoHtmlPlantilla())
                 .esPredeterminada(false)
                 .activa(true)
@@ -70,8 +70,8 @@ public class CreatorAgreementTemplateServiceImpl implements ICreatorAgreementTem
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ContractTemplateResponse editar(Long idUsuarioCreador, Long idPlantilla, UpdateOwnAgreementTemplateRequest peticion) {
-        ContractTemplate plantilla = obtenerPropiaOFallar(idUsuarioCreador, idPlantilla);
+    public ContractTemplateResponse update(Long idUsuarioCreador, Long idPlantilla, UpdateOwnAgreementTemplateRequest peticion) {
+        ContractTemplate plantilla = getOwnOrFail(idUsuarioCreador, idPlantilla);
 
         plantilla.setNombrePlantilla(peticion.getNombrePlantilla().trim());
         plantilla.setCuerpoHtmlPlantilla(peticion.getCuerpoHtmlPlantilla());
@@ -91,7 +91,7 @@ public class CreatorAgreementTemplateServiceImpl implements ICreatorAgreementTem
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<ContractTemplateResponse> listarPropias(Long idUsuarioCreador) {
+    public List<ContractTemplateResponse> listOwn(Long idUsuarioCreador) {
         return plantillaContratoRepository.findByIdCreadorOrderByNombrePlantillaAsc(idUsuarioCreador).stream()
                 .map(this::mapToRespuesta)
                 .collect(Collectors.toList());
@@ -107,8 +107,8 @@ public class CreatorAgreementTemplateServiceImpl implements ICreatorAgreementTem
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje desactivar(Long idUsuarioCreador, Long idPlantilla) {
-        ContractTemplate plantilla = obtenerPropiaOFallar(idUsuarioCreador, idPlantilla);
+    public RespuestaMensaje deactivate(Long idUsuarioCreador, Long idPlantilla) {
+        ContractTemplate plantilla = getOwnOrFail(idUsuarioCreador, idPlantilla);
         plantilla.setActiva(false);
         plantillaContratoRepository.save(plantilla);
         log.info("Plantilla de acuerdo propia {} desactivada por el usuario {}", idPlantilla, idUsuarioCreador);
@@ -116,12 +116,12 @@ public class CreatorAgreementTemplateServiceImpl implements ICreatorAgreementTem
     }
 
     /** Mismo criterio "no encontrado" (no "prohibido") que resolverBriefingPlantillaPropia/resolverFlujoPropio: no revela si el recurso existe a nombre de otro. */
-    private ContractTemplate obtenerPropiaOFallar(Long idUsuarioCreador, Long idPlantilla) {
+    private ContractTemplate getOwnOrFail(Long idUsuarioCreador, Long idPlantilla) {
         return plantillaContratoRepository.findByIdPlantillaAndIdCreador(idPlantilla, idUsuarioCreador)
                 .orElseThrow(() -> new ResourceNotFoundException("Plantilla de acuerdo no encontrada: " + idPlantilla));
     }
 
-    private String generarVersionLegalPropia(Long idUsuarioCreador) {
+    private String generateOwnLegalVersion(Long idUsuarioCreador) {
         return "propia-" + idUsuarioCreador + "-" + UUID.randomUUID().toString().substring(0, 8);
     }
 

@@ -70,8 +70,8 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public CommissionReportResponse obtenerReporteComisiones(FinancialReportFilter filtro) {
-        return parsear(consultar(filtro));
+    public CommissionReportResponse getCommissionReport(FinancialReportFilter filtro) {
+        return parsear(query(filtro));
     }
 
     @Override
@@ -89,8 +89,8 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public GeneratedDocument exportar(FinancialReportFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante) {
-        CommissionReportResponse reporte = parsear(consultar(filtro));
+    public GeneratedDocument export(FinancialReportFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante) {
+        CommissionReportResponse reporte = parsear(query(filtro));
         List<CommissionDetail> filas;
         String titulo = "Comisiones";
         String subtitulo = "Reporte financiero por creador";
@@ -112,7 +112,7 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
                 throw new BusinessRuleException(
                         "El reporte devuelve " + filas.size() + " transacciones, más de las "
                                 + formato.topeFilas() + " que admite una exportación en " + formato
-                                + ". Acote el rango de fechas o utilice la opción de exportar por partes.");
+                                + ". Acote el rango de fechas o utilice la opción de export por partes.");
             }
         }
 
@@ -149,11 +149,11 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public GeneratedDocument exportar(FinancialReportFilter filtro, ReportFormat formato, String correoSolicitante) {
-        return exportar(filtro, formato, null, null, correoSolicitante);
+    public GeneratedDocument export(FinancialReportFilter filtro, ReportFormat formato, String correoSolicitante) {
+        return export(filtro, formato, null, null, correoSolicitante);
     }
 
-    private String consultar(FinancialReportFilter filtro) {
+    private String query(FinancialReportFilter filtro) {
         BigDecimal tasa = filtro.getTasaComision() != null ? filtro.getTasaComision() : tasaComisionPorDefecto;
         String json = transaccionPagoRepository.reporteComisionesJson(
                 filtro.getIdPerfil(), filtro.getDesde(), filtro.getHasta(), tasa);

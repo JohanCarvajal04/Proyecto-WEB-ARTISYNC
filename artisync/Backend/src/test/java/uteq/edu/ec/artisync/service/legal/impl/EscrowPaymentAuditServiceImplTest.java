@@ -65,7 +65,7 @@ class EscrowPaymentAuditServiceImplTest {
         given(pagoGarantiaRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(PageRequest.class)))
                 .willReturn(pagina);
 
-        Page<EscrowPaymentResponse> resultado = servicio.listar(new EscrowPaymentFilter(), PageRequest.of(0, 20));
+        Page<EscrowPaymentResponse> resultado = servicio.list(new EscrowPaymentFilter(), PageRequest.of(0, 20));
 
         assertThat(resultado.getContent()).hasSize(1);
         EscrowPaymentResponse fila = resultado.getContent().get(0);
@@ -83,7 +83,7 @@ class EscrowPaymentAuditServiceImplTest {
         given(transaccionPagoRepository.findByPagoIdPagoOrderByFechaEjecucionDesc(50L))
                 .willReturn(List.of(transaccion));
 
-        EscrowPaymentDetailResponse detalle = servicio.obtenerDetalle(50L);
+        EscrowPaymentDetailResponse detalle = servicio.getDetail(50L);
 
         assertThat(detalle.correoCliente()).isEqualTo("ana@test.com");
         assertThat(detalle.transacciones()).hasSize(1);
@@ -94,7 +94,7 @@ class EscrowPaymentAuditServiceImplTest {
     void obtenerDetalle_pagoInexistente_lanza404() {
         given(pagoGarantiaRepository.findById(999L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicio.obtenerDetalle(999L))
+        assertThatThrownBy(() -> servicio.getDetail(999L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -103,7 +103,7 @@ class EscrowPaymentAuditServiceImplTest {
         given(pagoGarantiaRepository.resumenPorEstado()).willReturn(List.of(
                 EscrowSummaryResponse.builder().estadoFondos("Retenido").cantidad(3).montoTotal(new BigDecimal("300.00")).build()));
 
-        List<EscrowSummaryResponse> resumen = servicio.obtenerResumen();
+        List<EscrowSummaryResponse> resumen = servicio.getSummary();
 
         assertThat(resumen).hasSize(1);
         assertThat(resumen.get(0).cantidad()).isEqualTo(3);

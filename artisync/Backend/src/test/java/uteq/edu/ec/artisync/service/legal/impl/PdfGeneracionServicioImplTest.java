@@ -21,7 +21,7 @@ class PdfGeneracionServicioImplTest {
         String html = "<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"UTF-8\"/>"
                 + "<title>t</title></head><body><p>hola</p></body></html>";
 
-        byte[] pdf = servicio.generarPdfDesdeHtml(html);
+        byte[] pdf = servicio.generatePdfFromHtml(html);
 
         assertThat(pdf).isNotEmpty();
     }
@@ -32,7 +32,7 @@ class PdfGeneracionServicioImplTest {
         String html = "<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"UTF-8\">"
                 + "<title>t</title></head><body><p>hola</p></body></html>";
 
-        assertThatCode(() -> servicio.generarPdfDesdeHtml(html))
+        assertThatCode(() -> servicio.generatePdfFromHtml(html))
                 .isInstanceOf(RuntimeException.class);
     }
 
@@ -47,7 +47,7 @@ class PdfGeneracionServicioImplTest {
         String html = "<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"UTF-8\"/>"
                 + "<title>t</title></head><body><p>fotograf&iacute;a</p></body></html>";
 
-        assertThatCode(() -> servicio.generarPdfDesdeHtml(html))
+        assertThatCode(() -> servicio.generatePdfFromHtml(html))
                 .isInstanceOf(RuntimeException.class);
     }
 
@@ -59,14 +59,14 @@ class PdfGeneracionServicioImplTest {
         String html = "<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"UTF-8\"/>"
                 + "<title>t</title></head><body><p>fotografía</p></body></html>";
 
-        byte[] pdf = servicio.generarPdfDesdeHtml(html);
+        byte[] pdf = servicio.generatePdfFromHtml(html);
 
         assertThat(pdf).isNotEmpty();
     }
 
     @Test
     void generarPdfDesdeHtml_generaBytesConPlantillaDeContratoCompleta() {
-        // Misma forma que ContractServiceImpl#renderizarContratoCompleto tras el fix:
+        // Misma forma que ContractServiceImpl#renderFullContract tras el fix:
         // plantilla real (meta autocerrado) + pie de firmas con <hr/> autocerrado.
         String html = "<!DOCTYPE html><html lang=\"es\">"
                 + "<head><meta charset=\"UTF-8\"/><title>Contract de Prestación de Servicios</title></head>"
@@ -79,7 +79,7 @@ class PdfGeneracionServicioImplTest {
                 + "</div>"
                 + "</body></html>";
 
-        byte[] pdf = servicio.generarPdfDesdeHtml(html);
+        byte[] pdf = servicio.generatePdfFromHtml(html);
 
         assertThat(pdf).isNotEmpty();
     }

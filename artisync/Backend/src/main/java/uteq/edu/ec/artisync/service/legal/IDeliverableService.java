@@ -17,7 +17,7 @@ public interface IDeliverableService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el creador del servicio
      */
-    DeliverableResponse subirEntregable(Long idPedido, Long idCreador,
+    DeliverableResponse uploadDeliverable(Long idPedido, Long idCreador,
                                          MultipartFile versionMarcaAgua, MultipartFile versionLimpia);
 
     /**
@@ -28,7 +28,7 @@ public interface IDeliverableService {
      * @return el detalle del entregable
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene entregable
      */
-    DeliverableResponse obtenerEntregable(Long idPedido, Long idUsuario);
+    DeliverableResponse getDeliverable(Long idPedido, Long idUsuario);
 
     /**
      * Aprueba el entregable de un pedido. Solo el cliente puede aprobarlo, y solo una vez;
@@ -39,7 +39,7 @@ public interface IDeliverableService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido, el entregable o su contrato no existen
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el cliente del pedido, o si el entregable ya fue aprobado
      */
-    void aprobarEntrega(Long idPedido, Long idCliente);
+    void approveDelivery(Long idPedido, Long idCliente);
 
     /**
      * Descarga la versión limpia (final) del entregable. Solo disponible para el cliente,
@@ -51,10 +51,10 @@ public interface IDeliverableService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene entregable, o si el entregable no tiene un archivo asociado
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el cliente del pedido, o si el pago aún no ha sido liberado
      */
-    ArchivoDescargado descargarVersionLimpia(Long idPedido, Long idCliente);
+    ArchivoDescargado downloadCleanVersion(Long idPedido, Long idCliente);
 
     /**
-     * La versión con marca de agua es la que el cliente revisa antes de aprobar,
+     * La versión con marca de agua es la que el cliente revisa antes de approve,
      * así que no depende de que los fondos estén liberados.
      *
      * @param idPedido  id del pedido
@@ -63,7 +63,7 @@ public interface IDeliverableService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene entregable, o si el entregable no tiene versión con marca de agua
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no tiene acceso a este entregable
      */
-    ArchivoDescargado descargarVersionMarcaAgua(Long idPedido, Long idUsuario);
+    ArchivoDescargado downloadWatermarkedVersion(Long idPedido, Long idUsuario);
 
     /**
      * Bytes del entregable junto al tipo que declara, para que el controlador

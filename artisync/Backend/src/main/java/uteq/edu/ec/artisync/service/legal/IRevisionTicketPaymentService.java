@@ -9,11 +9,11 @@ public interface IRevisionTicketPaymentService {
      * Crea (o reutiliza, si ya existe una pendiente) la orden de pago en PayPal
      * para el cargo adicional de un ticket. Nunca propaga una falla de PayPal:
      * el ticket debe quedar creado igual, con el pago en estado fallido para
-     * reintentar después.
+     * retry después.
      *
      * @param ticket ticket ya persistido, con {@code costoAdicionalGenerado > 0}
      */
-    void crearOrdenPago(RevisionTicket ticket);
+    void createPaymentOrder(RevisionTicket ticket);
 
     /**
      * URL de aprobación de PayPal pendiente de pago para un ticket, o
@@ -22,15 +22,15 @@ public interface IRevisionTicketPaymentService {
      *
      * @param idTicket id del ticket
      */
-    String obtenerUrlPagoPendiente(Long idTicket);
+    String getPendingPaymentUrl(Long idTicket);
 
     /**
      * Procesa un evento de webhook de PayPal cuyo id de orden no correspondía
-     * a ningún EscrowPayment (ver PaymentServiceImpl.procesarWebhookPayPal).
+     * a ningún EscrowPayment (ver PaymentServiceImpl.processPayPalWebhook).
      *
      * @param idOrdenPaypal id de la orden de PayPal
      * @param tipoEvento    event_type del webhook (CHECKOUT.ORDER.APPROVED / PAYMENT.CAPTURE.COMPLETED)
      * @return {@code true} si la orden correspondía a un pago de ticket de revisión (procesado o no), {@code false} si no era de este módulo
      */
-    boolean procesarWebhookOrden(String idOrdenPaypal, String tipoEvento);
+    boolean processOrderWebhook(String idOrdenPaypal, String tipoEvento);
 }

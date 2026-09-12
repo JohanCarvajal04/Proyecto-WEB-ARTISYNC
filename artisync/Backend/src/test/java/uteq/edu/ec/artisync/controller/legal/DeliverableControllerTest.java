@@ -41,9 +41,9 @@ class DeliverableControllerTest {
         MultipartFile limpia = mock(MultipartFile.class);
         DeliverableResponse respuesta = new DeliverableResponse();
 
-        when(entregableServicio.subirEntregable(10L, 1L, marcaAgua, limpia)).thenReturn(respuesta);
+        when(entregableServicio.uploadDeliverable(10L, 1L, marcaAgua, limpia)).thenReturn(respuesta);
 
-        ResponseEntity<DeliverableResponse> res = controlador.subirEntregable(10L, user, marcaAgua, limpia);
+        ResponseEntity<DeliverableResponse> res = controlador.uploadDeliverable(10L, user, marcaAgua, limpia);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -53,9 +53,9 @@ class DeliverableControllerTest {
         CustomUserDetails user = mockUserDetails();
         DeliverableResponse respuesta = new DeliverableResponse();
 
-        when(entregableServicio.obtenerEntregable(10L, 1L)).thenReturn(respuesta);
+        when(entregableServicio.getDeliverable(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<DeliverableResponse> res = controlador.obtenerEntregable(10L, user);
+        ResponseEntity<DeliverableResponse> res = controlador.getDeliverable(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -64,8 +64,8 @@ class DeliverableControllerTest {
     void aprobarEntrega_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
 
-        ResponseEntity<RespuestaMensaje> res = controlador.aprobarEntrega(10L, user);
-        verify(entregableServicio).aprobarEntrega(10L, 1L);
+        ResponseEntity<RespuestaMensaje> res = controlador.approveDelivery(10L, user);
+        verify(entregableServicio).approveDelivery(10L, 1L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().getMensaje()).contains("aprobada exitosamente");
     }
@@ -76,9 +76,9 @@ class DeliverableControllerTest {
         IDeliverableService.ArchivoDescargado archivo = new IDeliverableService.ArchivoDescargado(
                 new byte[]{1, 2}, "limpia.png", "image/png"
         );
-        when(entregableServicio.descargarVersionLimpia(10L, 1L)).thenReturn(archivo);
+        when(entregableServicio.downloadCleanVersion(10L, 1L)).thenReturn(archivo);
 
-        ResponseEntity<byte[]> res = controlador.descargarVersionLimpia(10L, user);
+        ResponseEntity<byte[]> res = controlador.downloadCleanVersion(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION)).contains("attachment");
         assertThat(res.getBody()).isEqualTo(archivo.contenido());
@@ -90,9 +90,9 @@ class DeliverableControllerTest {
         IDeliverableService.ArchivoDescargado archivo = new IDeliverableService.ArchivoDescargado(
                 new byte[]{3, 4}, "marca.jpg", "image/jpeg"
         );
-        when(entregableServicio.descargarVersionMarcaAgua(10L, 1L)).thenReturn(archivo);
+        when(entregableServicio.downloadWatermarkedVersion(10L, 1L)).thenReturn(archivo);
 
-        ResponseEntity<byte[]> res = controlador.descargarVersionMarcaAgua(10L, user);
+        ResponseEntity<byte[]> res = controlador.downloadWatermarkedVersion(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION)).contains("attachment");
         assertThat(res.getBody()).isEqualTo(archivo.contenido());

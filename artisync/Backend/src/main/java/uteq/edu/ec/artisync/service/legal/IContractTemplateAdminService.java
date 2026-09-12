@@ -22,55 +22,55 @@ public interface IContractTemplateAdminService {
      * @return la plantilla recién creada
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una plantilla con la misma versión legal
      */
-    ContractTemplateResponse crear(CreateContractTemplateRequest peticion);
+    ContractTemplateResponse create(CreateContractTemplateRequest peticion);
 
     /**
      * Edita una plantilla de contrato existente.
      *
-     * @param idPlantilla id de la plantilla a editar
+     * @param idPlantilla id de la plantilla a update
      * @param peticion    nuevos datos de la plantilla
      * @return la plantilla ya actualizada
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la nueva versión legal ya la usa otra plantilla
      */
-    ContractTemplateResponse editar(Long idPlantilla, UpdateContractTemplateRequest peticion);
+    ContractTemplateResponse update(Long idPlantilla, UpdateContractTemplateRequest peticion);
 
     /**
      * Lista todas las plantillas de contrato, activas e inactivas.
      *
      * @return todas las plantillas
      */
-    List<ContractTemplateResponse> listarTodas();
+    List<ContractTemplateResponse> listAll();
 
     /**
      * Desactiva una plantilla de contrato, para que deje de estar disponible en el selector del creador.
      *
-     * @param idPlantilla id de la plantilla a desactivar
+     * @param idPlantilla id de la plantilla a deactivate
      * @return mensaje de confirmación
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la plantilla ya está desactivada
      */
-    RespuestaMensaje desactivar(Long idPlantilla);
+    RespuestaMensaje deactivate(Long idPlantilla);
 
     /**
-     * Para el selector del creador al crear/editar un servicio: solo el
+     * Para el selector del creador al create/update un servicio: solo el
      * catálogo general curado por ADMIN, sin las plantillas privadas de
      * ningún creador (V45). Se conserva tal cual porque
      * {@link uteq.edu.ec.artisync.controller.legal.ContractTemplateController}
-     * ya no la usa (ver {@link #listarActivasVisiblesPara}), pero la firma
+     * ya no la usa (ver {@link #listActiveVisibleTo}), pero la firma
      * pública no cambia sin necesidad.
      *
      * @return las plantillas activas del catálogo general, en formato resumido
      */
-    List<ContractTemplateSummaryResponse> listarActivas();
+    List<ContractTemplateSummaryResponse> listActive();
 
     /**
-     * Para el selector del creador al crear/editar un servicio (V45): el
+     * Para el selector del creador al create/update un servicio (V45): el
      * catálogo general (ADMIN) más las plantillas privadas de ese creador,
      * nunca las de otro creador.
      *
      * @param idUsuarioCreador id del usuario autenticado que consulta
      * @return las plantillas activas visibles para ese creador, en formato resumido
      */
-    List<ContractTemplateSummaryResponse> listarActivasVisiblesPara(Long idUsuarioCreador);
+    List<ContractTemplateSummaryResponse> listActiveVisibleTo(Long idUsuarioCreador);
 }

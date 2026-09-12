@@ -102,7 +102,7 @@ class DeliverableServiceImplTest {
         when(entregableRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
 
-        DeliverableResponse respuesta = servicio.subirEntregable(
+        DeliverableResponse respuesta = servicio.uploadDeliverable(
                 ID_PEDIDO, ID_CREADOR, imagen("marca"), imagen("limpia"));
 
         verify(almacenamiento, times(2)).guardar(any(), eq("entregables"));
@@ -113,7 +113,7 @@ class DeliverableServiceImplTest {
     void subirEntregable_usuarioQueNoEsElCreador_esRechazado() {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
 
-        assertThrows(BusinessRuleException.class, () -> servicio.subirEntregable(
+        assertThrows(BusinessRuleException.class, () -> servicio.uploadDeliverable(
                 ID_PEDIDO, ID_TERCERO, imagen("marca"), imagen("limpia")));
 
         verify(almacenamiento, never()).guardar(any(), anyString());
@@ -124,7 +124,7 @@ class DeliverableServiceImplTest {
         MockMultipartFile ejecutable = new MockMultipartFile(
                 "versionLimpia", "virus.exe", "application/x-msdownload", "MZ".getBytes());
 
-        assertThrows(BusinessRuleException.class, () -> servicio.subirEntregable(
+        assertThrows(BusinessRuleException.class, () -> servicio.uploadDeliverable(
                 ID_PEDIDO, ID_CREADOR, imagen("marca"), ejecutable));
 
         verifyNoInteractions(pedidoRepository, almacenamiento);
@@ -142,7 +142,7 @@ class DeliverableServiceImplTest {
         when(entregableRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
 
-        servicio.subirEntregable(ID_PEDIDO, ID_CREADOR, imagen("marca"), imagen("limpia"));
+        servicio.uploadDeliverable(ID_PEDIDO, ID_CREADOR, imagen("marca"), imagen("limpia"));
 
         verify(almacenamiento).eliminar("entregables/vieja-marca.png");
         verify(almacenamiento).eliminar("entregables/vieja-limpia.png");
@@ -159,7 +159,7 @@ class DeliverableServiceImplTest {
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
         doThrow(new BusinessRuleException("Azure caido")).when(almacenamiento).eliminar(anyString());
 
-        DeliverableResponse respuesta = servicio.subirEntregable(
+        DeliverableResponse respuesta = servicio.uploadDeliverable(
                 ID_PEDIDO, ID_CREADOR, imagen("marca"), imagen("limpia"));
 
         assertThat(respuesta).isNotNull();
@@ -174,7 +174,7 @@ class DeliverableServiceImplTest {
                 .thenReturn(Optional.of(entregableGuardado("entregables/m.png", "entregables/l.png", false)));
 
         assertThrows(BusinessRuleException.class,
-                () -> servicio.descargarVersionLimpia(ID_PEDIDO, ID_CLIENTE));
+                () -> servicio.downloadCleanVersion(ID_PEDIDO, ID_CLIENTE));
 
         verify(almacenamiento, never()).leer(anyString());
     }
@@ -187,7 +187,7 @@ class DeliverableServiceImplTest {
         when(almacenamiento.leer("entregables/l.pdf")).thenReturn("%PDF".getBytes());
 
         IDeliverableService.ArchivoDescargado archivo =
-                servicio.descargarVersionLimpia(ID_PEDIDO, ID_CLIENTE);
+                servicio.downloadCleanVersion(ID_PEDIDO, ID_CLIENTE);
 
         assertThat(archivo.contenido()).isEqualTo("%PDF".getBytes());
         assertThat(archivo.contentType()).isEqualTo("application/pdf");
@@ -199,7 +199,7 @@ class DeliverableServiceImplTest {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
 
         assertThrows(BusinessRuleException.class,
-                () -> servicio.descargarVersionLimpia(ID_PEDIDO, ID_TERCERO));
+                () -> servicio.downloadCleanVersion(ID_PEDIDO, ID_TERCERO));
     }
 
     // ── Descarga de la version con marca de agua ─────────────────────────────
@@ -210,8 +210,8 @@ class DeliverableServiceImplTest {
                 .thenReturn(Optional.of(entregableGuardado("entregables/m.png", "entregables/l.png", false)));
         when(almacenamiento.leer("entregables/m.png")).thenReturn("png".getBytes());
 
-        assertThat(servicio.descargarVersionMarcaAgua(ID_PEDIDO, ID_CLIENTE).contenido()).isNotEmpty();
-        assertThat(servicio.descargarVersionMarcaAgua(ID_PEDIDO, ID_CREADOR).contenido()).isNotEmpty();
+        assertThat(servicio.downloadWatermarkedVersion(ID_PEDIDO, ID_CLIENTE).contenido()).isNotEmpty();
+        assertThat(servicio.downloadWatermarkedVersion(ID_PEDIDO, ID_CREADOR).contenido()).isNotEmpty();
     }
 
     @Test
@@ -220,7 +220,7 @@ class DeliverableServiceImplTest {
                 .thenReturn(Optional.of(entregableGuardado("entregables/m.png", "entregables/l.png", false)));
 
         assertThrows(BusinessRuleException.class,
-                () -> servicio.descargarVersionMarcaAgua(ID_PEDIDO, ID_TERCERO));
+                () -> servicio.downloadWatermarkedVersion(ID_PEDIDO, ID_TERCERO));
 
         verify(almacenamiento, never()).leer(anyString());
     }
@@ -231,7 +231,7 @@ class DeliverableServiceImplTest {
                 .thenReturn(Optional.of(entregableGuardado(null, "entregables/l.png", false)));
 
         assertThrows(ResourceNotFoundException.class,
-                () -> servicio.descargarVersionMarcaAgua(ID_PEDIDO, ID_CLIENTE));
+                () -> servicio.downloadWatermarkedVersion(ID_PEDIDO, ID_CLIENTE));
     }
 
     // ── Respuesta ────────────────────────────────────────────────────────────
@@ -246,7 +246,7 @@ class DeliverableServiceImplTest {
         when(almacenamiento.urlTemporal("entregables/l.png"))
                 .thenReturn(Optional.of("https://cuenta.blob.core.windows.net/c/entregables/l.png?sig=y"));
 
-        DeliverableResponse respuesta = servicio.obtenerEntregable(ID_PEDIDO, ID_CLIENTE);
+        DeliverableResponse respuesta = servicio.getDeliverable(ID_PEDIDO, ID_CLIENTE);
 
         assertThat(respuesta.getUrlVersionMarcaAgua()).startsWith("https://").contains("sig=");
         assertThat(respuesta.getUrlVersionLimpia()).startsWith("https://").contains("sig=");
@@ -258,7 +258,7 @@ class DeliverableServiceImplTest {
                 .thenReturn(Optional.of(entregableGuardado("entregables/m.png", "entregables/l.png", true)));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
 
-        DeliverableResponse respuesta = servicio.obtenerEntregable(ID_PEDIDO, ID_CLIENTE);
+        DeliverableResponse respuesta = servicio.getDeliverable(ID_PEDIDO, ID_CLIENTE);
 
         assertThat(respuesta.getUrlVersionMarcaAgua())
                 .isEqualTo("/api/v1/pedidos/7/entregable/descargar/marca-agua");
@@ -273,7 +273,7 @@ class DeliverableServiceImplTest {
                 .thenReturn(Optional.of(entregableGuardado("entregables/m.png", "entregables/l.png", false)));
         when(almacenamiento.urlTemporal("entregables/m.png")).thenReturn(Optional.empty());
 
-        DeliverableResponse respuesta = servicio.obtenerEntregable(ID_PEDIDO, ID_CLIENTE);
+        DeliverableResponse respuesta = servicio.getDeliverable(ID_PEDIDO, ID_CLIENTE);
 
         assertThat(respuesta.getUrlVersionLimpia()).isNull();
         assertThat(respuesta.getUrlVersionMarcaAgua()).isNotNull();
@@ -294,7 +294,7 @@ class DeliverableServiceImplTest {
         pago.setMontoRetenido(new java.math.BigDecimal("100.00"));
         when(pagoGarantiaRepository.findByContratoIdContrato(1L)).thenReturn(Optional.of(pago));
 
-        servicio.aprobarEntrega(ID_PEDIDO, ID_CLIENTE);
+        servicio.approveDelivery(ID_PEDIDO, ID_CLIENTE);
 
         verify(transaccionPagoRepository, times(2)).save(any());
         verify(entregableRepository).save(any());
@@ -320,7 +320,7 @@ class DeliverableServiceImplTest {
         var captor = org.mockito.ArgumentCaptor.forClass(
                 uteq.edu.ec.artisync.entity.legal.PaymentTransaction.class);
 
-        servicio.aprobarEntrega(ID_PEDIDO, ID_CLIENTE);
+        servicio.approveDelivery(ID_PEDIDO, ID_CLIENTE);
 
         verify(transaccionPagoRepository, times(2)).save(captor.capture());
         var porTipo = captor.getAllValues().stream()
@@ -333,7 +333,7 @@ class DeliverableServiceImplTest {
 
     /**
      * REQ-NF-019: sin este guard, un pedido ya cancelado-y-reembolsado (o
-     * liberado) por PaymentServiceImpl.cancelarPedidoConFondosRetenidos podía
+     * liberado) por PaymentServiceImpl.cancelOrderWithHeldFunds podía
      * aprobarse aquí después y pagar al creador una segunda vez.
      */
     @Test
@@ -351,7 +351,7 @@ class DeliverableServiceImplTest {
         pago.setEstadoFondos("Reembolsado");
         when(pagoGarantiaRepository.findByContratoIdContrato(1L)).thenReturn(Optional.of(pago));
 
-        assertThrows(BusinessRuleException.class, () -> servicio.aprobarEntrega(ID_PEDIDO, ID_CLIENTE));
+        assertThrows(BusinessRuleException.class, () -> servicio.approveDelivery(ID_PEDIDO, ID_CLIENTE));
 
         verify(transaccionPagoRepository, never()).save(any());
         verify(entregableRepository, never()).save(any());
@@ -361,7 +361,7 @@ class DeliverableServiceImplTest {
     void aprobarEntrega_noEsCliente_error() {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
 
-        assertThrows(BusinessRuleException.class, () -> servicio.aprobarEntrega(ID_PEDIDO, ID_TERCERO));
+        assertThrows(BusinessRuleException.class, () -> servicio.approveDelivery(ID_PEDIDO, ID_TERCERO));
     }
 
     @Test
@@ -370,6 +370,6 @@ class DeliverableServiceImplTest {
         when(entregableRepository.findByPedidoIdPedidoParaActualizar(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("m", "l", true)));
 
-        assertThrows(BusinessRuleException.class, () -> servicio.aprobarEntrega(ID_PEDIDO, ID_CLIENTE));
+        assertThrows(BusinessRuleException.class, () -> servicio.approveDelivery(ID_PEDIDO, ID_CLIENTE));
     }
 }

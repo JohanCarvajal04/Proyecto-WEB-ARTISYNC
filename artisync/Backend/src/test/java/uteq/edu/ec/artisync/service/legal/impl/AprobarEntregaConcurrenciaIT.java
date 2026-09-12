@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Prueba de concurrencia para el hallazgo "el escrow puede liberarse dos
- * veces" (revisión técnica, 2026-09-01): DeliverableServiceImpl.aprobarEntrega
+ * veces" (revisión técnica, 2026-09-01): DeliverableServiceImpl.approveDelivery
  * comprobaba entregable.getEstaLiberado() sin bloqueo de fila, así que dos
  * peticiones simultaneas (doble clic, reintento de red, dos pestañas) podían
  * leer estaLiberado=false antes de que ninguna confirmara, duplicando las
@@ -39,7 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * vez" -- no sobre el orden de ejecucion, que es no determinista.
  *
  * @DataJpaTest, igual que el resto de *IT de este proyecto (no @SpringBootTest):
- * aprobarEntrega depende de ChatService/NotificationService/DocumentStorage
+ * approveDelivery depende de ChatService/NotificationService/DocumentStorage
  * además de los repositorios JPA, pero ninguno de los tres participa en la
  * sección crítica que se está probando (el lock), así que se sustituyen por
  * mocks vía @TestConfiguration en vez de levantar el contexto completo de
@@ -190,7 +190,7 @@ class AprobarEntregaConcurrenciaIT {
                 listos.countDown();
                 try {
                     salida.await(10, TimeUnit.SECONDS); // arranque simultaneo de los N hilos
-                    entregableServicio.aprobarEntrega(idPedido, ID_CLIENTE);
+                    entregableServicio.approveDelivery(idPedido, ID_CLIENTE);
                     exitos.incrementAndGet();
                 } catch (Exception ignorada) {
                     // Se espera que HILOS-1 lancen BusinessRuleException
@@ -205,7 +205,7 @@ class AprobarEntregaConcurrenciaIT {
         pool.shutdown();
         assertThat(pool.awaitTermination(30, TimeUnit.SECONDS)).isTrue();
 
-        // Invariante de negocio: exactamente un hilo logro aprobar la
+        // Invariante de negocio: exactamente un hilo logro approve la
         // entrega, sin importar cual (el orden entre hilos es no
         // determinista).
         assertThat(exitos.get()).isEqualTo(1);

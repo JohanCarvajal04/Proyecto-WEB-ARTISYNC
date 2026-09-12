@@ -66,14 +66,14 @@ class FinancialReportServiceImplTest {
     }
 
     @Test
-    @DisplayName("obtenerReporteComisiones() parsea el JSONB de fn_reporte_comisiones_creador")
+    @DisplayName("getCommissionReport() parsea el JSONB de fn_reporte_comisiones_creador")
     void obtenerReporteComisiones_ParseaJson() {
         when(transaccionPagoRepository.reporteComisionesJson(eq(7L), any(), any(), any())).thenReturn(JSON_REPORTE);
         servicio = crearServicio();
 
         FinancialReportFilter filtro = new FinancialReportFilter();
         filtro.setIdPerfil(7L);
-        CommissionReportResponse reporte = servicio.obtenerReporteComisiones(filtro);
+        CommissionReportResponse reporte = servicio.getCommissionReport(filtro);
 
         assertThat(reporte.idPerfil()).isEqualTo(7L);
         assertThat(reporte.montoBruto()).isEqualByComparingTo("300.00");
@@ -84,14 +84,14 @@ class FinancialReportServiceImplTest {
     }
 
     @Test
-    @DisplayName("obtenerReporteComisiones() tolera idPedido/servicio nulos en el detalle (transacciones internas sin pedido asociado)")
+    @DisplayName("getCommissionReport() tolera idPedido/servicio nulos en el detalle (transacciones internas sin pedido asociado)")
     void obtenerReporteComisiones_ToleraCamposNulos() {
         when(transaccionPagoRepository.reporteComisionesJson(eq(7L), any(), any(), any())).thenReturn(JSON_REPORTE);
         servicio = crearServicio();
 
         FinancialReportFilter filtro = new FinancialReportFilter();
         filtro.setIdPerfil(7L);
-        CommissionReportResponse reporte = servicio.obtenerReporteComisiones(filtro);
+        CommissionReportResponse reporte = servicio.getCommissionReport(filtro);
 
         CommissionDetail segunda = reporte.detalle().get(1);
         assertThat(segunda.idPedido()).isNull();
@@ -100,7 +100,7 @@ class FinancialReportServiceImplTest {
     }
 
     @Test
-    @DisplayName("obtenerReporteComisiones() usa plataforma.comision-tasa cuando el filtro no trae una tasa explicita")
+    @DisplayName("getCommissionReport() usa plataforma.comision-tasa cuando el filtro no trae una tasa explicita")
     void obtenerReporteComisiones_SinTasaEnFiltro_UsaLaConfigurada() {
         when(transaccionPagoRepository.reporteComisionesJson(eq(7L), any(), any(), any())).thenReturn(JSON_REPORTE);
         servicio = crearServicio();
@@ -108,7 +108,7 @@ class FinancialReportServiceImplTest {
 
         FinancialReportFilter filtro = new FinancialReportFilter();
         filtro.setIdPerfil(7L);
-        servicio.obtenerReporteComisiones(filtro);
+        servicio.getCommissionReport(filtro);
 
         ArgumentCaptor<BigDecimal> tasaCaptor = ArgumentCaptor.forClass(BigDecimal.class);
         verify(transaccionPagoRepository).reporteComisionesJson(eq(7L), any(), any(), tasaCaptor.capture());
@@ -116,7 +116,7 @@ class FinancialReportServiceImplTest {
     }
 
     @Test
-    @DisplayName("obtenerReporteComisiones() respeta la tasa explicita del filtro por encima del default")
+    @DisplayName("getCommissionReport() respeta la tasa explicita del filtro por encima del default")
     void obtenerReporteComisiones_ConTasaEnFiltro_IgnoraElDefault() {
         when(transaccionPagoRepository.reporteComisionesJson(eq(7L), any(), any(), any())).thenReturn(JSON_REPORTE);
         servicio = crearServicio();
@@ -125,7 +125,7 @@ class FinancialReportServiceImplTest {
         FinancialReportFilter filtro = new FinancialReportFilter();
         filtro.setIdPerfil(7L);
         filtro.setTasaComision(new BigDecimal("0.25"));
-        servicio.obtenerReporteComisiones(filtro);
+        servicio.getCommissionReport(filtro);
 
         ArgumentCaptor<BigDecimal> tasaCaptor = ArgumentCaptor.forClass(BigDecimal.class);
         verify(transaccionPagoRepository).reporteComisionesJson(eq(7L), any(), any(), tasaCaptor.capture());
@@ -133,7 +133,7 @@ class FinancialReportServiceImplTest {
     }
 
     @Test
-    @DisplayName("exportar() lanza BusinessRuleException si el detalle supera el tope de filas del formato")
+    @DisplayName("export() lanza BusinessRuleException si el detalle supera el tope de filas del formato")
     void exportar_ExcedeTope_LanzaExcepcion() {
         StringBuilder detalle = new StringBuilder();
         for (int i = 0; i < ReportFormat.PDF.topeFilas() + 1; i++) {
@@ -153,13 +153,13 @@ class FinancialReportServiceImplTest {
         FinancialReportFilter filtro = new FinancialReportFilter();
         filtro.setIdPerfil(7L);
 
-        assertThatThrownBy(() -> servicio.exportar(filtro, ReportFormat.PDF, "admin@artisync.dev"))
+        assertThatThrownBy(() -> servicio.export(filtro, ReportFormat.PDF, "admin@artisync.dev"))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining(String.valueOf(ReportFormat.PDF.topeFilas()));
     }
 
     @Test
-    @DisplayName("exportar() construye el ReportModel con totales bruto/comisión/neto y delega en el común")
+    @DisplayName("export() construye el ReportModel con totales bruto/comisión/neto y delega en el común")
     void exportar_ConstruyeModeloConTotalesYDelega() {
         when(transaccionPagoRepository.reporteComisionesJson(eq(7L), any(), any(), any())).thenReturn(JSON_REPORTE);
         servicio = crearServicio();
@@ -168,7 +168,7 @@ class FinancialReportServiceImplTest {
 
         FinancialReportFilter filtro = new FinancialReportFilter();
         filtro.setIdPerfil(7L);
-        GeneratedDocument resultado = servicio.exportar(filtro, ReportFormat.CSV, "admin@artisync.dev");
+        GeneratedDocument resultado = servicio.export(filtro, ReportFormat.CSV, "admin@artisync.dev");
 
         assertThat(resultado).isSameAs(esperado);
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
@@ -181,7 +181,7 @@ class FinancialReportServiceImplTest {
     }
 
     @Test
-    @DisplayName("exportar() con page y size pagina el detalle sin exceder el tope")
+    @DisplayName("export() con page y size pagina el detalle sin exceder el tope")
     void exportar_conPaginacion_permiteExportarPorLotes() {
         when(transaccionPagoRepository.reporteComisionesJson(eq(7L), any(), any(), any())).thenReturn(JSON_REPORTE);
         servicio = crearServicio();
@@ -190,7 +190,7 @@ class FinancialReportServiceImplTest {
 
         FinancialReportFilter filtro = new FinancialReportFilter();
         filtro.setIdPerfil(7L);
-        GeneratedDocument resultado = servicio.exportar(filtro, ReportFormat.PDF, 0, 1, "admin@artisync.dev");
+        GeneratedDocument resultado = servicio.export(filtro, ReportFormat.PDF, 0, 1, "admin@artisync.dev");
 
         assertThat(resultado).isSameAs(esperado);
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);

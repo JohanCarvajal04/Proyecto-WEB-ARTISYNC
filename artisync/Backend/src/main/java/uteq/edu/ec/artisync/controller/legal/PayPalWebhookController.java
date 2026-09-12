@@ -31,7 +31,7 @@ public class PayPalWebhookController {
      * @return respuesta de confirmación "OK" para PayPal
      */
     @PostMapping("/paypal")
-    public ResponseEntity<String> recibirWebhook(
+    public ResponseEntity<String> receiveWebhook(
             @RequestBody String payload,
             @RequestHeader(value = "PAYPAL-TRANSMISSION-ID", required = false) String transmissionId,
             @RequestHeader(value = "PAYPAL-TRANSMISSION-TIME", required = false) String transmissionTime,
@@ -42,7 +42,7 @@ public class PayPalWebhookController {
 
         log.info("Webhook PayPal recibido - transmissionId: {}", transmissionId);
 
-        pagoServicio.procesarWebhookPayPal(payload, transmissionId, transmissionTime,
+        pagoServicio.processPayPalWebhook(payload, transmissionId, transmissionTime,
                 transmissionSig, certUrl, authAlgo, authVersion);
 
         return ResponseEntity.ok("OK");

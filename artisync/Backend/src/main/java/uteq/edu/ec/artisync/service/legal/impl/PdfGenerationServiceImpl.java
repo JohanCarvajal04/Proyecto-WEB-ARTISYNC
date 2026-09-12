@@ -14,7 +14,7 @@ import java.io.ByteArrayOutputStream;
 public class PdfGenerationServiceImpl implements IPdfGenerationService {
 
     @Override
-    public byte[] generarPdfDesdeHtml(String html) {
+    public byte[] generatePdfFromHtml(String html) {
         try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
             com.openhtmltopdf.pdfboxout.PdfRendererBuilder builder =
                     new com.openhtmltopdf.pdfboxout.PdfRendererBuilder();
@@ -22,7 +22,7 @@ public class PdfGenerationServiceImpl implements IPdfGenerationService {
             // Hallazgo SEC-01 (auditoria de seguridad): sin esto, cualquier URI que
             // aparezca en el HTML (una <img src>, un @import de CSS...) dispara una
             // peticion HTTP/lectura de archivo hecha por ESTE SERVIDOR al renderizar
-            // el PDF. Como generarContratoHtml() interpola descripcion_servicio y
+            // el PDF. Como generateContractHtml() interpola descripcion_servicio y
             // nombres de usuario dentro del HTML, un cliente podia escribir
             // <img src="http://169.254.169.254/..."> en la descripcion de su servicio
             // y usar el PDF del contrato como SSRF, o file:// para leer archivos

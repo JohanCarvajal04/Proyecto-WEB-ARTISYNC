@@ -41,9 +41,9 @@ class WithdrawalRequestAdminControllerTest {
         WithdrawalRequestFilter filtro = new WithdrawalRequestFilter();
         var pageable = PageRequest.of(0, 20);
         Page<WithdrawalRequestResponse> pagina = Page.empty();
-        when(solicitudRetiroServicio.listarCola(filtro, pageable)).thenReturn(pagina);
+        when(solicitudRetiroServicio.listQueue(filtro, pageable)).thenReturn(pagina);
 
-        ResponseEntity<Page<WithdrawalRequestResponse>> res = controlador.listar(filtro, pageable);
+        ResponseEntity<Page<WithdrawalRequestResponse>> res = controlador.list(filtro, pageable);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(pagina);
@@ -53,9 +53,9 @@ class WithdrawalRequestAdminControllerTest {
     void aprobar_devuelveOkYDelegaConIdDelAdminAutenticado() {
         CustomUserDetails user = mockUserDetails();
         WithdrawalRequestResponse respuesta = WithdrawalRequestResponse.builder().idSolicitud(1L).estado("Aprobado").build();
-        when(solicitudRetiroServicio.aprobar(1L, 900L)).thenReturn(respuesta);
+        when(solicitudRetiroServicio.approve(1L, 900L)).thenReturn(respuesta);
 
-        ResponseEntity<WithdrawalRequestResponse> res = controlador.aprobar(1L, user);
+        ResponseEntity<WithdrawalRequestResponse> res = controlador.approve(1L, user);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
@@ -67,22 +67,22 @@ class WithdrawalRequestAdminControllerTest {
         WithdrawalDecisionRequest peticion = new WithdrawalDecisionRequest();
         peticion.setNotaAdmin("No cumple los requisitos");
         WithdrawalRequestResponse respuesta = WithdrawalRequestResponse.builder().idSolicitud(1L).estado("Rechazado").build();
-        when(solicitudRetiroServicio.rechazar(1L, 900L, "No cumple los requisitos")).thenReturn(respuesta);
+        when(solicitudRetiroServicio.reject(1L, 900L, "No cumple los requisitos")).thenReturn(respuesta);
 
-        ResponseEntity<WithdrawalRequestResponse> res = controlador.rechazar(1L, user, peticion);
+        ResponseEntity<WithdrawalRequestResponse> res = controlador.reject(1L, user, peticion);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
-        verify(solicitudRetiroServicio).rechazar(1L, 900L, "No cumple los requisitos");
+        verify(solicitudRetiroServicio).reject(1L, 900L, "No cumple los requisitos");
     }
 
     @Test
     void reintentar_devuelveOkYDelegaConIdDelAdminAutenticado() {
         CustomUserDetails user = mockUserDetails();
         WithdrawalRequestResponse respuesta = WithdrawalRequestResponse.builder().idSolicitud(1L).estado("Pagado").build();
-        when(solicitudRetiroServicio.reintentar(1L, 900L)).thenReturn(respuesta);
+        when(solicitudRetiroServicio.retry(1L, 900L)).thenReturn(respuesta);
 
-        ResponseEntity<WithdrawalRequestResponse> res = controlador.reintentar(1L, user);
+        ResponseEntity<WithdrawalRequestResponse> res = controlador.retry(1L, user);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);

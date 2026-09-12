@@ -133,7 +133,7 @@ class PaymentServiceImplCancellationTest {
                 .willReturn(json("""
                         {"id":"REFUND-1","status":"COMPLETED"}"""));
 
-        var respuesta = pagoServicio.cancelarPedidoConFondosRetenidos(1L, ID_CLIENTE, null, "ya no lo necesito");
+        var respuesta = pagoServicio.cancelOrderWithHeldFunds(1L, ID_CLIENTE, null, "ya no lo necesito");
 
         assertThat(respuesta.getEstadoFondos()).isEqualTo("Reembolsado");
         assertThat(respuesta.getMensajeError()).isNull();
@@ -145,7 +145,7 @@ class PaymentServiceImplCancellationTest {
     @DisplayName("el cliente no puede liberar los fondos sin reembolsarlos")
     void clienteNoPuedeLiberar_rechaza() {
         assertThatThrownBy(() ->
-                pagoServicio.cancelarPedidoConFondosRetenidos(1L, ID_CLIENTE, "LIBERAR", null))
+                pagoServicio.cancelOrderWithHeldFunds(1L, ID_CLIENTE, "LIBERAR", null))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("administrador");
 
@@ -157,7 +157,7 @@ class PaymentServiceImplCancellationTest {
     void adminPuedeLiberar_ok() {
         autenticarComo("ROLE_ADMIN");
 
-        var respuesta = pagoServicio.cancelarPedidoConFondosRetenidos(
+        var respuesta = pagoServicio.cancelOrderWithHeldFunds(
                 1L, ID_ADMIN, "LIBERAR", "trabajo ya entregado, se libera igual");
 
         assertThat(respuesta.getEstadoFondos()).isEqualTo("Liberado");
@@ -170,7 +170,7 @@ class PaymentServiceImplCancellationTest {
     @DisplayName("un usuario ajeno al pedido no puede cancelarlo")
     void usuarioAjeno_rechaza() {
         assertThatThrownBy(() ->
-                pagoServicio.cancelarPedidoConFondosRetenidos(1L, 999L, null, null))
+                pagoServicio.cancelOrderWithHeldFunds(1L, 999L, null, null))
                 .isInstanceOf(BusinessRuleException.class);
 
         verify(pagoGarantiaRepository, never()).save(any());
@@ -182,7 +182,7 @@ class PaymentServiceImplCancellationTest {
         pagoRetenido.setEstadoFondos("Pendiente");
 
         assertThatThrownBy(() ->
-                pagoServicio.cancelarPedidoConFondosRetenidos(1L, ID_CLIENTE, null, null))
+                pagoServicio.cancelOrderWithHeldFunds(1L, ID_CLIENTE, null, null))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Pendiente");
     }
@@ -191,7 +191,7 @@ class PaymentServiceImplCancellationTest {
     @DisplayName("una accionFondos invalida se rechaza")
     void accionInvalida_rechaza() {
         assertThatThrownBy(() ->
-                pagoServicio.cancelarPedidoConFondosRetenidos(1L, ID_CLIENTE, "OTRACOSA", null))
+                pagoServicio.cancelOrderWithHeldFunds(1L, ID_CLIENTE, "OTRACOSA", null))
                 .isInstanceOf(BusinessRuleException.class);
     }
 
@@ -202,7 +202,7 @@ class PaymentServiceImplCancellationTest {
                 .willReturn(json("""
                         {"purchase_units":[{"payments":{"captures":[]}}]}"""));
 
-        var respuesta = pagoServicio.cancelarPedidoConFondosRetenidos(1L, ID_CLIENTE, null, null);
+        var respuesta = pagoServicio.cancelOrderWithHeldFunds(1L, ID_CLIENTE, null, null);
 
         assertThat(respuesta.getEstadoFondos()).isEqualTo("ReembolsoFallido");
         assertThat(respuesta.getMensajeError()).contains("captura");
@@ -220,7 +220,7 @@ class PaymentServiceImplCancellationTest {
         given(payPalClient.llamarPayPalIdempotente(anyString(), any(HttpMethod.class), any(), anyString()))
                 .willThrow(error);
 
-        var respuesta = pagoServicio.cancelarPedidoConFondosRetenidos(1L, ID_CLIENTE, "reembolsar", null);
+        var respuesta = pagoServicio.cancelOrderWithHeldFunds(1L, ID_CLIENTE, "reembolsar", null);
 
         assertThat(respuesta.getEstadoFondos()).isEqualTo("ReembolsoFallido");
         assertThat(respuesta.getMensajeError()).contains("PayPal");
@@ -228,7 +228,7 @@ class PaymentServiceImplCancellationTest {
     }
 
     @Test
-    @DisplayName("un reembolso previamente fallido se puede reintentar llamando al mismo metodo")
+    @DisplayName("un reembolso previamente fallido se puede retry llamando al mismo metodo")
     void reintentoSobreReembolsoFallido_ok() {
         pagoRetenido.setEstadoFondos("ReembolsoFallido");
         pagoRetenido.setMensajeError("Error de PayPal (422): CAPTURE_FULLY_REFUNDED");
@@ -237,7 +237,7 @@ class PaymentServiceImplCancellationTest {
                 .willReturn(json("""
                         {"id":"REFUND-2","status":"COMPLETED"}"""));
 
-        var respuesta = pagoServicio.cancelarPedidoConFondosRetenidos(1L, ID_CLIENTE, null, null);
+        var respuesta = pagoServicio.cancelOrderWithHeldFunds(1L, ID_CLIENTE, null, null);
 
         assertThat(respuesta.getEstadoFondos()).isEqualTo("Reembolsado");
         assertThat(respuesta.getMensajeError()).isNull();

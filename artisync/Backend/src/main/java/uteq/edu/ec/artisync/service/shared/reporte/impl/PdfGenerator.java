@@ -89,7 +89,7 @@ public class PdfGenerator implements ReportGenerator {
         contexto.setVariable("kpis", modelo.getKpis());
 
         String html = templateEngine.process("reportes/tabla", contexto);
-        byte[] pdf = pdfGeneracionServicio.generarPdfDesdeHtml(html);
+        byte[] pdf = pdfGeneracionServicio.generatePdfFromHtml(html);
         return new GeneratedDocument(pdf, formato().contentType(), null);
     }
 

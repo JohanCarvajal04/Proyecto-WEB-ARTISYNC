@@ -38,7 +38,7 @@ public class EscrowPaymentAuditServiceImpl implements IEscrowPaymentAuditService
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public Page<EscrowPaymentResponse> listar(EscrowPaymentFilter filtro, Pageable pageable) {
+    public Page<EscrowPaymentResponse> list(EscrowPaymentFilter filtro, Pageable pageable) {
         var spec = EscrowPaymentSpecification.conFiltros(
                 filtro.getEstadoFondos(), filtro.getIdPerfilCreador(), filtro.getIdUsuarioCliente(),
                 filtro.getDesde(), filtro.getHasta());
@@ -55,7 +55,7 @@ public class EscrowPaymentAuditServiceImpl implements IEscrowPaymentAuditService
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public EscrowPaymentDetailResponse obtenerDetalle(Long idPago) {
+    public EscrowPaymentDetailResponse getDetail(Long idPago) {
         EscrowPayment pago = pagoGarantiaRepository.findById(idPago)
                 .orElseThrow(() -> new ResourceNotFoundException("Pago de garantía no encontrado: " + idPago));
 
@@ -99,7 +99,7 @@ public class EscrowPaymentAuditServiceImpl implements IEscrowPaymentAuditService
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<EscrowSummaryResponse> obtenerResumen() {
+    public List<EscrowSummaryResponse> getSummary() {
         return pagoGarantiaRepository.resumenPorEstado();
     }
 

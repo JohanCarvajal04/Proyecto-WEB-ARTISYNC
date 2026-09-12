@@ -24,7 +24,7 @@ public interface IEscrowPaymentAuditService {
      * @param pageable configuración de paginación y orden
      * @return la página de pagos que cumplen el filtro
      */
-    Page<EscrowPaymentResponse> listar(EscrowPaymentFilter filtro, Pageable pageable);
+    Page<EscrowPaymentResponse> list(EscrowPaymentFilter filtro, Pageable pageable);
 
     /**
      * Obtiene el detalle de un pago en garantía.
@@ -33,12 +33,12 @@ public interface IEscrowPaymentAuditService {
      * @return el detalle del pago
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pago no existe
      */
-    EscrowPaymentDetailResponse obtenerDetalle(Long idPago);
+    EscrowPaymentDetailResponse getDetail(Long idPago);
 
     /**
      * Obtiene el resumen agregado de fondos en garantía (escrow), por estado.
      *
      * @return el resumen de escrow
      */
-    List<EscrowSummaryResponse> obtenerResumen();
+    List<EscrowSummaryResponse> getSummary();
 }

@@ -367,14 +367,14 @@ class OrderServiceImplTest {
         given(propuestaTerminosPedidoRepository.save(any(OrderTermsProposal.class)))
                 .willAnswer(inv -> inv.getArgument(0));
         given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
-        given(contratoServicio.generarContrato(10L, 2L)).willReturn(ContractResponse.builder().idContrato(99L).build());
+        given(contratoServicio.generateContract(10L, 2L)).willReturn(ContractResponse.builder().idContrato(99L).build());
 
         // El creador (idUsuario=2) acepta la propuesta creada por el cliente (idUsuario=1).
         OrderResponse respuesta = pedidoServicio.acceptTermsProposal(10L, 7L, 2L);
 
         assertThat(respuesta.getPrecioPactado()).isEqualByComparingTo("35.00");
         assertThat(propuesta.getEstado()).isEqualTo(OrderTermsProposal.ACEPTADA);
-        verify(contratoServicio).generarContrato(10L, 2L);
+        verify(contratoServicio).generateContract(10L, 2L);
         verify(notificacionService).notify(org.mockito.ArgumentMatchers.eq(cliente), anyString(), anyString());
     }
 
@@ -395,7 +395,7 @@ class OrderServiceImplTest {
 
         pedidoServicio.acceptTermsProposal(10L, 7L, 2L);
 
-        verify(contratoServicio, never()).generarContrato(any(), any());
+        verify(contratoServicio, never()).generateContract(any(), any());
     }
 
     @Test

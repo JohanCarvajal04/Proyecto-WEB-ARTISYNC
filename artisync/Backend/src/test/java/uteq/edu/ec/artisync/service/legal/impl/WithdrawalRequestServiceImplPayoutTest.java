@@ -38,7 +38,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Fase 2: la llamada real a PayPal Payouts dentro de aprobar()/reintentar().
+ * Fase 2: la llamada real a PayPal Payouts dentro de approve()/retry().
  * PayPalClient mockeado, sin salir a la red, encolando las respuestas de la
  * propia llamada (el paso de OAuth queda encapsulado dentro del cliente).
  */
@@ -87,7 +87,7 @@ class WithdrawalRequestServiceImplPayoutTest {
         given(usuarioRepository.findById(ID_ADMIN)).willReturn(Optional.of(admin));
     }
 
-    /** Encola las respuestas de PayPal, una por cada llamada a ejecutarPayout(). */
+    /** Encola las respuestas de PayPal, una por cada llamada a executePayout(). */
     private void conRespuestasPayPal(String... cuerpos) {
         OngoingStubbing<JsonNode> stub = when(payPalClient.llamarPayPal(
                 anyString(), any(HttpMethod.class), any(JsonNode.class)));
@@ -102,7 +102,7 @@ class WithdrawalRequestServiceImplPayoutTest {
         conRespuestasPayPal("""
                 {"batch_header":{"batch_status":"SUCCESS","payout_batch_id":"PAYOUTBATCH-1"}}""");
 
-        WithdrawalRequestResponse respuesta = servicio.aprobar(1L, ID_ADMIN);
+        WithdrawalRequestResponse respuesta = servicio.approve(1L, ID_ADMIN);
 
         assertThat(respuesta.estado()).isEqualTo("Pagado");
         assertThat(respuesta.idPayoutPaypal()).isEqualTo("PAYOUTBATCH-1");
@@ -116,7 +116,7 @@ class WithdrawalRequestServiceImplPayoutTest {
         conRespuestasPayPal("""
                 {"batch_header":{"batch_status":"PENDING","payout_batch_id":"PAYOUTBATCH-2"}}""");
 
-        WithdrawalRequestResponse respuesta = servicio.aprobar(1L, ID_ADMIN);
+        WithdrawalRequestResponse respuesta = servicio.approve(1L, ID_ADMIN);
 
         assertThat(respuesta.estado()).isEqualTo("Aprobado");
         assertThat(respuesta.fechaPago()).isNull();
@@ -128,7 +128,7 @@ class WithdrawalRequestServiceImplPayoutTest {
         conRespuestasPayPal("""
                 {"batch_header":{"batch_status":"DENIED","payout_batch_id":"PAYOUTBATCH-3"}}""");
 
-        WithdrawalRequestResponse respuesta = servicio.aprobar(1L, ID_ADMIN);
+        WithdrawalRequestResponse respuesta = servicio.approve(1L, ID_ADMIN);
 
         assertThat(respuesta.estado()).isEqualTo("Fallido");
         assertThat(respuesta.mensajeError()).contains("DENIED");
@@ -143,14 +143,14 @@ class WithdrawalRequestServiceImplPayoutTest {
         given(payPalClient.llamarPayPal(anyString(), eq(HttpMethod.POST), any(JsonNode.class)))
                 .willThrow(error);
 
-        WithdrawalRequestResponse respuesta = servicio.aprobar(1L, ID_ADMIN);
+        WithdrawalRequestResponse respuesta = servicio.approve(1L, ID_ADMIN);
 
         assertThat(respuesta.estado()).isEqualTo("Fallido");
         assertThat(respuesta.mensajeError()).contains("RECEIVER_UNREGISTERED");
     }
 
     @Test
-    @DisplayName("reintentar reusa el mismo sender_batch_id del intento original")
+    @DisplayName("retry reusa el mismo sender_batch_id del intento original")
     void reintentar_reusaElMismoSenderBatchId() {
         conRespuestasPayPal(
                 """
@@ -158,14 +158,14 @@ class WithdrawalRequestServiceImplPayoutTest {
                 """
                 {"batch_header":{"batch_status":"SUCCESS","payout_batch_id":"PAYOUTBATCH-4"}}""");
 
-        WithdrawalRequestResponse primerIntento = servicio.aprobar(1L, ID_ADMIN);
+        WithdrawalRequestResponse primerIntento = servicio.approve(1L, ID_ADMIN);
         assertThat(primerIntento.estado()).isEqualTo("Fallido");
 
-        // reintentar() exige que la solicitud esté en Fallido: refleja en el mock
+        // retry() exige que la solicitud esté en Fallido: refleja en el mock
         // el estado que quedó tras la primera llamada.
         solicitudPendiente.setEstado("Fallido");
 
-        WithdrawalRequestResponse segundoIntento = servicio.reintentar(1L, ID_ADMIN);
+        WithdrawalRequestResponse segundoIntento = servicio.retry(1L, ID_ADMIN);
         assertThat(segundoIntento.estado()).isEqualTo("Pagado");
 
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
@@ -179,12 +179,12 @@ class WithdrawalRequestServiceImplPayoutTest {
     }
 
     @Test
-    @DisplayName("reintentar solo esta permitido si la solicitud esta Fallida")
+    @DisplayName("retry solo esta permitido si la solicitud esta Fallida")
     void reintentar_solicitudNoFallida_rechaza() {
         assertThat(solicitudPendiente.getEstado()).isEqualTo("Pendiente");
 
         org.junit.jupiter.api.Assertions.assertThrows(
                 uteq.edu.ec.artisync.exception.BusinessRuleException.class,
-                () -> servicio.reintentar(1L, ID_ADMIN));
+                () -> servicio.retry(1L, ID_ADMIN));
     }
 }

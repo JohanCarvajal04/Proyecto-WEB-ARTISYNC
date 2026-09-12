@@ -17,7 +17,7 @@ public interface IPaymentService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene contrato
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el cliente del pedido, si el contrato no está firmado por ambas partes, si el pedido ya tiene un pago en curso, o si falla la comunicación con PayPal
      */
-    PaymentResponse crearOrdenPayPal(Long idPedido, Long idCliente, BigDecimal monto);
+    PaymentResponse createPayPalOrder(Long idPedido, Long idCliente, BigDecimal monto);
 
     /**
      * Procesa una notificación webhook de PayPal sobre el estado de un pago (aprobación,
@@ -34,7 +34,7 @@ public interface IPaymentService {
      * @param authAlgo         cabecera PAYPAL-AUTH-ALGO
      * @param authVersion      cabecera PAYPAL-AUTH-VERSION
      */
-    void procesarWebhookPayPal(String payload, String transmissionId, String transmissionTime,
+    void processPayPalWebhook(String payload, String transmissionId, String transmissionTime,
                                 String transmissionSig, String certUrl, String authAlgo, String authVersion);
 
     /**
@@ -46,7 +46,7 @@ public interface IPaymentService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene contrato, o no tiene pago registrado
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no tiene acceso al pago de este pedido
      */
-    PaymentResponse obtenerEstadoPago(Long idPedido, Long idUsuario);
+    PaymentResponse getPaymentStatus(Long idPedido, Long idUsuario);
 
     /**
      * Cancela un pedido con fondos ya retenidos en escrow (REQ-NF-019),
@@ -61,6 +61,6 @@ public interface IPaymentService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no tiene permiso, la acción no es válida,
      *      o el pago no está en un estado cancelable
      */
-    PaymentResponse cancelarPedidoConFondosRetenidos(Long idPedido, Long idUsuarioSolicitante,
+    PaymentResponse cancelOrderWithHeldFunds(Long idPedido, Long idUsuarioSolicitante,
                                                     String accionFondos, String motivo);
 }

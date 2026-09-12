@@ -20,7 +20,7 @@ import java.util.List;
  * Autoservicio de plantillas de acuerdo propias (V45): el creador redacta y
  * mantiene sus propias plantillas, aparte del catálogo general curado por
  * ADMIN ({@link ContractTemplateAdminController}). Cada plantilla creada
- * aquí solo la puede usar, editar o desactivar su propio dueño.
+ * aquí solo la puede usar, update o deactivate su propio dueño.
  */
 @RestController
 @RequestMapping("/api/v1/creador/plantillas-acuerdo")
@@ -38,28 +38,28 @@ public class CreatorAgreementTemplateController {
      * @return la plantilla creada, con estado 201
      */
     @PostMapping
-    public ResponseEntity<ContractTemplateResponse> crear(
+    public ResponseEntity<ContractTemplateResponse> create(
             @Valid @RequestBody CreateOwnAgreementTemplateRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(plantillaAcuerdoCreadorServicio.crear(userDetails.getIdUsuario(), peticion));
+                .body(plantillaAcuerdoCreadorServicio.create(userDetails.getIdUsuario(), peticion));
     }
 
     /**
      * Edita una plantilla de acuerdo propia existente.
      *
-     * @param id identificador de la plantilla a editar
+     * @param id identificador de la plantilla a update
      * @param peticion datos actualizados de la plantilla
      * @param userDetails usuario autenticado
      * @return la plantilla actualizada
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe o no pertenece a este creador
      */
     @PutMapping("/{id}")
-    public ResponseEntity<ContractTemplateResponse> editar(
+    public ResponseEntity<ContractTemplateResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody UpdateOwnAgreementTemplateRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(plantillaAcuerdoCreadorServicio.editar(userDetails.getIdUsuario(), id, peticion));
+        return ResponseEntity.ok(plantillaAcuerdoCreadorServicio.update(userDetails.getIdUsuario(), id, peticion));
     }
 
     /**
@@ -69,22 +69,22 @@ public class CreatorAgreementTemplateController {
      * @return sus plantillas propias
      */
     @GetMapping
-    public ResponseEntity<List<ContractTemplateResponse>> listarPropias(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(plantillaAcuerdoCreadorServicio.listarPropias(userDetails.getIdUsuario()));
+    public ResponseEntity<List<ContractTemplateResponse>> listOwn(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(plantillaAcuerdoCreadorServicio.listOwn(userDetails.getIdUsuario()));
     }
 
     /**
      * Desactiva una plantilla de acuerdo propia.
      *
-     * @param id identificador de la plantilla a desactivar
+     * @param id identificador de la plantilla a deactivate
      * @param userDetails usuario autenticado
      * @return mensaje de confirmación
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe o no pertenece a este creador
      */
     @PatchMapping("/{id}/desactivar")
-    public ResponseEntity<RespuestaMensaje> desactivar(
+    public ResponseEntity<RespuestaMensaje> deactivate(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(plantillaAcuerdoCreadorServicio.desactivar(userDetails.getIdUsuario(), id));
+        return ResponseEntity.ok(plantillaAcuerdoCreadorServicio.deactivate(userDetails.getIdUsuario(), id));
     }
 }

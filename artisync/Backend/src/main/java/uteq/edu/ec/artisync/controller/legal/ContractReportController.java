@@ -45,11 +45,11 @@ public class ContractReportController {
     @Operation(summary = "Listado paginado y filtrado de contratos formalizados")
     @GetMapping
     @PreAuthorize("hasAuthority('TRANSACCION_VER') or hasRole('ADMIN')")
-    public ResponseEntity<PagedResponse<ContractReportRow>> listar(
+    public ResponseEntity<PagedResponse<ContractReportRow>> list(
             ContractReportFilter filtro,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(reporteContratoServicio.listar(filtro, page, size));
+        return ResponseEntity.ok(reporteContratoServicio.list(filtro, page, size));
     }
 
     /**
@@ -65,20 +65,20 @@ public class ContractReportController {
     @Operation(summary = "Exportar el reporte de contratos en CSV, XLSX o PDF con soporte de paginación / división por partes")
     @GetMapping("/exportar")
     @PreAuthorize("hasAuthority('REPORTE_CONTRATO_EXPORTAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> exportar(
+    public ResponseEntity<byte[]> export(
             ContractReportFilter filtro,
             @RequestParam ReportFormat formato,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             Authentication authentication) {
         GeneratedDocument documento = (page != null || size != null)
-                ? reporteContratoServicio.exportar(filtro, formato, page, size, authentication.getName())
-                : reporteContratoServicio.exportar(filtro, formato, authentication.getName());
+                ? reporteContratoServicio.export(filtro, formato, page, size, authentication.getName())
+                : reporteContratoServicio.export(filtro, formato, authentication.getName());
         return DocumentResponse.de(documento);
     }
 
     /**
-     * Sobrecarga de conveniencia para exportar el reporte de contratos sin paginación (documento completo).
+     * Sobrecarga de conveniencia para export el reporte de contratos sin paginación (documento completo).
      *
      * @param filtro criterios opcionales para filtrar el reporte
      * @param formato formato del documento a generar (CSV, XLSX o PDF)
@@ -86,10 +86,10 @@ public class ContractReportController {
      * @return el documento generado con la totalidad de los contratos que cumplen el filtro
      */
     @PreAuthorize("hasAuthority('REPORTE_CONTRATO_EXPORTAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> exportar(
+    public ResponseEntity<byte[]> export(
             ContractReportFilter filtro,
             ReportFormat formato,
             Authentication authentication) {
-        return exportar(filtro, formato, null, null, authentication);
+        return export(filtro, formato, null, null, authentication);
     }
 }

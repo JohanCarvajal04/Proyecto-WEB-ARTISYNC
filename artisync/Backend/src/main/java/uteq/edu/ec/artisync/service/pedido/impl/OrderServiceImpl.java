@@ -268,7 +268,7 @@ public class OrderServiceImpl implements IOrderService {
         // de requerir un paso manual aparte.
         boolean contratoRecienGenerado = contratoRepository.findByPedidoIdPedido(idPedido).isEmpty();
         if (contratoRecienGenerado) {
-            contratoServicio.generarContrato(idPedido, idUsuario);
+            contratoServicio.generateContract(idPedido, idUsuario);
         }
 
         notificacionService.notify(propuesta.getPropuestoPor(),

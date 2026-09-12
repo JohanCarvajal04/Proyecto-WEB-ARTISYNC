@@ -36,9 +36,9 @@ class PaymentControllerTest {
     void crearOrdenPago_DebeRetornarLaOrdenCreada() {
         CustomUserDetails cliente = usuario(1L);
         PaymentResponse respuesta = PaymentResponse.builder().idPago(10L).approvalUrl("https://paypal/approve").build();
-        when(pagoServicio.crearOrdenPayPal(5L, 1L, null)).thenReturn(respuesta);
+        when(pagoServicio.createPayPalOrder(5L, 1L, null)).thenReturn(respuesta);
 
-        ResponseEntity<PaymentResponse> result = controlador.crearOrdenPago(5L, cliente);
+        ResponseEntity<PaymentResponse> result = controlador.createPaymentOrder(5L, cliente);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getIdPago()).isEqualTo(10L);
@@ -47,10 +47,10 @@ class PaymentControllerTest {
     @Test
     void obtenerEstadoPago_DebeRetornarElEstadoActual() {
         CustomUserDetails usuario = usuario(2L);
-        when(pagoServicio.obtenerEstadoPago(5L, 2L))
+        when(pagoServicio.getPaymentStatus(5L, 2L))
                 .thenReturn(PaymentResponse.builder().idPago(10L).estadoFondos("RETENIDO").build());
 
-        ResponseEntity<PaymentResponse> result = controlador.obtenerEstadoPago(5L, usuario);
+        ResponseEntity<PaymentResponse> result = controlador.getPaymentStatus(5L, usuario);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getEstadoFondos()).isEqualTo("RETENIDO");
@@ -62,10 +62,10 @@ class PaymentControllerTest {
         CancelPaymentRequest peticion = new CancelPaymentRequest();
         peticion.setAccionFondos("LIBERAR");
         peticion.setMotivo("acuerdo mutuo");
-        when(pagoServicio.cancelarPedidoConFondosRetenidos(5L, 1L, "LIBERAR", "acuerdo mutuo"))
+        when(pagoServicio.cancelOrderWithHeldFunds(5L, 1L, "LIBERAR", "acuerdo mutuo"))
                 .thenReturn(PaymentResponse.builder().idPago(10L).estadoFondos("LIBERADO").build());
 
-        ResponseEntity<PaymentResponse> result = controlador.cancelarPago(5L, cliente, peticion);
+        ResponseEntity<PaymentResponse> result = controlador.cancelPayment(5L, cliente, peticion);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getEstadoFondos()).isEqualTo("LIBERADO");
@@ -74,10 +74,10 @@ class PaymentControllerTest {
     @Test
     void cancelarPago_SinCuerpo_DebeDelegarConAccionYMotivoNulos() {
         CustomUserDetails cliente = usuario(1L);
-        when(pagoServicio.cancelarPedidoConFondosRetenidos(eq(5L), eq(1L), isNull(), isNull()))
+        when(pagoServicio.cancelOrderWithHeldFunds(eq(5L), eq(1L), isNull(), isNull()))
                 .thenReturn(PaymentResponse.builder().idPago(10L).estadoFondos("REEMBOLSADO").build());
 
-        ResponseEntity<PaymentResponse> result = controlador.cancelarPago(5L, cliente, null);
+        ResponseEntity<PaymentResponse> result = controlador.cancelPayment(5L, cliente, null);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getEstadoFondos()).isEqualTo("REEMBOLSADO");
