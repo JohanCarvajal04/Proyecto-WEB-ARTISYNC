@@ -11,6 +11,13 @@ abstract: >-
   Proyecto Fin de Curso — Aplicaciones Web, Quinto nivel. Universidad
   Técnica Estatal de Quevedo, Facultad de Ciencias de la Computación y
   Diseño Digital, Carrera de Ingeniería de Software.
+# Composición del equipo: la nómina oficial del Proyecto Fin de Curso (Aplicaciones Web, Quinto
+# nivel) registra a tres integrantes -- Carvajal Loor, Figueroa Morales y Rios Cuyabazo. Bone
+# Arroyo colabora como cuarta integrante porque este mismo repositorio es también el caso de
+# estudio de la materia paralela de Administración de Bases de Datos, con su aporte concentrado en
+# db/procs/ (ver CONTRIBUTORS.md y README.md, sección "Equipo y contribuciones"). Se lista aquí
+# como autora del software porque su contribución de código es real y verificable en el historial
+# de git, no porque forme parte de la nómina oficial del PFC.
 authors:
   - family-names: "Bone Arroyo"
     given-names: "Niurca Scarleth"
@@ -36,7 +43,7 @@ url: "https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC"
 doi: "10.5281/zenodo.21978572"
 identifiers:
   - type: other
-    value: "sha256:066666fcfb879b3f84dce90d88a52099e872464a2fa0ede2f71075a79c48bd5c"
+    value: "sha256:cbe5e1639518ce04fb690180b63334343aababb08c19f3a770fd805afe015592"
     description: "Digest SHA-256 de docs/informe-final/Informe-Final-v1.0.0.pdf, para verificar la integridad del documento académico entregado."
 keywords:
   - web
