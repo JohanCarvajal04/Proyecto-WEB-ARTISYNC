@@ -7,11 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.security.User;
 import uteq.edu.ec.artisync.entity.social.Raffle;
-import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
+import uteq.edu.ec.artisync.repository.security.UserRepository;
 import uteq.edu.ec.artisync.repository.social.RaffleRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
+import uteq.edu.ec.artisync.service.communication.NotificationService;
 
 /**
  * Extraído de RaffleScheduler para que REQUIRES_NEW funcione de verdad: un
@@ -39,7 +39,7 @@ public class RaffleExecutorService {
      * @throws IllegalStateException si el resultado del procedimiento no se puede interpretar
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void ejecutarSorteo(Raffle sorteo) {
+    public void executeRaffle(Raffle sorteo) {
         // REQ-F-023: fn_seleccionar_ganadores_sorteo hace la seleccion aleatoria
         // (ORDER BY random()) y la actualizacion masiva de participantes+sorteo
         // en el motor, en vez de Collections.shuffle en Java seguido de un save()

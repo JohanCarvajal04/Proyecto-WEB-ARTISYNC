@@ -42,7 +42,7 @@ public class AuthAttemptsService {
      * costo de abuso (email potencialmente enviado) exista o no la cuenta.
      */
     public void checkQuota(String ambito, String identificador, int limite, Duration ventana) {
-        String clave = construirClave(ambito, identificador);
+        String clave = buildKey(ambito, identificador);
         try {
             Long intentos = redisTemplate.opsForValue().increment(clave);
             if (intentos != null && intentos == 1L) {
@@ -61,24 +61,23 @@ public class AuthAttemptsService {
         }
     }
 
-    /** Limpia el contador de (ambito, identificador) — se llama tras un éxito. */
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Limpia el contador de intentos de (ambito, identificador) — se invoca tras un
+     * éxito de autenticación para que el conteo de fallos no se acumule entre sesiones.
      *
-     * @param ambito parametro requerido para la correcta ejecucion del procedimiento
-     * @param identificador identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param ambito espacio de la cuota (por ejemplo "login" o "forgotPassword")
+     * @param identificador identificador de la cuenta cuyo contador se limpia (se hashea internamente)
      */
-    public void limpiar(String ambito, String identificador) {
+    public void clear(String ambito, String identificador) {
         try {
-            redisTemplate.delete(construirClave(ambito, identificador));
+            redisTemplate.delete(buildKey(ambito, identificador));
         } catch (DataAccessException e) {
             log.warn("No se pudo limpiar la cuota de {} en Redis: {}", ambito, e.getMessage());
         }
     }
 
     /** Hashea el identificador (correo) para que un volcado de Redis no sea una lista de usuarios. */
-    private String construirClave(String ambito, String identificador) {
+    private String buildKey(String ambito, String identificador) {
         return "rl:" + ambito + ":" + hashSha256(identificador);
     }
 

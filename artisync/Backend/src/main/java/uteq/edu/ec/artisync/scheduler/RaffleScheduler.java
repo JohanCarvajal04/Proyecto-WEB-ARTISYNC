@@ -35,10 +35,10 @@ public class RaffleScheduler {
      * libera, así que los sorteos siguientes fallarían en cascada y, al no
      * poder confirmar el método, Spring revertiría también los ya procesados
      * con éxito. Cada sorteo se procesa en su propia transacción
-     * (RaffleExecutorService.ejecutarSorteo, REQUIRES_NEW).
+     * (RaffleExecutorService.executeRaffle, REQUIRES_NEW).
      */
     @Scheduled(fixedRate = 60_000)
-    public void procesarSorteosCerrados() {
+    public void processClosedRaffles() {
         List<Raffle> sorteosPendientes = sorteoRepository
                 .findByEstadoSorteoAndFechaCierreBefore("Activo", LocalDateTime.now());
 
@@ -50,7 +50,7 @@ public class RaffleScheduler {
 
         for (Raffle sorteo : sorteosPendientes) {
             try {
-                sorteoEjecutorServicio.ejecutarSorteo(sorteo);
+                sorteoEjecutorServicio.executeRaffle(sorteo);
             } catch (Exception e) {
                 log.error("[RaffleScheduler] Error al procesar sorteo {}: {}",
                         sorteo.getIdSorteo(), e.getMessage(), e);

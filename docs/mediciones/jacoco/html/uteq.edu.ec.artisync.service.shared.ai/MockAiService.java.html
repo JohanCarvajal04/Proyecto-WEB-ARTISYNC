@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MockAiService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.ai</a> &gt; <span class="el_source">MockAiService.java</span></div><h1>MockAiService.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.ai;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Service;
+import uteq.edu.ec.artisync.dto.ai.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+/** Simula respuestas de IA sin llamadas de red. Activo por defecto (ia.provider=mock). */
+@Service
+@ConditionalOnProperty(name = &quot;ia.provider&quot;, havingValue = &quot;mock&quot;, matchIfMissing = true)
+<span class="fc" id="L14">@Slf4j</span>
+public class MockAiService extends AbstractAiService implements AiService {
+
+    /**
+     * Construye el servicio mock e informa por log que no se realizarán llamadas
+     * reales a proveedores de IA — es el proveedor activo por defecto ({@code ia.provider=mock}).
+     */
+<span class="fc" id="L21">    public MockAiService() {</span>
+<span class="fc" id="L22">        log.info(&quot;Offering de IA MOCK inicializado — no se realizarán llamadas reales a APIs de IA&quot;);</span>
+<span class="fc" id="L23">    }</span>
+
+    /** {@inheritDoc} */
+    @Override
+    public AiVerificationResponse verifyIdentity(byte[] imagenBytes, String mimeType) {
+<span class="fc" id="L28">        return AiVerificationResponse.builder()</span>
+<span class="fc" id="L29">                .aprobado(true)</span>
+<span class="fc" id="L30">                .confianza(new BigDecimal(&quot;0.92&quot;))</span>
+<span class="fc" id="L31">                .tipoDocumento(&quot;cedula&quot;)</span>
+<span class="fc" id="L32">                .nombreDetectado(&quot;User de Prueba&quot;)</span>
+<span class="fc" id="L33">                .mayorEdad(true)</span>
+<span class="fc" id="L34">                .fechaNacimiento(&quot;1995-05-20&quot;)</span>
+<span class="fc" id="L35">                .paisEmision(&quot;Ecuador&quot;)</span>
+<span class="fc" id="L36">                .build();</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public AiVerificationResponse analyzeCertificate(byte[] imagenBytes, String mimeType) {
+<span class="fc" id="L42">        return AiVerificationResponse.builder()</span>
+<span class="fc" id="L43">                .aprobado(true)</span>
+<span class="fc" id="L44">                .confianza(new BigDecimal(&quot;0.88&quot;))</span>
+<span class="fc" id="L45">                .tipoDocumento(&quot;titulo_universitario&quot;)</span>
+<span class="fc" id="L46">                .nombreDetectado(&quot;User de Prueba&quot;)</span>
+<span class="fc" id="L47">                .institucionEmisora(&quot;Universidad de Prueba&quot;)</span>
+<span class="fc" id="L48">                .campoEstudio(&quot;Diseño Gráfico&quot;)</span>
+<span class="fc" id="L49">                .fechaEmision(&quot;2020-07-15&quot;)</span>
+<span class="fc" id="L50">                .build();</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public IaModeracionResponse moderarContenido(String textoMensaje) {
+<span class="fc" id="L56">        return IaModeracionResponse.builder()</span>
+<span class="fc" id="L57">                .esApropiado(true).categoriaInfraccion(&quot;ninguno&quot;)</span>
+<span class="fc" id="L58">                .confianza(new BigDecimal(&quot;0.95&quot;)).build();</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public AiClassificationResponse classifyOffering(String titulo, String descripcion, List&lt;String&gt; categoriasDisponibles) {
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        String categoria = categoriasDisponibles.isEmpty() ? &quot;General&quot; : categoriasDisponibles.get(0);</span>
+<span class="fc" id="L65">        return AiClassificationResponse.builder()</span>
+<span class="fc" id="L66">                .categoriaSugerida(categoria).subcategoriaSugerida(&quot;General&quot;)</span>
+<span class="fc" id="L67">                .etiquetasSugeridas(List.of(&quot;diseño&quot;, &quot;creativo&quot;))</span>
+<span class="fc" id="L68">                .confianza(new BigDecimal(&quot;0.80&quot;)).build();</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List&lt;String&gt; sugerirPreguntasBriefing(String categoria, String titulo, String descripcion) {
+<span class="fc" id="L74">        return List.of(&quot;¿Cuál es el objetivo del proyecto?&quot;, &quot;¿Tienes referencias visuales?&quot;);</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public AiReviewResponse analyzeReview(String textoResena, int estrellas) {
+<span class="fc" id="L80">        return AiReviewResponse.builder()</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">                .sentimiento(estrellas &gt;= 4 ? &quot;positivo&quot; : &quot;neutro&quot;)</span>
+<span class="fc" id="L82">                .esCoherenteConEstrellas(true).esSpam(false).esInapropiado(false)</span>
+<span class="fc" id="L83">                .confianza(new BigDecimal(&quot;0.90&quot;)).build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

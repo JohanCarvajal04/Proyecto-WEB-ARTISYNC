@@ -17,11 +17,11 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import uteq.edu.ec.artisync.dto.peticion.legal.WithdrawalRequestFilter;
-import uteq.edu.ec.artisync.dto.peticion.legal.WithdrawalDecisionRequest;
-import uteq.edu.ec.artisync.dto.peticion.legal.CreateWithdrawalRequest;
-import uteq.edu.ec.artisync.dto.respuesta.legal.CreatorBalanceResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.WithdrawalRequestResponse;
+import uteq.edu.ec.artisync.dto.request.legal.WithdrawalRequestFilter;
+import uteq.edu.ec.artisync.dto.request.legal.WithdrawalDecisionRequest;
+import uteq.edu.ec.artisync.dto.request.legal.CreateWithdrawalRequest;
+import uteq.edu.ec.artisync.dto.response.legal.CreatorBalanceResponse;
+import uteq.edu.ec.artisync.dto.response.legal.WithdrawalRequestResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IWithdrawalRequestService;
 

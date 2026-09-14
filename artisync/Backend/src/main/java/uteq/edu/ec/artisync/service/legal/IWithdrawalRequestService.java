@@ -2,10 +2,10 @@ package uteq.edu.ec.artisync.service.legal;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import uteq.edu.ec.artisync.dto.peticion.legal.WithdrawalRequestFilter;
-import uteq.edu.ec.artisync.dto.peticion.legal.CreateWithdrawalRequest;
-import uteq.edu.ec.artisync.dto.respuesta.legal.CreatorBalanceResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.WithdrawalRequestResponse;
+import uteq.edu.ec.artisync.dto.request.legal.WithdrawalRequestFilter;
+import uteq.edu.ec.artisync.dto.request.legal.CreateWithdrawalRequest;
+import uteq.edu.ec.artisync.dto.response.legal.CreatorBalanceResponse;
+import uteq.edu.ec.artisync.dto.response.legal.WithdrawalRequestResponse;
 
 import java.util.List;
 

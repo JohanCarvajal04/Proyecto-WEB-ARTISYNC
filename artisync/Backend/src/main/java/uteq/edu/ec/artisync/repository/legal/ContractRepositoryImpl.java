@@ -11,12 +11,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractReportRow;
-import uteq.edu.ec.artisync.entity.catalogo.Offering;
+import uteq.edu.ec.artisync.dto.response.legal.ContractReportRow;
+import uteq.edu.ec.artisync.entity.catalog.Offering;
 import uteq.edu.ec.artisync.entity.legal.Contract;
-import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
-import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.entity.profile.CreatorProfile;
+import uteq.edu.ec.artisync.entity.security.User;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -54,7 +54,7 @@ public class ContractRepositoryImpl implements ContractRepositoryCustom {
      * @return la página de filas del reporte que cumplen los filtros
      */
     @Override
-    public Page<ContractReportRow> buscarParaReporte(LocalDateTime desde, LocalDateTime hasta,
+    public Page<ContractReportRow> findForReport(LocalDateTime desde, LocalDateTime hasta,
                                                          Long idPerfilCreador, Boolean soloFirmados,
                                                          Pageable pageable) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
@@ -75,7 +75,7 @@ public class ContractRepositoryImpl implements ContractRepositoryCustom {
                 cb.<Boolean>selectCase().when(cb.isNotNull(c.get("hashFirmaCliente")), true).otherwise(false),
                 cb.<Boolean>selectCase().when(cb.isNotNull(c.get("hashFirmaCreador")), true).otherwise(false)));
 
-        List<Predicate> predicados = construirPredicados(cb, c, perfil, desde, hasta, idPerfilCreador, soloFirmados);
+        List<Predicate> predicados = buildPredicates(cb, c, perfil, desde, hasta, idPerfilCreador, soloFirmados);
         if (!predicados.isEmpty()) {
             cq.where(predicados.toArray(new Predicate[0]));
         }
@@ -86,12 +86,12 @@ public class ContractRepositoryImpl implements ContractRepositoryCustom {
         query.setMaxResults(pageable.getPageSize());
         List<ContractReportRow> contenido = query.getResultList();
 
-        long total = contar(cb, desde, hasta, idPerfilCreador, soloFirmados);
+        long total = count(cb, desde, hasta, idPerfilCreador, soloFirmados);
 
         return new PageImpl<>(contenido, pageable, total);
     }
 
-    private long contar(CriteriaBuilder cb, LocalDateTime desde, LocalDateTime hasta,
+    private long count(CriteriaBuilder cb, LocalDateTime desde, LocalDateTime hasta,
                          Long idPerfilCreador, Boolean soloFirmados) {
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Contract> c = cq.from(Contract.class);
@@ -100,14 +100,14 @@ public class ContractRepositoryImpl implements ContractRepositoryCustom {
         Join<Offering, CreatorProfile> perfil = s.join("perfil");
 
         cq.select(cb.count(c));
-        List<Predicate> predicados = construirPredicados(cb, c, perfil, desde, hasta, idPerfilCreador, soloFirmados);
+        List<Predicate> predicados = buildPredicates(cb, c, perfil, desde, hasta, idPerfilCreador, soloFirmados);
         if (!predicados.isEmpty()) {
             cq.where(predicados.toArray(new Predicate[0]));
         }
         return entityManager.createQuery(cq).getSingleResult();
     }
 
-    private List<Predicate> construirPredicados(CriteriaBuilder cb, Root<Contract> c, Join<Offering, CreatorProfile> perfil,
+    private List<Predicate> buildPredicates(CriteriaBuilder cb, Root<Contract> c, Join<Offering, CreatorProfile> perfil,
                                                  LocalDateTime desde, LocalDateTime hasta,
                                                  Long idPerfilCreador, Boolean soloFirmados) {
         List<Predicate> predicados = new ArrayList<>();

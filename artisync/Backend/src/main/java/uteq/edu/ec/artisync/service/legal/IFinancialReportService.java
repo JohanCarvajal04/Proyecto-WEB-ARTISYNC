@@ -1,9 +1,9 @@
 package uteq.edu.ec.artisync.service.legal;
 
-import uteq.edu.ec.artisync.dto.peticion.legal.FinancialReportFilter;
-import uteq.edu.ec.artisync.dto.respuesta.legal.CommissionReportResponse;
-import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
-import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.dto.request.legal.FinancialReportFilter;
+import uteq.edu.ec.artisync.dto.response.legal.CommissionReportResponse;
+import uteq.edu.ec.artisync.service.shared.report.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.report.ReportFormat;
 
 public interface IFinancialReportService {
 

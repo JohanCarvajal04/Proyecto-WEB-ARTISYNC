@@ -5,8 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
-import uteq.edu.ec.artisync.repository.pedido.RevisionTicketRepository;
+import uteq.edu.ec.artisync.entity.order.RevisionTicket;
+import uteq.edu.ec.artisync.repository.order.RevisionTicketRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,7 +38,7 @@ public class RevisionTicketExpirationScheduler {
      * {@link #expiracionHoras} horas sin pago confirmado.
      */
     @Scheduled(fixedRateString = "${ticketrevision.expiracion.intervalo-ms:1800000}") // 30 min
-    public void expirarTicketsSinPagar() {
+    public void expireUnpaidTickets() {
         LocalDateTime limite = LocalDateTime.now().minusHours(expiracionHoras);
         List<RevisionTicket> vencidos = ticketRevisionRepository.findVencidosSinPagoConfirmado(limite);
 
@@ -51,7 +51,7 @@ public class RevisionTicketExpirationScheduler {
 
         for (RevisionTicket ticket : vencidos) {
             try {
-                ticketRevisionExpiracionServicio.expirarTicket(ticket.getIdTicket());
+                ticketRevisionExpiracionServicio.expireTicket(ticket.getIdTicket());
             } catch (Exception e) {
                 log.error("[RevisionTicketExpirationScheduler] Error expirando ticket {}: {}",
                         ticket.getIdTicket(), e.getMessage(), e);

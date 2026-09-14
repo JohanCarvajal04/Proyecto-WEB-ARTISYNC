@@ -4,15 +4,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.dto.peticion.legal.UpdateContractTemplateRequest;
-import uteq.edu.ec.artisync.dto.peticion.legal.CreateContractTemplateRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractTemplateResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractTemplateSummaryResponse;
-import uteq.edu.ec.artisync.entity.pedido.ContractTemplate;
+import uteq.edu.ec.artisync.dto.request.legal.UpdateContractTemplateRequest;
+import uteq.edu.ec.artisync.dto.request.legal.CreateContractTemplateRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.legal.ContractTemplateResponse;
+import uteq.edu.ec.artisync.dto.response.legal.ContractTemplateSummaryResponse;
+import uteq.edu.ec.artisync.entity.order.ContractTemplate;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
-import uteq.edu.ec.artisync.repository.pedido.ContractTemplateRepository;
+import uteq.edu.ec.artisync.repository.order.ContractTemplateRepository;
 import uteq.edu.ec.artisync.service.legal.IContractTemplateAdminService;
 
 import java.util.List;
@@ -40,7 +40,7 @@ public class ContractTemplateAdminServiceImpl implements IContractTemplateAdminS
         }
 
         if (peticion.isEsPredeterminada()) {
-            limpiarPredeterminadaActual();
+            clearCurrentDefault();
         }
 
         ContractTemplate plantilla = ContractTemplate.builder()
@@ -71,7 +71,7 @@ public class ContractTemplateAdminServiceImpl implements IContractTemplateAdminS
                 .orElseThrow(() -> new ResourceNotFoundException("Plantilla de contrato no encontrada: " + idPlantilla));
 
         if (peticion.isEsPredeterminada() && !Boolean.TRUE.equals(plantilla.getEsPredeterminada())) {
-            limpiarPredeterminadaActual();
+            clearCurrentDefault();
         }
         if (!peticion.isEsPredeterminada() && Boolean.TRUE.equals(plantilla.getEsPredeterminada())) {
             throw new BusinessRuleException(
@@ -112,7 +112,7 @@ public class ContractTemplateAdminServiceImpl implements IContractTemplateAdminS
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje deactivate(Long idPlantilla) {
+    public MessageResponse deactivate(Long idPlantilla) {
         ContractTemplate plantilla = plantillaContratoRepository.findById(idPlantilla)
                 .orElseThrow(() -> new ResourceNotFoundException("Plantilla de contrato no encontrada: " + idPlantilla));
 
@@ -124,7 +124,7 @@ public class ContractTemplateAdminServiceImpl implements IContractTemplateAdminS
         plantilla.setActiva(false);
         plantillaContratoRepository.save(plantilla);
         log.info("Plantilla de contrato {} desactivada", idPlantilla);
-        return new RespuestaMensaje("Plantilla desactivada correctamente");
+        return new MessageResponse("Plantilla desactivada correctamente");
     }
 
     @Override
@@ -171,7 +171,7 @@ public class ContractTemplateAdminServiceImpl implements IContractTemplateAdminS
      * filas podrían coexistir con es_predeterminada = true dentro del mismo
      * flush y violar la restricción.
      */
-    private void limpiarPredeterminadaActual() {
+    private void clearCurrentDefault() {
         plantillaContratoRepository.findByEsPredeterminadaTrue().ifPresent(actual -> {
             actual.setEsPredeterminada(false);
             plantillaContratoRepository.save(actual);

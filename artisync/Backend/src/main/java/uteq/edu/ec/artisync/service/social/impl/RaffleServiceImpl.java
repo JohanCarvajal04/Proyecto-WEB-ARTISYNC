@@ -8,23 +8,23 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
-import uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest;
-import uteq.edu.ec.artisync.dto.peticion.social.CreateRaffleRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.dto.respuesta.social.WinnerResponse;
-import uteq.edu.ec.artisync.dto.respuesta.social.ParticipantResponse;
-import uteq.edu.ec.artisync.dto.respuesta.social.PrizeResponse;
-import uteq.edu.ec.artisync.dto.respuesta.social.RaffleResponse;
+import uteq.edu.ec.artisync.dto.request.social.UpdateRaffleRequest;
+import uteq.edu.ec.artisync.dto.request.social.CreateRaffleRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.social.WinnerResponse;
+import uteq.edu.ec.artisync.dto.response.social.ParticipantResponse;
+import uteq.edu.ec.artisync.dto.response.social.PrizeResponse;
+import uteq.edu.ec.artisync.dto.response.social.RaffleResponse;
 import uteq.edu.ec.artisync.entity.social.RaffleParticipant;
 import uteq.edu.ec.artisync.entity.social.RafflePrize;
 import uteq.edu.ec.artisync.entity.social.Raffle;
-import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.security.User;
 import uteq.edu.ec.artisync.exception.DuplicateResourceException;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
-import uteq.edu.ec.artisync.repository.comunicacion.FollowerRepository;
-import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
+import uteq.edu.ec.artisync.repository.communication.FollowerRepository;
+import uteq.edu.ec.artisync.repository.profile.CreatorProfileRepository;
+import uteq.edu.ec.artisync.repository.security.UserRepository;
 import uteq.edu.ec.artisync.repository.social.RaffleParticipantRepository;
 import uteq.edu.ec.artisync.repository.social.RaffleRepository;
 import uteq.edu.ec.artisync.service.social.RaffleService;
@@ -92,7 +92,7 @@ public class RaffleServiceImpl implements RaffleService {
                 .requiereSeguidor(peticion.isRequiereSeguidor())
                 .estadoSorteo("Activo")
                 .build();
-        sorteo.setPremios(construirPremios(sorteo, peticion.getPremios()));
+        sorteo.setPremios(buildPrizes(sorteo, peticion.getPremios()));
 
         sorteo = sorteoRepository.save(sorteo);
         log.info("Raffle '{}' creado por usuario {}", sorteo.getTituloSorteo(), idUsuario);
@@ -108,7 +108,7 @@ public class RaffleServiceImpl implements RaffleService {
         }
     }
 
-    private List<RafflePrize> construirPremios(Raffle sorteo, List<String> descripciones) {
+    private List<RafflePrize> buildPrizes(Raffle sorteo, List<String> descripciones) {
         List<RafflePrize> premios = new ArrayList<>();
         for (int i = 0; i < descripciones.size(); i++) {
             premios.add(RafflePrize.builder()
@@ -210,7 +210,7 @@ public class RaffleServiceImpl implements RaffleService {
         if (!tieneParticipantes && peticion.getPremios() != null) {
             validatePrizeCount(peticion.getPremios().size(), sorteo.getCantidadGanadores());
             sorteo.getPremios().clear();
-            sorteo.getPremios().addAll(construirPremios(sorteo, peticion.getPremios()));
+            sorteo.getPremios().addAll(buildPrizes(sorteo, peticion.getPremios()));
         }
 
         sorteo = sorteoRepository.save(sorteo);
@@ -233,7 +233,7 @@ public class RaffleServiceImpl implements RaffleService {
     @Transactional
     @Auditable(accion = "SORTEO_ELIMINAR", modulo = AuditModule.SOCIAL,
             entidad = "sorteos", idEntidad = "#idSorteo")
-    public RespuestaMensaje deleteRaffle(Long idSorteo, Long idUsuario) {
+    public MessageResponse deleteRaffle(Long idSorteo, Long idUsuario) {
         Raffle sorteo = verifyOwner(idSorteo, idUsuario);
         if (participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo)) {
             throw new BusinessRuleException(
@@ -241,7 +241,7 @@ public class RaffleServiceImpl implements RaffleService {
         }
         sorteoRepository.delete(sorteo);
         log.info("Raffle {} eliminado por usuario {}", idSorteo, idUsuario);
-        return new RespuestaMensaje("Raffle eliminado correctamente");
+        return new MessageResponse("Raffle eliminado correctamente");
     }
 
     /**
@@ -356,7 +356,7 @@ public class RaffleServiceImpl implements RaffleService {
      */
     @Override
     @Transactional
-    public RespuestaMensaje cancelParticipation(Long idSorteo, Long idUsuario) {
+    public MessageResponse cancelParticipation(Long idSorteo, Long idUsuario) {
         Raffle sorteo = findRaffleOrThrow(idSorteo);
         if (!"Activo".equals(sorteo.getEstadoSorteo())) {
             throw new BusinessRuleException("No puedes cancelar la inscripción en un sorteo que ya ha finalizado");
@@ -369,7 +369,7 @@ public class RaffleServiceImpl implements RaffleService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No estás inscrito en este sorteo"));
         participanteSorteoRepository.delete(participante);
-        return new RespuestaMensaje("Inscripción cancelada correctamente");
+        return new MessageResponse("Inscripción cancelada correctamente");
     }
 
     /**
@@ -439,12 +439,12 @@ public class RaffleServiceImpl implements RaffleService {
                 .totalParticipantes(total)
                 .yoParticipo(yoParticipo)
                 .ganadores(ganadores)
-                .premios(mapToPremiosResponse(sorteo, ganadores))
+                .premios(mapToPrizesResponse(sorteo, ganadores))
                 .build();
     }
 
     /** Cruza cada premio del sorteo con su ganador (si ya hubo sorteo y ese premio fue asignado). */
-    private List<PrizeResponse> mapToPremiosResponse(Raffle sorteo, List<WinnerResponse> ganadores) {
+    private List<PrizeResponse> mapToPrizesResponse(Raffle sorteo, List<WinnerResponse> ganadores) {
         Map<Long, WinnerResponse> ganadorPorPremio = new HashMap<>();
         if (ganadores != null) {
             for (WinnerResponse g : ganadores) {

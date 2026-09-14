@@ -10,6 +10,15 @@ import uteq.edu.ec.artisync.entity.legal.RevisionTicketPayment;
 
 import java.util.Optional;
 
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link RevisionTicketPayment}.
+ *
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ *
+ * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL) mediante @Query
+ * para resolver bloqueos pesimistas y accesos alternativos a la entidad.
+ */
 @Repository
 public interface RevisionTicketPaymentRepository extends JpaRepository<RevisionTicketPayment, Long> {
 

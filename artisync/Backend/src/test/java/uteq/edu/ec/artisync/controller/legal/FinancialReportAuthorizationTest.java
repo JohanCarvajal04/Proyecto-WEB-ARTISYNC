@@ -16,11 +16,11 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import uteq.edu.ec.artisync.dto.peticion.legal.FinancialReportFilter;
-import uteq.edu.ec.artisync.dto.respuesta.legal.CommissionReportResponse;
+import uteq.edu.ec.artisync.dto.request.legal.FinancialReportFilter;
+import uteq.edu.ec.artisync.dto.response.legal.CommissionReportResponse;
 import uteq.edu.ec.artisync.service.legal.IFinancialReportService;
-import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
-import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.report.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.report.ReportFormat;
 
 import java.util.Arrays;
 import java.util.List;
@@ -51,6 +51,8 @@ class FinancialReportAuthorizationTest {
                     new CommissionReportResponse(1L, null, null, null, 0, 0, null, null, null, List.of()));
             when(servicio.export(any(), any(), any()))
                     .thenReturn(new GeneratedDocument(new byte[0], "text/csv", "comisiones.csv"));
+            when(servicio.export(any(), any(), any(Integer.class), any(), any()))
+                    .thenReturn(new GeneratedDocument(new byte[0], "text/csv", "comisiones-p1.csv"));
             return servicio;
         }
 
@@ -116,5 +118,14 @@ class FinancialReportAuthorizationTest {
         assertThrows(AccessDeniedException.class, () -> controlador.get(new FinancialReportFilter()));
         assertThrows(AccessDeniedException.class, () -> controlador.export(
                 new FinancialReportFilter(), ReportFormat.CSV, autenticacionActual()));
+    }
+
+    @Test
+    @DisplayName("export con page/size explícitos usa la variante paginada, no la de documento completo")
+    void export_conPageYSize_usaLaVariantePaginada() {
+        autenticar("ROLE_ADMIN");
+
+        assertDoesNotThrow(() -> controlador.export(
+                new FinancialReportFilter(), ReportFormat.CSV, 0, 100, autenticacionActual()));
     }
 }

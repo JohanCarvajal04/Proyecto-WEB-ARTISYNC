@@ -1,7 +1,7 @@
 package uteq.edu.ec.artisync.entity.legal;
 
-import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.pedido.ContractTemplate;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.entity.order.ContractTemplate;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

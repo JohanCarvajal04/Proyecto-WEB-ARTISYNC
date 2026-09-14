@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContractController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.legal</a> &gt; <span class="el_source">ContractController.java</span></div><h1>ContractController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.legal;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.response.legal.ContractResponse;
+import uteq.edu.ec.artisync.dto.response.legal.SignatureStatusResponse;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.legal.IContractService;
+
+/** Consulta y firma de contratos de pedido. */
+@RestController
+@RequestMapping(&quot;/api/v1/contratos&quot;)
+@RequiredArgsConstructor
+public class ContractController {
+
+    private final IContractService contratoServicio;
+
+    /**
+     * Genera el contrato formal de un pedido a partir de la plantilla elegida por el creador.
+     * @param idPedido identificador del pedido sobre el cual se formaliza el contrato
+     * @param userDetails usuario autenticado que solicita la generación del contrato
+     * @return el contrato recién generado, pendiente de firma
+     */
+    @PostMapping(&quot;/pedido/{idPedido}&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;ContractResponse&gt; generateContract(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L35">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L36">                .body(contratoServicio.generateContract(idPedido, userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Registra la firma del usuario autenticado sobre un contrato existente.
+     * @param id identificador del contrato a firmar
+     * @param userDetails usuario autenticado que firma (cliente o creador según su rol en el contrato)
+     * @return el contrato con el estado de firma actualizado
+     */
+    @PostMapping(&quot;/{id}/firmar&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;ContractResponse&gt; signContract(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L50">        return ResponseEntity.ok(contratoServicio.signContract(id, userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Obtiene el detalle de un contrato por su identificador, si el usuario autenticado es parte de él.
+     * @param id identificador del contrato solicitado
+     * @param userDetails usuario autenticado que consulta el contrato
+     * @return el detalle del contrato
+     */
+    @GetMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;ContractResponse&gt; getContract(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L64">        return ResponseEntity.ok(contratoServicio.getContract(id, userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Obtiene el contrato asociado a un pedido específico.
+     * @param idPedido identificador del pedido cuyo contrato se busca
+     * @param userDetails usuario autenticado que consulta el contrato
+     * @return el contrato vinculado al pedido
+     */
+    @GetMapping(&quot;/pedido/{idPedido}&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;ContractResponse&gt; getContractByOrder(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L78">        return ResponseEntity.ok(contratoServicio.getContractByOrder(idPedido, userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Consulta el estado de firma actual del contrato para el usuario autenticado.
+     * @param id identificador del contrato
+     * @param userDetails usuario autenticado que realiza la consulta
+     * @return estado de firma indicando si el usuario ya firmó, si es el último en firmar, etc.
+     */
+    @GetMapping(&quot;/{id}/estado-firma&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;SignatureStatusResponse&gt; getSignatureStatus(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L92">        return ResponseEntity.ok(contratoServicio.getSignatureStatus(id, userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Descarga el documento PDF final y firmado del contrato.
+     * @param id identificador del contrato
+     * @param userDetails usuario autenticado (debe ser parte del contrato o administrador)
+     * @return el archivo PDF del contrato para descarga
+     */
+    @GetMapping(&quot;/{id}/pdf&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;byte[]&gt; downloadPdf(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L106">        byte[] pdf = contratoServicio.generatePdf(id, userDetails.getIdUsuario());</span>
+
+<span class="fc" id="L108">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L109">        headers.setContentType(MediaType.APPLICATION_PDF);</span>
+<span class="fc" id="L110">        headers.setContentDispositionFormData(&quot;attachment&quot;, &quot;contrato_&quot; + id + &quot;.pdf&quot;);</span>
+<span class="fc" id="L111">        headers.setContentLength(pdf.length);</span>
+
+<span class="fc" id="L113">        return new ResponseEntity&lt;&gt;(pdf, headers, HttpStatus.OK);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -20,10 +20,25 @@ public class AiServiceUnavailableException extends RuntimeException {
      */
     private final boolean reintentable;
 
+    /**
+     * Crea la excepción marcándola como no reintentable por defecto (p. ej.
+     * 401/413, donde un segundo intento fallaría igual).
+     *
+     * @param mensaje descripción del fallo del proveedor de IA
+     * @param causa excepción original que originó el fallo
+     */
     public AiServiceUnavailableException(String mensaje, Throwable causa) {
         this(mensaje, causa, false);
     }
 
+    /**
+     * Crea la excepción indicando explícitamente si el fallo es transitorio.
+     *
+     * @param mensaje descripción del fallo del proveedor de IA
+     * @param causa excepción original que originó el fallo
+     * @param reintentable {@code true} si el fallo es transitorio (429, timeout) y
+     *                      un reintento razonable podría tener éxito
+     */
     public AiServiceUnavailableException(String mensaje, Throwable causa, boolean reintentable) {
         super(mensaje, causa);
         this.reintentable = reintentable;

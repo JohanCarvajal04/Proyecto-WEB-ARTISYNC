@@ -45,24 +45,35 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
 <span class="fc" id="L45">        this.objectMapper.addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class);</span>
 <span class="fc" id="L46">    }</span>
 
+    /**
+     * Responde con un {@code ProblemDetail} 401 en lugar del redirect HTML por
+     * defecto de Spring Security, para que el frontend (SPA/API) reciba siempre JSON.
+     *
+     * @param request petición que disparó la excepción de autenticación
+     * @param response respuesta HTTP a completar (401, {@code application/json})
+     * @param authException excepción de autenticación capturada por el {@code ExceptionTranslationFilter};
+     *                       su mensaje se usa como detalle solo si el filtro JWT no dejó uno más
+     *                       específico en el atributo de petición {@code JWT_ERROR}
+     * @throws IOException si falla la escritura de la respuesta
+     */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
-<span class="fc" id="L50">        String jwtError = (String) request.getAttribute(&quot;JWT_ERROR&quot;);</span>
-<span class="pc bpc" id="L51" title="1 of 2 branches missed.">        String message = jwtError != null ? jwtError : &quot;AutenticaciÃ³n requerida&quot;;</span>
+<span class="fc" id="L61">        String jwtError = (String) request.getAttribute(&quot;JWT_ERROR&quot;);</span>
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">        String message = jwtError != null ? jwtError : &quot;Autenticación requerida&quot;;</span>
 
-<span class="fc" id="L53">        log.warn(&quot;Fallo de autenticaciÃ³n en {}: {} (ExcepciÃ³n: {})&quot;, request.getRequestURI(), message, authException.getMessage());</span>
+<span class="fc" id="L64">        log.warn(&quot;Fallo de autenticación en {}: {} (Excepción: {})&quot;, request.getRequestURI(), message, authException.getMessage());</span>
 
-<span class="fc" id="L55">        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);</span>
-<span class="fc" id="L56">        response.setContentType(MediaType.APPLICATION_JSON_VALUE);</span>
-<span class="fc" id="L57">        response.setCharacterEncoding(&quot;UTF-8&quot;);</span>
+<span class="fc" id="L66">        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);</span>
+<span class="fc" id="L67">        response.setContentType(MediaType.APPLICATION_JSON_VALUE);</span>
+<span class="fc" id="L68">        response.setCharacterEncoding(&quot;UTF-8&quot;);</span>
 
-<span class="fc" id="L59">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, message);</span>
-<span class="fc" id="L60">        problemDetail.setType(URI.create(&quot;https://artisync.dev/errors/autenticacion&quot;));</span>
-<span class="fc" id="L61">        problemDetail.setTitle(HttpStatus.UNAUTHORIZED.getReasonPhrase());</span>
-<span class="fc" id="L62">        problemDetail.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="fc" id="L70">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, message);</span>
+<span class="fc" id="L71">        problemDetail.setType(URI.create(&quot;https://artisync.dev/errors/autenticacion&quot;));</span>
+<span class="fc" id="L72">        problemDetail.setTitle(HttpStatus.UNAUTHORIZED.getReasonPhrase());</span>
+<span class="fc" id="L73">        problemDetail.setInstance(URI.create(request.getRequestURI()));</span>
 
-<span class="fc" id="L64">        objectMapper.writeValue(response.getWriter(), problemDetail);</span>
-<span class="fc" id="L65">    }</span>
+<span class="fc" id="L75">        objectMapper.writeValue(response.getWriter(), problemDetail);</span>
+<span class="fc" id="L76">    }</span>
 }
 
 

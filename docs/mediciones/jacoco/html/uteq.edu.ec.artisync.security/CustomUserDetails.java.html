@@ -9,7 +9,7 @@ import java.util.Collection;
 /**
  * Componente de Seguridad: Implementacion personalizada de UserDetails.
  * 
- * Propósito: Adaptar la entidad Usuario del dominio interno a la estructura de contrato exigida por Spring Security.
+ * Propósito: Adaptar la entidad User del dominio interno a la estructura de contrato exigida por Spring Security.
  * 
  * Flujo interno: Alberga la identidad, credenciales y coleccion de autoridades (roles/permisos) del usuario en sesion, facilitando el acceso a propiedades personalizadas desde el SecurityContext.
  */
@@ -18,12 +18,26 @@ public class CustomUserDetails extends User {
 
     private final Long idUsuario;
 
+    /**
+     * Crea el detalle de usuario de Spring Security, añadiendo el id interno del
+     * usuario a los atributos estándar que ya expone {@link User}.
+     *
+     * @param idUsuario id interno del usuario, usado para resolver relaciones sin
+     *                  otra consulta (p. ej. autorización de salas de chat)
+     * @param username nombre de usuario (correo) usado por Spring Security
+     * @param password contraseña codificada del usuario
+     * @param enabled {@code true} si la cuenta está habilitada
+     * @param accountNonExpired {@code true} si la cuenta no ha expirado
+     * @param credentialsNonExpired {@code true} si las credenciales no han expirado
+     * @param accountNonLocked {@code true} si la cuenta no está bloqueada
+     * @param authorities roles/permisos concedidos al usuario
+     */
     public CustomUserDetails(Long idUsuario, String username, String password, boolean enabled,
                              boolean accountNonExpired, boolean credentialsNonExpired,
                              boolean accountNonLocked, Collection&lt;? extends GrantedAuthority&gt; authorities) {
-<span class="fc" id="L24">        super(username, password, enabled, accountNonExpired, credentialsNonExpired, accountNonLocked, authorities);</span>
-<span class="fc" id="L25">        this.idUsuario = idUsuario;</span>
-<span class="fc" id="L26">    }</span>
+<span class="fc" id="L38">        super(username, password, enabled, accountNonExpired, credentialsNonExpired, accountNonLocked, authorities);</span>
+<span class="fc" id="L39">        this.idUsuario = idUsuario;</span>
+<span class="fc" id="L40">    }</span>
 }
 
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

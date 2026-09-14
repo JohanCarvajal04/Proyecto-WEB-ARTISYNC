@@ -1,0 +1,46 @@
+package uteq.edu.ec.artisync.repository.catalog;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import uteq.edu.ec.artisync.entity.catalog.Workflow;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link Workflow}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Delega la responsabilidad de persistencia a los métodos estándar y autogenerados por convención (Derived Queries) de Spring Data.
+ */
+@Repository
+public interface WorkflowRepository extends JpaRepository<Workflow, Long> {
+
+    /** Flujos de trabajo definidos por un creador. */
+    List<Workflow> findByCreadorIdUsuario(Long idUsuario);
+
+    /** Para quien tiene FLUJO_MODERAR: todos los flujos, de cualquier creador. */
+    List<Workflow> findAllByOrderByIdFlujoAsc();
+
+    /** Un flujo puntual, solo si pertenece a ese creador (evita editar el flujo de otro). */
+    Optional<Workflow> findByIdFlujoAndCreadorIdUsuario(Long idFlujo, Long idUsuario);
+
+    /** @return {@code true} si ese creador ya tiene un flujo con ese nombre */
+    boolean existsByNombreFlujoAndCreadorIdUsuario(String nombreFlujo, Long idUsuario);
+
+    /** @return {@code true} si ese creador ya tiene OTRO flujo (distinto id) con ese nombre; usado al renombrar */
+    boolean existsByNombreFlujoAndCreadorIdUsuarioAndIdFlujoNot(String nombreFlujo, Long idUsuario, Long idFlujo);
+
+    /**
+     * Flujo de menor id para un creador.
+     */
+    Optional<Workflow> findFirstByCreadorIdUsuarioOrderByIdFlujoAsc(Long idUsuario);
+
+    /**
+     * Flujo de menor id. Sirve de respaldo.
+     */
+    Optional<Workflow> findFirstByOrderByIdFlujoAsc();
+}
+

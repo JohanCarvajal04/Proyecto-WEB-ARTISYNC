@@ -1,7 +1,7 @@
 package uteq.edu.ec.artisync.service.social;
 
-import uteq.edu.ec.artisync.dto.peticion.social.CreateReviewRequest;
-import uteq.edu.ec.artisync.dto.respuesta.social.ReviewResponse;
+import uteq.edu.ec.artisync.dto.request.social.CreateReviewRequest;
+import uteq.edu.ec.artisync.dto.response.social.ReviewResponse;
 
 import java.util.List;
 

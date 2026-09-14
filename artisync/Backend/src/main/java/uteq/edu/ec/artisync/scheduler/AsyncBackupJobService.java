@@ -4,12 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.entity.respaldo.BackupStatus;
-import uteq.edu.ec.artisync.entity.respaldo.Backup;
-import uteq.edu.ec.artisync.entity.respaldo.BackupType;
-import uteq.edu.ec.artisync.repository.respaldo.BackupRepository;
-import uteq.edu.ec.artisync.service.respaldo.impl.IncrementalBackupExporter;
-import uteq.edu.ec.artisync.service.respaldo.impl.PgDumpExecutor;
+import uteq.edu.ec.artisync.entity.backup.BackupStatus;
+import uteq.edu.ec.artisync.entity.backup.Backup;
+import uteq.edu.ec.artisync.entity.backup.BackupType;
+import uteq.edu.ec.artisync.repository.backup.BackupRepository;
+import uteq.edu.ec.artisync.service.backup.impl.IncrementalBackupExporter;
+import uteq.edu.ec.artisync.service.backup.impl.PgDumpExecutor;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -68,7 +68,7 @@ public class AsyncBackupJobService {
         } catch (Exception e) {
             log.error("[AsyncBackupJobService] Falló el respaldo {}: {}", idRespaldo, e.getMessage(), e);
             respaldo.setEstadoRespaldo(BackupStatus.FALLIDO);
-            respaldo.setMensajeError(truncar(e.getMessage(), 500));
+            respaldo.setMensajeError(truncate(e.getMessage(), 500));
         } finally {
             respaldo.setFechaFin(LocalDateTime.now());
             respaldo.setDuracionMs((int) ((System.nanoTime() - inicioNanos) / 1_000_000));
@@ -76,7 +76,7 @@ public class AsyncBackupJobService {
         }
     }
 
-    private String truncar(String mensaje, int maximo) {
+    private String truncate(String mensaje, int maximo) {
         if (mensaje == null) {
             return "Error desconocido";
         }

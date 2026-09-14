@@ -1,7 +1,7 @@
 package uteq.edu.ec.artisync.service.legal;
 
 import org.springframework.web.multipart.MultipartFile;
-import uteq.edu.ec.artisync.dto.respuesta.legal.DeliverableResponse;
+import uteq.edu.ec.artisync.dto.response.legal.DeliverableResponse;
 
 public interface IDeliverableService {
 
@@ -51,7 +51,7 @@ public interface IDeliverableService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene entregable, o si el entregable no tiene un archivo asociado
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el cliente del pedido, o si el pago aún no ha sido liberado
      */
-    ArchivoDescargado downloadCleanVersion(Long idPedido, Long idCliente);
+    DownloadedFile downloadCleanVersion(Long idPedido, Long idCliente);
 
     /**
      * La versión con marca de agua es la que el cliente revisa antes de approve,
@@ -63,12 +63,15 @@ public interface IDeliverableService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene entregable, o si el entregable no tiene versión con marca de agua
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no tiene acceso a este entregable
      */
-    ArchivoDescargado downloadWatermarkedVersion(Long idPedido, Long idUsuario);
+    DownloadedFile downloadWatermarkedVersion(Long idPedido, Long idUsuario);
 
     /**
      * Bytes del entregable junto al tipo que declara, para que el controlador
      * responda con un Content-Type correcto en vez de octet-stream genérico.
+     * @param contenido bytes del archivo
+     * @param nombreSugerido nombre de archivo sugerido para la descarga
+     * @param contentType tipo MIME del archivo
      */
-    record ArchivoDescargado(byte[] contenido, String nombreSugerido, String contentType) {
+    record DownloadedFile(byte[] contenido, String nombreSugerido, String contentType) {
     }
 }

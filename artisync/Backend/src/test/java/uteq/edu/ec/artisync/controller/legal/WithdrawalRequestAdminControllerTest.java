@@ -9,9 +9,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import uteq.edu.ec.artisync.dto.peticion.legal.WithdrawalRequestFilter;
-import uteq.edu.ec.artisync.dto.peticion.legal.WithdrawalDecisionRequest;
-import uteq.edu.ec.artisync.dto.respuesta.legal.WithdrawalRequestResponse;
+import uteq.edu.ec.artisync.dto.request.legal.WithdrawalRequestFilter;
+import uteq.edu.ec.artisync.dto.request.legal.WithdrawalDecisionRequest;
+import uteq.edu.ec.artisync.dto.response.legal.WithdrawalRequestResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IWithdrawalRequestService;
 

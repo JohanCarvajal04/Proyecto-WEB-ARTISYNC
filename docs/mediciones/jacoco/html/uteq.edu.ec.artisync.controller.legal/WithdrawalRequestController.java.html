@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WithdrawalRequestController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.legal</a> &gt; <span class="el_source">WithdrawalRequestController.java</span></div><h1>WithdrawalRequestController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.legal;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.request.legal.CreateWithdrawalRequest;
+import uteq.edu.ec.artisync.dto.response.legal.CreatorBalanceResponse;
+import uteq.edu.ec.artisync.dto.response.legal.WithdrawalRequestResponse;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.legal.IWithdrawalRequestService;
+
+import java.util.List;
+
+/** Lado creador: query saldo, request retiro y ver el propio historial. */
+@RestController
+@RequestMapping(&quot;/api/v1/retiros&quot;)
+@RequiredArgsConstructor
+public class WithdrawalRequestController {
+
+    private final IWithdrawalRequestService solicitudRetiroServicio;
+
+    /**
+     * Obtiene el saldo disponible para retiro del creador autenticado.
+     *
+     * @param userDetails usuario autenticado
+     * @return el saldo disponible del creador
+     */
+    @GetMapping(&quot;/saldo&quot;)
+    @PreAuthorize(&quot;hasAuthority('RETIROS_SOLICITAR')&quot;)
+    public ResponseEntity&lt;CreatorBalanceResponse&gt; getBalance(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L35">        return ResponseEntity.ok(solicitudRetiroServicio.getBalance(userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Registra una nueva solicitud de retiro para el creador autenticado.
+     *
+     * @param userDetails usuario autenticado que solicita el retiro
+     * @param peticion datos de la solicitud de retiro
+     * @return la solicitud de retiro creada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el creador no ha configurado su correo de PayPal, ya tiene una solicitud
+     *      en curso, el monto es menor al mínimo permitido, o supera su saldo disponible
+     */
+    @PostMapping
+    @PreAuthorize(&quot;hasAuthority('RETIROS_SOLICITAR')&quot;)
+    public ResponseEntity&lt;WithdrawalRequestResponse&gt; request(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody CreateWithdrawalRequest peticion) {
+<span class="fc" id="L53">        return ResponseEntity.ok(solicitudRetiroServicio.request(userDetails.getIdUsuario(), peticion));</span>
+    }
+
+    /**
+     * Lista el historial de solicitudes de retiro del creador autenticado.
+     *
+     * @param userDetails usuario autenticado
+     * @return listado de solicitudes de retiro del creador
+     */
+    @GetMapping(&quot;/mis-solicitudes&quot;)
+    @PreAuthorize(&quot;hasAuthority('RETIROS_SOLICITAR')&quot;)
+    public ResponseEntity&lt;List&lt;WithdrawalRequestResponse&gt;&gt; myRequests(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L66">        return ResponseEntity.ok(solicitudRetiroServicio.myRequests(userDetails.getIdUsuario()));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

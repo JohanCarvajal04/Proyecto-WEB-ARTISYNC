@@ -9,23 +9,23 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-import uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest;
-import uteq.edu.ec.artisync.dto.peticion.social.CreateRaffleRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.dto.respuesta.social.WinnerResponse;
-import uteq.edu.ec.artisync.dto.respuesta.social.ParticipantResponse;
-import uteq.edu.ec.artisync.dto.respuesta.social.RaffleResponse;
+import uteq.edu.ec.artisync.dto.request.social.UpdateRaffleRequest;
+import uteq.edu.ec.artisync.dto.request.social.CreateRaffleRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.social.WinnerResponse;
+import uteq.edu.ec.artisync.dto.response.social.ParticipantResponse;
+import uteq.edu.ec.artisync.dto.response.social.RaffleResponse;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
-import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
-import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.profile.CreatorProfile;
+import uteq.edu.ec.artisync.entity.security.User;
 import uteq.edu.ec.artisync.entity.social.RaffleParticipant;
 import uteq.edu.ec.artisync.entity.social.RafflePrize;
 import uteq.edu.ec.artisync.entity.social.Raffle;
 import uteq.edu.ec.artisync.exception.DuplicateResourceException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
-import uteq.edu.ec.artisync.repository.comunicacion.FollowerRepository;
-import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
+import uteq.edu.ec.artisync.repository.communication.FollowerRepository;
+import uteq.edu.ec.artisync.repository.profile.CreatorProfileRepository;
+import uteq.edu.ec.artisync.repository.security.UserRepository;
 import uteq.edu.ec.artisync.repository.social.RaffleParticipantRepository;
 import uteq.edu.ec.artisync.repository.social.RaffleRepository;
 
@@ -323,7 +323,7 @@ class RaffleServiceImplTest {
     @Test
     @DisplayName("updateRaffle — lanza BusinessRuleException al modificar cantidadGanadores con participantes")
     void actualizarSorteo_cambiarCantidadGanadoresConParticipantes_lanzaExcepcion() {
-        var peticion = uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest.builder()
+        var peticion = uteq.edu.ec.artisync.dto.request.social.UpdateRaffleRequest.builder()
                 .cantidadGanadores(5) // diferente al actual (2)
                 .build();
 
@@ -495,7 +495,7 @@ class RaffleServiceImplTest {
         given(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfilCreador));
         given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(false);
 
-        RespuestaMensaje respuesta = sorteoService.deleteRaffle(100L, 1L);
+        MessageResponse respuesta = sorteoService.deleteRaffle(100L, 1L);
 
         assertThat(respuesta).isNotNull();
         verify(sorteoRepository).delete(sorteoActivo);
@@ -583,7 +583,7 @@ class RaffleServiceImplTest {
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
         given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of(participante));
 
-        RespuestaMensaje respuesta = sorteoService.cancelParticipation(100L, 2L);
+        MessageResponse respuesta = sorteoService.cancelParticipation(100L, 2L);
 
         assertThat(respuesta).isNotNull();
         verify(participanteSorteoRepository).delete(participante);

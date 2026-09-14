@@ -8,13 +8,15 @@ Como se definió en el **Nivel 3 (Componentes)**, estas clases pertenecen a la c
 
 | Módulo / Paquete | Descripción y Responsabilidad en el Dominio |
 | :--- | :--- |
-| **seguridad** | Implementa la base de control de acceso (RBAC), registro de `Usuario`, 2FA, y gestión de sesiones delegadas. |
-| **perfil** | Gestiona los perfiles públicos de los creadores, sus habilidades y su portafolio de trabajos verificados por IA. |
-| **catalogo** | Define la estructura de oferta de los creadores mediante la categorización y configuración de un `Servicio` (Gig). |
-| **pedido** | Orquesta el ciclo de vida central de un `Pedido` mediante máquinas de estado (`FlujoTrabajo`) e incidencias (`TicketRevision`). |
-| **legal** | Formaliza la transacción financiera (`Contrato`), el depósito en garantía (`PagoGarantia`), chat y la entrega final de archivos (`EntregableFinal`). |
-| **comunicacion** | Sistema de notificaciones asíncronas, seguimiento (Follows), mensajería, onboarding de pedidos (`Briefing`) y moderación de contenido. |
-| **social** | Interacciones de comunidad como calificaciones (`ResenaServicio`) y sorteos promocionales (`Sorteo`). |
+| **security** | Implementa la base de control de acceso (RBAC), registro de `User`, 2FA, y gestión de sesiones delegadas. |
+| **profile** | Gestiona los perfiles públicos de los creadores y su portafolio de trabajos verificados por IA. |
+| **catalog** | Define la estructura de oferta de los creadores mediante la categorización y configuración de un `Offering` (Gig). |
+| **order** | Orquesta el ciclo de vida central de un `Order` mediante máquinas de estado (`Workflow`) e incidencias (`RevisionTicket`). |
+| **legal** | Formaliza la transacción financiera (`Contract`), el depósito en garantía (`EscrowPayment`), chat y la entrega final de archivos (`FinalDeliverable`). |
+| **communication** | Sistema de notificaciones asíncronas, seguimiento (Follows), mensajería, onboarding de pedidos (`Briefing`) y moderación de contenido. |
+| **social** | Interacciones de comunidad como calificaciones (`OfferingReview`) y sorteos promocionales (`Raffle`). |
+| **audit** | Registra el rastro inmutable de auditoría de acciones sensibles del sistema (`AuditEvent`). |
+| **backup** | Gestiona la programación y ejecución de respaldos de base de datos (`Backup`, `BackupSchedule`). |
 
 ---
 
@@ -26,374 +28,384 @@ A continuación se muestra el modelo estructural detallado. Debido a la magnitud
 classDiagram
   direction LR
 
-  namespace seguridad {
-    class Pais {
-      - idPais : Long
-      - nombrePais : String
+  namespace security {
+    class Country {
+      - countryId : Long
+      - countryName : String
     }
-    class Usuario {
-      - idUsuario : Long
-      - nombres : String
-      - apellidos : String
-      - correo : String
-      - contrasenaHash : String
-      - fechaRegistro : LocalDateTime
-      - actualizadoEn : LocalDateTime
-      - fechaNacimiento : LocalDate
+    class User {
+      - userId : Long
+      - firstName : String
+      - lastName : String
+      - email : String
+      - passwordHash : String
+      - registrationDate : LocalDateTime
+      - updatedAt : LocalDateTime
+      - birthDate : LocalDate
     }
-    class Rol {
-      - idRol : Long
-      - nombreRol : String
-      - descripcionRol : String
+    class Role {
+      - roleId : Long
+      - roleName : String
+      - roleDescription : String
     }
-    class Permiso {
-      - idPermiso : Long
-      - nombrePermiso : String
-      - moduloAplicacion : String
+    class Permission {
+      - permissionId : Long
+      - permissionName : String
+      - applicationModule : String
     }
-    class RolPermiso {
-      - idRolPermiso : Long
+    class UserRole {
+      - userRoleId : Long
     }
-    class UsuarioRol {
-      - idUsuarioRol : Long
-    }
-    class SesionUsuario {
-      - idSesion : Long
+    class UserSession {
+      - sessionId : Long
       - jti : String
-      - direccionIp : String
-      - fechaCreacion : LocalDateTime
-      - fechaExpiracion : LocalDateTime
+      - ipAddress : String
+      - creationDate : LocalDateTime
+      - expirationDate : LocalDateTime
     }
-    class AutenticacionDosFactores {
-      - id2fa : Long
-      - llaveSecreta : String
+    class TwoFactorAuthentication {
+      - twoFaId : Long
+      - secretKey : String
     }
-    class CodigoRespaldo2Fa {
-      - idCodigo : Long
-      - codigoHash : String
-    }
-    class TokenRecuperacion {
-      - idToken : Long
-      - hashToken : String
-      - fechaGeneracion : LocalDateTime
-    }
-    class EventoAuditoria {
-      - idEvento : Long
-      - entidad : String
-      - accion : String
-      - idRegistro : Long
-      - datosAntiguos : String
-      - datosNuevos : String
-      - usuarioResponsable : String
-      - ipOrigen : String
-      - fechaEvento : LocalDateTime
+    class TwoFactorBackupCode {
+      - codeId : Long
+      - codeHash : String
     }
   }
 
-  namespace perfil {
-    class PerfilCreador {
-      - idPerfil : Long
-      - biografia : String
-      - urlRedSocial : String
-    }
-    class Habilidad {
-      - idHabilidad : Long
-      - nombreHabilidad : String
-    }
-    class CreadorHabilidad {
-      - idCreadorHabilidad : Long
-      - nivelDominio : String
-    }
-    class EstadoVerificacion {
-      - idEstadoVerificacion : Long
-      - nombreEstado : String
-    }
-    class CertificadoIa {
-      - idCertificado : Long
-      - urlDocumentoAzure : String
-      - puntajeConfianzaIa : BigDecimal
-      - fechaAnalisis : LocalDateTime
-    }
-    class Portafolio {
-      - idPortafolio : Long
-      - fechaCreacion : LocalDateTime
-    }
-    class PortafolioItem {
-      - idItemPortafolio : Long
-      - tituloObra : String
-      - descripcionObra : String
-      - urlArchivoMultimedia : String
-      - fechaSubida : LocalDateTime
+  namespace audit {
+    class AuditEvent {
+      - auditEventId : Long
+      - eventDate : LocalDateTime
+      - actorUserId : Long
+      - actorEmail : String
+      - auditModule : String
+      - auditAction : String
+      - eventResult : String
+      - affectedEntity : String
+      - affectedEntityId : Long
+      - errorMessage : String
+      - ipAddress : String
     }
   }
 
-  namespace catalogo {
-    class Categoria {
-      - idCategoria : Long
-      - nombreCategoria : String
+  namespace profile {
+    class CreatorProfile {
+      - profileId : Long
+      - biography : String
+      - socialMediaUrl : String
     }
-    class Subcategoria {
-      - idSubcategoria : Long
-      - nombreSubcategoria : String
+    class VerificationStatus {
+      - verificationStatusId : Long
+      - statusName : String
     }
-    class Etiqueta {
-      - idEtiqueta : Long
-      - nombreEtiqueta : String
+    class AiCertificate {
+      - certificateId : Long
+      - documentS3Url : String
+      - aiConfidenceScore : BigDecimal
+      - analysisDate : LocalDateTime
     }
-    class AtributoDinamico {
-      - idAtributo : Long
-      - nombreAtributo : String
-      - tipoDato : String
+    class Portfolio {
+      - portfolioId : Long
+      - creationDate : LocalDateTime
     }
-    class Servicio {
-      - idServicio : Long
-      - tituloServicio : String
-      - descripcionDetallada : String
-      - precioBase : BigDecimal
-      - urlMiniatura : String
+    class PortfolioItem {
+      - portfolioItemId : Long
+      - workTitle : String
+      - workDescription : String
+      - mediaFileUrl : String
+      - uploadDate : LocalDateTime
     }
-    class ServicioAtributo {
-      - idServicioAtributo : Long
-      - valorAsignado : String
-    }
-    class ServicioEtiqueta {
-      - idServicioEtiqueta : Long
+    class CreatorPaymentDetails {
+      - paymentDetailsId : Long
+      - paypalEmail : String
+      - updateDate : LocalDateTime
     }
   }
 
-  namespace pedido {
-    class FlujoTrabajo {
-      - idFlujo : Long
-      - nombreFlujo : String
-      - descripcionFlujo : String
+  namespace catalog {
+    class Category {
+      - categoryId : Long
+      - categoryName : String
     }
-    class EtapaFlujo {
-      - idEtapa : Long
-      - nombreEtapa : String
+    class Subcategory {
+      - subcategoryId : Long
+      - subcategoryName : String
     }
-    class FlujoEtapaConfig {
-      - idFlujoEtapa : Long
-      - numeroOrden : Integer
+    class Tag {
+      - tagId : Long
+      - tagName : String
     }
-    class Pedido {
-      - idPedido : Long
-      - fechaInicio : LocalDateTime
-      - fechaEntregaEstimada : LocalDateTime
-      - precioPactado : BigDecimal
+    class DynamicAttribute {
+      - attributeId : Long
+      - attributeName : String
+      - dataType : String
     }
-    class HistorialEstadoPedido {
-      - idHistorialEstado : Long
-      - fechaTransicion : LocalDateTime
-      - observacion : String
+    class Offering {
+      - offeringId : Long
+      - title : String
+      - detailedDescription : String
+      - basePrice : BigDecimal
+      - thumbnailUrl : String
     }
-    class MotivoRechazo {
-      - idMotivo : Long
-      - descripcionMotivo : String
+    class OfferingAttribute {
+      - offeringAttributeId : Long
+      - assignedValue : String
     }
-    class TicketRevision {
-      - idTicket : Long
-      - descripcionCliente : String
-      - estadoTicket : String
-      - fechaApertura : LocalDateTime
-      - fechaResolucion : LocalDateTime
+    class OfferingTag {
+      - offeringTagId : Long
     }
-    class PlantillaContrato {
-      - idPlantilla : Long
-      - versionLegal : String
-      - cuerpoHtmlPlantilla : String
+    class Workflow {
+      - workflowId : Long
+      - workflowName : String
+      - workflowDescription : String
+    }
+  }
+
+  namespace order {
+    class WorkflowStage {
+      - stageId : Long
+      - stageName : String
+    }
+    class WorkflowStageConfig {
+      - workflowStageId : Long
+      - orderNumber : Integer
+    }
+    class Order {
+      - orderId : Long
+      - startDate : LocalDateTime
+      - estimatedDeliveryDate : LocalDateTime
+      - agreedPrice : BigDecimal
+    }
+    class OrderStatusHistory {
+      - statusHistoryId : Long
+      - transitionDate : LocalDateTime
+      - remark : String
+    }
+    class RejectionReason {
+      - reasonId : Long
+      - reasonDescription : String
+    }
+    class RevisionTicket {
+      - ticketId : Long
+      - clientDescription : String
+      - ticketStatus : String
+      - creationDate : LocalDateTime
+    }
+    class ContractTemplate {
+      - templateId : Long
+      - legalVersion : String
+      - templateHtmlBody : String
+    }
+    class Sketch {
+      - sketchId : Long
+      - imageUrl : String
+      - uploadDate : LocalDateTime
     }
   }
 
   namespace legal {
-    class Contrato {
-      - idContrato : Long
-      - hashFirmaCliente : String
-      - hashFirmaCreador : String
-      - fechaFormalizacion : LocalDateTime
-      - urlDocumentoPdf : String
+    class Contract {
+      - contractId : Long
+      - clientSignatureHash : String
+      - creatorSignatureHash : String
+      - formalizationDate : LocalDateTime
+      - pdfDocumentUrl : String
     }
-    class PagoGarantia {
-      - idPago : Long
-      - idOrdenPaypal : String
-      - montoRetenido : BigDecimal
+    class EscrowPayment {
+      - paymentId : Long
+      - paypalOrderId : String
+      - heldAmount : BigDecimal
     }
-    class TransaccionPago {
-      - idTransaccion : Long
-      - tipoTransaccion : String
-      - monto : BigDecimal
-      - fechaEjecucion : LocalDateTime
+    class PaymentTransaction {
+      - transactionId : Long
+      - transactionType : String
+      - amount : BigDecimal
+      - executionDate : LocalDateTime
     }
-    class SalaChat {
-      - idSala : Long
-      - fechaApertura : LocalDateTime
+    class ChatRoom {
+      - roomId : Long
+      - openDate : LocalDateTime
     }
-    class Mensaje {
-      - idMensaje : Long
-      - cuerpoMensaje : String
-      - fechaHoraEnvio : LocalDateTime
+    class Message {
+      - messageId : Long
+      - messageBody : String
+      - sentAt : LocalDateTime
     }
-    class DocumentoAdjunto {
-      - idAdjunto : Long
-      - urlArchivo : String
-      - tipoMime : String
-      - pesoBytes : Long
+    class FinalDeliverable {
+      - deliverableId : Long
+      - watermarkedVersionUrl : String
+      - cleanVersionUrl : String
+      - approvalStatus : String
+      - deliveryDate : LocalDateTime
     }
-    class EntregableFinal {
-      - idEntregable : Long
-      - urlVersionMarcaAgua : String
-      - urlVersionLimpia : String
-      - estadoAprobacion : String
-      - fechaEntrega : LocalDateTime
+    class RevisionTicketPayment {
+      - ticketPaymentId : Long
+      - paypalOrderId : String
+      - approvalUrl : String
+      - amount : BigDecimal
+    }
+    class WithdrawalRequest {
+      - requestId : Long
+      - requestedAmount : BigDecimal
+      - destinationPaypalEmail : String
+      - paypalPayoutId : String
+      - requestDate : LocalDateTime
     }
   }
 
-  namespace comunicacion {
-    class TipoNotificacion {
-      - idTipoNotificacion : Long
-      - nombreEvento : String
-      - formatoMensaje : String
+  namespace communication {
+    class NotificationType {
+      - notificationTypeId : Long
+      - eventName : String
+      - messageFormat : String
     }
-    class NotificacionSistema {
-      - idNotificacion : Long
-      - fechaEmision : LocalDateTime
+    class SystemNotification {
+      - notificationId : Long
+      - issueDate : LocalDateTime
     }
-    class Seguidor {
-      - idSeguimiento : Long
-      - fechaSeguimiento : LocalDateTime
+    class Follower {
+      - followId : Long
+      - followDate : LocalDateTime
     }
-    class BriefingPlantilla {
-      - idBriefingPlantilla : Long
-      - nombrePlantilla : String
-      - fechaCreacion : LocalDateTime
+    class BriefingTemplate {
+      - briefingTemplateId : Long
+      - templateName : String
+      - creationDate : LocalDateTime
     }
-    class BriefingPregunta {
-      - idPregunta : Long
-      - textoPregunta : String
-      - numeroOrden : Integer
+    class BriefingQuestion {
+      - questionId : Long
+      - questionText : String
+      - orderNumber : Integer
     }
-    class BriefingEnviado {
-      - idBriefingEnviado : Long
-      - fechaEnvio : LocalDateTime
+    class SentBriefing {
+      - sentBriefingId : Long
+      - sentDate : LocalDateTime
     }
-    class BriefingRespuesta {
-      - idRespuesta : Long
-      - textoRespuesta : String
-      - fechaRespuesta : LocalDateTime
+    class BriefingAnswer {
+      - answerId : Long
+      - answerText : String
+      - answerDate : LocalDateTime
     }
-    class LikePortafolio {
-      - idLike : Long
-      - fechaLike : LocalDateTime
+    class PortfolioLike {
+      - likeId : Long
+      - likeDate : LocalDateTime
     }
-    class ComentarioPortafolio {
-      - idComentario : Long
-      - textoComentario : String
-      - fechaPublicacion : LocalDateTime
+    class PortfolioComment {
+      - commentId : Long
+      - commentText : String
+      - publicationDate : LocalDateTime
     }
-    class InfraccionMensaje {
-      - idInfraccion : Long
-      - mensajeOriginal : String
-      - patronDetectado : String
-      - fechaInfraccion : LocalDateTime
+    class MessageViolation {
+      - violationId : Long
+      - originalMessage : String
+      - detectedPattern : String
+      - violationDate : LocalDateTime
     }
   }
 
   namespace social {
-    class Sorteo {
-      - idSorteo : Long
-      - tituloSorteo : String
-      - descripcionPremios : String
-      - fechaInicio : LocalDateTime
-      - fechaCierre : LocalDateTime
+    class Raffle {
+      - raffleId : Long
+      - raffleTitle : String
+      - prizesDescription : String
+      - startDate : LocalDateTime
+      - closeDate : LocalDateTime
     }
-    class ParticipanteSorteo {
-      - idParticipacion : Long
-      - fechaInscripcion : LocalDateTime
-      - fechaNotificacionPremio : LocalDateTime
+    class RaffleParticipant {
+      - participationId : Long
+      - registrationDate : LocalDateTime
+      - prizeNotificationDate : LocalDateTime
     }
-    class ResenaServicio {
-      - idResena : Long
-      - calificacionEstrellas : Integer
-      - textoResena : String
-      - fechaResena : LocalDateTime
+    class RafflePrize {
+      - prizeId : Long
+      - prizeDescription : String
+      - order : Integer
+    }
+    class OfferingReview {
+      - reviewId : Long
+      - starRating : Integer
+      - reviewText : String
+      - reviewDate : LocalDateTime
     }
   }
 
-  %% ---------- seguridad ----------
-  Usuario "0..*" --> "1" Pais : pais
-  Usuario "1" --> "0..1" AutenticacionDosFactores : 2FA
-  AutenticacionDosFactores "1" *-- "0..*" CodigoRespaldo2Fa : codigos respaldo
-  Usuario "1" *-- "0..*" SesionUsuario : sesiones
-  Usuario "1" *-- "0..*" TokenRecuperacion : tokens
-  Usuario "1" --> "0..*" UsuarioRol : asignaciones
-  Rol "1" --> "0..*" UsuarioRol : asignaciones
-  Rol "1" --> "0..*" RolPermiso : permisos
-  Permiso "1" --> "0..*" RolPermiso : permisos
+  %% ---------- security ----------
+  User "0..*" --> "1" Country : country
+  User "1" --> "0..1" TwoFactorAuthentication : twoFactorAuth
+  TwoFactorAuthentication "1" *-- "0..*" TwoFactorBackupCode : backupCodes
+  User "1" *-- "0..*" UserSession : sessions
+  User "1" --> "0..*" UserRole : assignments
+  Role "1" --> "0..*" UserRole : assignments
+  Role "0..*" -- "0..*" Permission : permissions
 
-  %% ---------- perfil ----------
-  PerfilCreador "1" --> "1" Usuario : usuario
-  PerfilCreador "1" --> "0..*" CreadorHabilidad : habilidades
-  Habilidad "1" --> "0..*" CreadorHabilidad : habilidades
-  PerfilCreador "1" *-- "0..*" CertificadoIa : certificaciones IA
-  CertificadoIa "0..*" --> "1" EstadoVerificacion : estado
-  PerfilCreador "1" *-- "0..1" Portafolio : portafolio
-  Portafolio "1" *-- "0..*" PortafolioItem : items
+  %% ---------- profile ----------
+  CreatorProfile "1" --> "1" User : user
+  CreatorProfile "1" *-- "0..*" AiCertificate : certifications
+  AiCertificate "0..*" --> "1" VerificationStatus : status
+  CreatorProfile "1" *-- "0..1" Portfolio : portfolio
+  Portfolio "1" *-- "0..*" PortfolioItem : items
+  CreatorPaymentDetails "1" --> "1" User : user
 
-  %% ---------- catalogo ----------
-  Categoria "1" *-- "0..*" Subcategoria : subcategorias
-  Servicio "0..*" --> "1" PerfilCreador : perfil
-  Servicio "0..*" --> "1" Subcategoria : subcategoria
-  Servicio "1" --> "0..*" ServicioAtributo : atributos
-  AtributoDinamico "1" --> "0..*" ServicioAtributo : atributos
-  Servicio "1" --> "0..*" ServicioEtiqueta : etiquetas
-  Etiqueta "1" --> "0..*" ServicioEtiqueta : etiquetas
+  %% ---------- catalog ----------
+  Category "1" *-- "0..*" Subcategory : subcategories
+  Offering "0..*" --> "1" CreatorProfile : profile
+  Offering "0..*" --> "1" Subcategory : subcategory
+  Offering "1" --> "0..*" OfferingAttribute : attributes
+  DynamicAttribute "1" --> "0..*" OfferingAttribute : attributes
+  Offering "1" --> "0..*" OfferingTag : tags
+  Tag "1" --> "0..*" OfferingTag : tags
 
-  %% ---------- pedido ----------
-  FlujoTrabajo "1" *-- "0..*" FlujoEtapaConfig : etapas config
-  EtapaFlujo "1" --> "0..*" FlujoEtapaConfig : etapas config
-  Pedido "0..*" --> "1" Usuario : usuarioCliente
-  Pedido "0..*" --> "1" Servicio : servicio
-  Pedido "0..*" --> "1" FlujoTrabajo : flujo
-  Pedido "1" *-- "0..*" HistorialEstadoPedido : historial
-  HistorialEstadoPedido "0..*" --> "1" EtapaFlujo : etapa
-  Pedido "1" --> "0..*" TicketRevision : tickets
-  TicketRevision "0..*" --> "1" MotivoRechazo : motivo
+  %% ---------- order ----------
+  Workflow "1" *-- "0..*" WorkflowStageConfig : stageConfig
+  WorkflowStage "1" --> "0..*" WorkflowStageConfig : stageConfig
+  Order "0..*" --> "1" User : clientUser
+  Order "0..*" --> "1" Offering : offering
+  Order "0..*" --> "1" Workflow : workflow
+  Order "1" *-- "0..*" OrderStatusHistory : history
+  OrderStatusHistory "0..*" --> "1" WorkflowStage : stage
+  Order "1" --> "0..*" RevisionTicket : tickets
+  RevisionTicket "0..*" --> "1" RejectionReason : reason
+  Order "1" --> "0..*" Sketch : sketches
 
   %% ---------- legal ----------
-  Contrato "1" --> "1" Pedido : pedido
-  Contrato "0..*" --> "1" PlantillaContrato : plantilla
-  Contrato "1" *-- "0..1" PagoGarantia : garantia escrow
-  PagoGarantia "1" *-- "0..*" TransaccionPago : movimientos
-  SalaChat "1" --> "1" Pedido : pedido
-  SalaChat "1" *-- "0..*" Mensaje : mensajes
-  Mensaje "0..*" --> "1" Usuario : remitente
-  Mensaje "1" *-- "0..*" DocumentoAdjunto : adjuntos
-  DocumentoAdjunto "0..*" --> "1" Usuario : subidoPor
-  Pedido "1" --> "0..*" EntregableFinal : entregables
+  Contract "1" --> "1" Order : order
+  Contract "0..*" --> "1" ContractTemplate : template
+  Contract "1" *-- "0..1" EscrowPayment : escrowGuarantee
+  EscrowPayment "1" *-- "0..*" PaymentTransaction : transactions
+  ChatRoom "1" --> "1" Order : order
+  ChatRoom "1" *-- "0..*" Message : messages
+  Message "0..*" --> "1" User : sender
+  Order "1" --> "0..*" FinalDeliverable : deliverables
+  RevisionTicket "1" --> "0..*" RevisionTicketPayment : payments
+  User "1" --> "0..*" WithdrawalRequest : withdrawalRequests
 
-  %% ---------- comunicacion ----------
-  NotificacionSistema "0..*" --> "1" Usuario : usuario
-  NotificacionSistema "0..*" --> "1" TipoNotificacion : tipo
-  Seguidor "0..*" --> "1" Usuario : usuarioSeguidor
-  Seguidor "0..*" --> "1" PerfilCreador : perfilCreador
-  BriefingPlantilla "0..*" --> "1" PerfilCreador : perfilCreador
-  BriefingPlantilla "1" *-- "0..*" BriefingPregunta : preguntas
-  BriefingEnviado "0..*" --> "1" Pedido : pedido
-  BriefingEnviado "0..*" --> "1" BriefingPlantilla : plantilla
-  BriefingEnviado "1" *-- "0..*" BriefingRespuesta : respuestas
-  BriefingRespuesta "0..*" --> "1" BriefingPregunta : pregunta
-  LikePortafolio "0..*" --> "1" PortafolioItem : item
-  LikePortafolio "0..*" --> "1" Usuario : usuario
-  ComentarioPortafolio "0..*" --> "1" PortafolioItem : item
-  ComentarioPortafolio "0..*" --> "1" Usuario : usuarioAutor
-  InfraccionMensaje "0..*" --> "1" Usuario : usuario
-  InfraccionMensaje "0..*" --> "1" Pedido : pedido
+  %% ---------- communication ----------
+  SystemNotification "0..*" --> "1" User : user
+  SystemNotification "0..*" --> "1" NotificationType : type
+  Follower "0..*" --> "1" User : followerUser
+  Follower "0..*" --> "1" CreatorProfile : creatorProfile
+  BriefingTemplate "0..*" --> "1" CreatorProfile : creatorProfile
+  BriefingTemplate "1" *-- "0..*" BriefingQuestion : questions
+  SentBriefing "0..*" --> "1" Order : order
+  SentBriefing "0..*" --> "1" BriefingTemplate : template
+  SentBriefing "1" *-- "0..*" BriefingAnswer : answers
+  BriefingAnswer "0..*" --> "1" BriefingQuestion : question
+  PortfolioLike "0..*" --> "1" PortfolioItem : item
+  PortfolioLike "0..*" --> "1" User : user
+  PortfolioComment "0..*" --> "1" PortfolioItem : item
+  PortfolioComment "0..*" --> "1" User : authorUser
+  MessageViolation "0..*" --> "1" User : user
+  MessageViolation "0..*" --> "1" Order : order
 
   %% ---------- social ----------
-  Sorteo "0..*" --> "1" PerfilCreador : perfilCreador
-  Sorteo "1" *-- "0..*" ParticipanteSorteo : participantes
-  ParticipanteSorteo "0..*" --> "1" Usuario : usuario
-  ResenaServicio "1" --> "1" Pedido : pedido
-  ResenaServicio "0..*" --> "1" Usuario : autor
+  Raffle "0..*" --> "1" CreatorProfile : creatorProfile
+  Raffle "1" *-- "0..*" RaffleParticipant : participants
+  RaffleParticipant "0..*" --> "1" User : user
+  RafflePrize "0..*" --> "1" Raffle : raffle
+  RaffleParticipant "0..*" --> "1" RafflePrize : prize
+  OfferingReview "1" --> "1" Order : order
+  OfferingReview "0..*" --> "1" User : author
 ```
 
 ---
@@ -401,367 +413,388 @@ classDiagram
 ## 3. Código PlantUML (Alternativa)
 
 ```plantuml
-@startuml UML_Clases_Backend_Completo_Corregido
+@startuml UML_Classes_Backend_Full
 skinparam classAttributeIconSize 0
 left to right direction
 
-package "seguridad" {
-  class Pais {
-    - idPais : Long
-    - nombrePais : String
+package "security" {
+  class Country {
+    - countryId : Long
+    - countryName : String
   }
-  class Usuario {
-    - idUsuario : Long
-    - nombres : String
-    - apellidos : String
-    - correo : String
-    - contrasenaHash : String
-    - fechaRegistro : LocalDateTime
-    - actualizadoEn : LocalDateTime
-    - fechaNacimiento : LocalDate
+  class User {
+    - userId : Long
+    - firstName : String
+    - lastName : String
+    - email : String
+    - passwordHash : String
+    - registrationDate : LocalDateTime
+    - updatedAt : LocalDateTime
+    - birthDate : LocalDate
   }
-  class Rol {
-    - idRol : Long
-    - nombreRol : String
-    - descripcionRol : String
+  class Role {
+    - roleId : Long
+    - roleName : String
+    - roleDescription : String
   }
-  class Permiso {
-    - idPermiso : Long
-    - nombrePermiso : String
-    - moduloAplicacion : String
+  class Permission {
+    - permissionId : Long
+    - permissionName : String
+    - applicationModule : String
   }
-  class RolPermiso {
-    - idRolPermiso : Long
+  class UserRole {
+    - userRoleId : Long
   }
-  class UsuarioRol {
-    - idUsuarioRol : Long
-  }
-  class SesionUsuario {
-    - idSesion : Long
+  class UserSession {
+    - sessionId : Long
     - jti : String
-    - direccionIp : String
-    - fechaCreacion : LocalDateTime
-    - fechaExpiracion : LocalDateTime
+    - ipAddress : String
+    - creationDate : LocalDateTime
+    - expirationDate : LocalDateTime
   }
-  class AutenticacionDosFactores {
-    - id2fa : Long
-    - llaveSecreta : String
+  class TwoFactorAuthentication {
+    - twoFaId : Long
+    - secretKey : String
   }
-  class CodigoRespaldo2Fa {
-    - idCodigo : Long
-    - codigoHash : String
-  }
-  class TokenRecuperacion {
-    - idToken : Long
-    - hashToken : String
-    - fechaGeneracion : LocalDateTime
+  class TwoFactorBackupCode {
+    - codeId : Long
+    - codeHash : String
   }
 }
 
-package "perfil" {
-  class PerfilCreador {
-    - idPerfil : Long
-    - biografia : String
-    - urlRedSocial : String
-  }
-  class Habilidad {
-    - idHabilidad : Long
-    - nombreHabilidad : String
-  }
-  class CreadorHabilidad {
-    - idCreadorHabilidad : Long
-    - nivelDominio : String
-  }
-  class EstadoVerificacion {
-    - idEstadoVerificacion : Long
-    - nombreEstado : String
-  }
-  class CertificadoIa {
-    + Long idCertificado
-    + String urlDocumentoAzure
-    + BigDecimal puntajeConfianzaIa
-    + LocalDateTime fechaAnalisis
-  }
-  class Portafolio {
-    - idPortafolio : Long
-    - fechaCreacion : LocalDateTime
-  }
-  class PortafolioItem {
-    - idItemPortafolio : Long
-    - tituloObra : String
-    - descripcionObra : String
-    - urlArchivoMultimedia : String
-    - fechaSubida : LocalDateTime
+package "audit" {
+  class AuditEvent {
+    - auditEventId : Long
+    - eventDate : LocalDateTime
+    - actorUserId : Long
+    - actorEmail : String
+    - auditModule : String
+    - auditAction : String
+    - eventResult : String
+    - affectedEntity : String
+    - affectedEntityId : Long
+    - errorMessage : String
+    - ipAddress : String
   }
 }
 
-package "catalogo" {
-  class Categoria {
-    - idCategoria : Long
-    - nombreCategoria : String
+package "profile" {
+  class CreatorProfile {
+    - profileId : Long
+    - biography : String
+    - socialMediaUrl : String
   }
-  class Subcategoria {
-    - idSubcategoria : Long
-    - nombreSubcategoria : String
+  class VerificationStatus {
+    - verificationStatusId : Long
+    - statusName : String
   }
-  class Etiqueta {
-    - idEtiqueta : Long
-    - nombreEtiqueta : String
+  class AiCertificate {
+    - certificateId : Long
+    - documentS3Url : String
+    - aiConfidenceScore : BigDecimal
+    - analysisDate : LocalDateTime
   }
-  class AtributoDinamico {
-    - idAtributo : Long
-    - nombreAtributo : String
-    - tipoDato : String
+  class Portfolio {
+    - portfolioId : Long
+    - creationDate : LocalDateTime
   }
-  class Servicio {
-    - idServicio : Long
-    - tituloServicio : String
-    - descripcionDetallada : String
-    - precioBase : BigDecimal
-    - urlMiniatura : String
+  class PortfolioItem {
+    - portfolioItemId : Long
+    - workTitle : String
+    - workDescription : String
+    - mediaFileUrl : String
+    - uploadDate : LocalDateTime
   }
-  class ServicioAtributo {
-    - idServicioAtributo : Long
-    - valorAsignado : String
-  }
-  class ServicioEtiqueta {
-    - idServicioEtiqueta : Long
+  class CreatorPaymentDetails {
+    - paymentDetailsId : Long
+    - paypalEmail : String
+    - updateDate : LocalDateTime
   }
 }
 
-package "pedido" {
-  class FlujoTrabajo {
-    - idFlujo : Long
-    - nombreFlujo : String
-    - descripcionFlujo : String
+package "catalog" {
+  class Category {
+    - categoryId : Long
+    - categoryName : String
   }
-  class EtapaFlujo {
-    - idEtapa : Long
-    - nombreEtapa : String
+  class Subcategory {
+    - subcategoryId : Long
+    - subcategoryName : String
   }
-  class FlujoEtapaConfig {
-    - idFlujoEtapa : Long
-    - numeroOrden : Integer
+  class Tag {
+    - tagId : Long
+    - tagName : String
   }
-  class Pedido {
-    - idPedido : Long
-    - fechaInicio : LocalDateTime
-    - fechaEntregaEstimada : LocalDateTime
-    - precioPactado : BigDecimal
+  class DynamicAttribute {
+    - attributeId : Long
+    - attributeName : String
+    - dataType : String
   }
-  class HistorialEstadoPedido {
-    - idHistorialEstado : Long
-    - fechaTransicion : LocalDateTime
-    - observacion : String
+  class Offering {
+    - offeringId : Long
+    - title : String
+    - detailedDescription : String
+    - basePrice : BigDecimal
+    - thumbnailUrl : String
   }
-  class MotivoRechazo {
-    - idMotivo : Long
-    - descripcionMotivo : String
+  class OfferingAttribute {
+    - offeringAttributeId : Long
+    - assignedValue : String
   }
-  class TicketRevision {
-    - idTicket : Long
-    - descripcionCliente : String
-    - estadoTicket : String
-    - fechaApertura : LocalDateTime
-    - fechaResolucion : LocalDateTime
+  class OfferingTag {
+    - offeringTagId : Long
   }
-  class PlantillaContrato {
-    - idPlantilla : Long
-    - versionLegal : String
-    - cuerpoHtmlPlantilla : String
+  class Workflow {
+    - workflowId : Long
+    - workflowName : String
+    - workflowDescription : String
+  }
+}
+
+package "order" {
+  class WorkflowStage {
+    - stageId : Long
+    - stageName : String
+  }
+  class WorkflowStageConfig {
+    - workflowStageId : Long
+    - orderNumber : Integer
+  }
+  class Order {
+    - orderId : Long
+    - startDate : LocalDateTime
+    - estimatedDeliveryDate : LocalDateTime
+    - agreedPrice : BigDecimal
+  }
+  class OrderStatusHistory {
+    - statusHistoryId : Long
+    - transitionDate : LocalDateTime
+    - remark : String
+  }
+  class RejectionReason {
+    - reasonId : Long
+    - reasonDescription : String
+  }
+  class RevisionTicket {
+    - ticketId : Long
+    - clientDescription : String
+    - ticketStatus : String
+    - creationDate : LocalDateTime
+  }
+  class ContractTemplate {
+    - templateId : Long
+    - legalVersion : String
+    - templateHtmlBody : String
+  }
+  class Sketch {
+    - sketchId : Long
+    - imageUrl : String
+    - uploadDate : LocalDateTime
   }
 }
 
 package "legal" {
-  class Contrato {
-    - idContrato : Long
-    - hashFirmaCliente : String
-    - hashFirmaCreador : String
-    - fechaFormalizacion : LocalDateTime
-    - urlDocumentoPdf : String
+  class Contract {
+    - contractId : Long
+    - clientSignatureHash : String
+    - creatorSignatureHash : String
+    - formalizationDate : LocalDateTime
+    - pdfDocumentUrl : String
   }
-  class PagoGarantia {
-    - idPago : Long
-    - idOrdenPaypal : String
-    - montoRetenido : BigDecimal
+  class EscrowPayment {
+    - paymentId : Long
+    - paypalOrderId : String
+    - heldAmount : BigDecimal
   }
-  class TransaccionPago {
-    - idTransaccion : Long
-    - tipoTransaccion : String
-    - monto : BigDecimal
-    - fechaEjecucion : LocalDateTime
+  class PaymentTransaction {
+    - transactionId : Long
+    - transactionType : String
+    - amount : BigDecimal
+    - executionDate : LocalDateTime
   }
-  class SalaChat {
-    - idSala : Long
-    - fechaApertura : LocalDateTime
+  class ChatRoom {
+    - roomId : Long
+    - openDate : LocalDateTime
   }
-  class Mensaje {
-    - idMensaje : Long
-    - cuerpoMensaje : String
-    - fechaHoraEnvio : LocalDateTime
+  class Message {
+    - messageId : Long
+    - messageBody : String
+    - sentAt : LocalDateTime
   }
-  class DocumentoAdjunto {
-    - idAdjunto : Long
-    - urlArchivo : String
-    - tipoMime : String
-    - pesoBytes : Long
+  class FinalDeliverable {
+    - deliverableId : Long
+    - watermarkedVersionUrl : String
+    - cleanVersionUrl : String
+    - approvalStatus : String
+    - deliveryDate : LocalDateTime
   }
-  class EntregableFinal {
-    - idEntregable : Long
-    - urlVersionMarcaAgua : String
-    - urlVersionLimpia : String
-    - estadoAprobacion : String
-    - fechaEntrega : LocalDateTime
+  class RevisionTicketPayment {
+    - ticketPaymentId : Long
+    - paypalOrderId : String
+    - approvalUrl : String
+    - amount : BigDecimal
+  }
+  class WithdrawalRequest {
+    - requestId : Long
+    - requestedAmount : BigDecimal
+    - destinationPaypalEmail : String
+    - paypalPayoutId : String
+    - requestDate : LocalDateTime
   }
 }
 
-package "comunicacion" {
-  class TipoNotificacion {
-    - idTipoNotificacion : Long
-    - nombreEvento : String
-    - formatoMensaje : String
+package "communication" {
+  class NotificationType {
+    - notificationTypeId : Long
+    - eventName : String
+    - messageFormat : String
   }
-  class NotificacionSistema {
-    - idNotificacion : Long
-    - fechaEmision : LocalDateTime
+  class SystemNotification {
+    - notificationId : Long
+    - issueDate : LocalDateTime
   }
-  class Seguidor {
-    - idSeguimiento : Long
-    - fechaSeguimiento : LocalDateTime
+  class Follower {
+    - followId : Long
+    - followDate : LocalDateTime
   }
-  class BriefingPlantilla {
-    - idBriefingPlantilla : Long
-    - nombrePlantilla : String
-    - fechaCreacion : LocalDateTime
+  class BriefingTemplate {
+    - briefingTemplateId : Long
+    - templateName : String
+    - creationDate : LocalDateTime
   }
-  class BriefingPregunta {
-    - idPregunta : Long
-    - textoPregunta : String
-    - numeroOrden : Integer
+  class BriefingQuestion {
+    - questionId : Long
+    - questionText : String
+    - orderNumber : Integer
   }
-  class BriefingEnviado {
-    - idBriefingEnviado : Long
-    - fechaEnvio : LocalDateTime
+  class SentBriefing {
+    - sentBriefingId : Long
+    - sentDate : LocalDateTime
   }
-  class BriefingRespuesta {
-    - idRespuesta : Long
-    - textoRespuesta : String
-    - fechaRespuesta : LocalDateTime
+  class BriefingAnswer {
+    - answerId : Long
+    - answerText : String
+    - answerDate : LocalDateTime
   }
-  class LikePortafolio {
-    - idLike : Long
-    - fechaLike : LocalDateTime
+  class PortfolioLike {
+    - likeId : Long
+    - likeDate : LocalDateTime
   }
-  class ComentarioPortafolio {
-    - idComentario : Long
-    - textoComentario : String
-    - fechaPublicacion : LocalDateTime
+  class PortfolioComment {
+    - commentId : Long
+    - commentText : String
+    - publicationDate : LocalDateTime
   }
-  class InfraccionMensaje {
-    - idInfraccion : Long
-    - mensajeOriginal : String
-    - patronDetectado : String
-    - fechaInfraccion : LocalDateTime
+  class MessageViolation {
+    - violationId : Long
+    - originalMessage : String
+    - detectedPattern : String
+    - violationDate : LocalDateTime
   }
 }
 
 package "social" {
-  class Sorteo {
-    - idSorteo : Long
-    - tituloSorteo : String
-    - descripcionPremios : String
-    - fechaInicio : LocalDateTime
-    - fechaCierre : LocalDateTime
+  class Raffle {
+    - raffleId : Long
+    - raffleTitle : String
+    - prizesDescription : String
+    - startDate : LocalDateTime
+    - closeDate : LocalDateTime
   }
-  class ParticipanteSorteo {
-    - idParticipacion : Long
-    - fechaInscripcion : LocalDateTime
-    - fechaNotificacionPremio : LocalDateTime
+  class RaffleParticipant {
+    - participationId : Long
+    - registrationDate : LocalDateTime
+    - prizeNotificationDate : LocalDateTime
   }
-  class ResenaServicio {
-    - idResena : Long
-    - calificacionEstrellas : Integer
-    - textoResena : String
-    - fechaResena : LocalDateTime
+  class RafflePrize {
+    - prizeId : Long
+    - prizeDescription : String
+    - order : Integer
+  }
+  class OfferingReview {
+    - reviewId : Long
+    - starRating : Integer
+    - reviewText : String
+    - reviewDate : LocalDateTime
   }
 }
 
-' ---------- seguridad ----------
-Usuario "0..*" --> "1" Pais : pais
-Usuario "1" --> "0..1" AutenticacionDosFactores : 2FA
-AutenticacionDosFactores "1" *-- "0..*" CodigoRespaldo2Fa : codigos respaldo
-Usuario "1" *-- "0..*" SesionUsuario : sesiones
-Usuario "1" *-- "0..*" TokenRecuperacion : tokens
-Usuario "1" --> "0..*" UsuarioRol : asignaciones
-Rol "1" --> "0..*" UsuarioRol : asignaciones
-Rol "1" --> "0..*" RolPermiso : permisos
-Permiso "1" --> "0..*" RolPermiso : permisos
+' ---------- security ----------
+User "0..*" --> "1" Country : country
+User "1" --> "0..1" TwoFactorAuthentication : twoFactorAuth
+TwoFactorAuthentication "1" *-- "0..*" TwoFactorBackupCode : backupCodes
+User "1" *-- "0..*" UserSession : sessions
+User "1" --> "0..*" UserRole : assignments
+Role "1" --> "0..*" UserRole : assignments
+Role "0..*" -- "0..*" Permission : permissions
 
-' ---------- perfil ----------
-PerfilCreador "1" --> "1" Usuario : usuario
-PerfilCreador "1" --> "0..*" CreadorHabilidad : habilidades
-Habilidad "1" --> "0..*" CreadorHabilidad : habilidades
-PerfilCreador "1" *-- "0..*" CertificadoIa : certificaciones IA
-CertificadoIa "0..*" --> "1" EstadoVerificacion : estado
-PerfilCreador "1" *-- "0..1" Portafolio : portafolio
-Portafolio "1" *-- "0..*" PortafolioItem : items
+' ---------- profile ----------
+CreatorProfile "1" --> "1" User : user
+CreatorProfile "1" *-- "0..*" AiCertificate : certifications
+AiCertificate "0..*" --> "1" VerificationStatus : status
+CreatorProfile "1" *-- "0..1" Portfolio : portfolio
+Portfolio "1" *-- "0..*" PortfolioItem : items
+CreatorPaymentDetails "1" --> "1" User : user
 
-' ---------- catalogo ----------
-Categoria "1" *-- "0..*" Subcategoria : subcategorias
-Servicio "0..*" --> "1" PerfilCreador : perfil
-Servicio "0..*" --> "1" Subcategoria : subcategoria
-Servicio "1" --> "0..*" ServicioAtributo : atributos
-AtributoDinamico "1" --> "0..*" ServicioAtributo : atributos
-Servicio "1" --> "0..*" ServicioEtiqueta : etiquetas
-Etiqueta "1" --> "0..*" ServicioEtiqueta : etiquetas
+' ---------- catalog ----------
+Category "1" *-- "0..*" Subcategory : subcategories
+Offering "0..*" --> "1" CreatorProfile : profile
+Offering "0..*" --> "1" Subcategory : subcategory
+Offering "1" --> "0..*" OfferingAttribute : attributes
+DynamicAttribute "1" --> "0..*" OfferingAttribute : attributes
+Offering "1" --> "0..*" OfferingTag : tags
+Tag "1" --> "0..*" OfferingTag : tags
 
-' ---------- pedido ----------
-FlujoTrabajo "1" *-- "0..*" FlujoEtapaConfig : etapas config
-EtapaFlujo "1" --> "0..*" FlujoEtapaConfig : etapas config
-Pedido "0..*" --> "1" Usuario : usuarioCliente
-Pedido "0..*" --> "1" Servicio : servicio
-Pedido "0..*" --> "1" FlujoTrabajo : flujo
-Pedido "1" *-- "0..*" HistorialEstadoPedido : historial
-HistorialEstadoPedido "0..*" --> "1" EtapaFlujo : etapa
-Pedido "1" --> "0..*" TicketRevision : tickets
-TicketRevision "0..*" --> "1" MotivoRechazo : motivo
+' ---------- order ----------
+Workflow "1" *-- "0..*" WorkflowStageConfig : stageConfig
+WorkflowStage "1" --> "0..*" WorkflowStageConfig : stageConfig
+Order "0..*" --> "1" User : clientUser
+Order "0..*" --> "1" Offering : offering
+Order "0..*" --> "1" Workflow : workflow
+Order "1" *-- "0..*" OrderStatusHistory : history
+OrderStatusHistory "0..*" --> "1" WorkflowStage : stage
+Order "1" --> "0..*" RevisionTicket : tickets
+RevisionTicket "0..*" --> "1" RejectionReason : reason
+Order "1" --> "0..*" Sketch : sketches
 
 ' ---------- legal ----------
-Contrato "1" --> "1" Pedido : pedido
-Contrato "0..*" --> "1" PlantillaContrato : plantilla
-Contrato "1" *-- "0..1" PagoGarantia : garantia escrow
-PagoGarantia "1" *-- "0..*" TransaccionPago : movimientos
-SalaChat "1" --> "1" Pedido : pedido
-SalaChat "1" *-- "0..*" Mensaje : mensajes
-Mensaje "0..*" --> "1" Usuario : remitente
-Mensaje "1" *-- "0..*" DocumentoAdjunto : adjuntos
-DocumentoAdjunto "0..*" --> "1" Usuario : subidoPor
-Pedido "1" --> "0..*" EntregableFinal : entregables
+Contract "1" --> "1" Order : order
+Contract "0..*" --> "1" ContractTemplate : template
+Contract "1" *-- "0..1" EscrowPayment : escrowGuarantee
+EscrowPayment "1" *-- "0..*" PaymentTransaction : transactions
+ChatRoom "1" --> "1" Order : order
+ChatRoom "1" *-- "0..*" Message : messages
+Message "0..*" --> "1" User : sender
+Order "1" --> "0..*" FinalDeliverable : deliverables
+RevisionTicket "1" --> "0..*" RevisionTicketPayment : payments
+User "1" --> "0..*" WithdrawalRequest : withdrawalRequests
 
-' ---------- comunicacion ----------
-NotificacionSistema "0..*" --> "1" Usuario : usuario
-NotificacionSistema "0..*" --> "1" TipoNotificacion : tipo
-Seguidor "0..*" --> "1" Usuario : usuarioSeguidor
-Seguidor "0..*" --> "1" PerfilCreador : perfilCreador
-BriefingPlantilla "0..*" --> "1" PerfilCreador : perfilCreador
-BriefingPlantilla "1" *-- "0..*" BriefingPregunta : preguntas
-BriefingEnviado "0..*" --> "1" Pedido : pedido
-BriefingEnviado "0..*" --> "1" BriefingPlantilla : plantilla
-BriefingEnviado "1" *-- "0..*" BriefingRespuesta : respuestas
-BriefingRespuesta "0..*" --> "1" BriefingPregunta : pregunta
-LikePortafolio "0..*" --> "1" PortafolioItem : item
-LikePortafolio "0..*" --> "1" Usuario : usuario
-ComentarioPortafolio "0..*" --> "1" PortafolioItem : item
-ComentarioPortafolio "0..*" --> "1" Usuario : usuarioAutor
-InfraccionMensaje "0..*" --> "1" Usuario : usuario
-InfraccionMensaje "0..*" --> "1" Pedido : pedido
+' ---------- communication ----------
+SystemNotification "0..*" --> "1" User : user
+SystemNotification "0..*" --> "1" NotificationType : type
+Follower "0..*" --> "1" User : followerUser
+Follower "0..*" --> "1" CreatorProfile : creatorProfile
+BriefingTemplate "0..*" --> "1" CreatorProfile : creatorProfile
+BriefingTemplate "1" *-- "0..*" BriefingQuestion : questions
+SentBriefing "0..*" --> "1" Order : order
+SentBriefing "0..*" --> "1" BriefingTemplate : template
+SentBriefing "1" *-- "0..*" BriefingAnswer : answers
+BriefingAnswer "0..*" --> "1" BriefingQuestion : question
+PortfolioLike "0..*" --> "1" PortfolioItem : item
+PortfolioLike "0..*" --> "1" User : user
+PortfolioComment "0..*" --> "1" PortfolioItem : item
+PortfolioComment "0..*" --> "1" User : authorUser
+MessageViolation "0..*" --> "1" User : user
+MessageViolation "0..*" --> "1" Order : order
 
 ' ---------- social ----------
-Sorteo "0..*" --> "1" PerfilCreador : perfilCreador
-Sorteo "1" *-- "0..*" ParticipanteSorteo : participantes
-ParticipanteSorteo "0..*" --> "1" Usuario : usuario
-ResenaServicio "1" --> "1" Pedido : pedido
-ResenaServicio "0..*" --> "1" Usuario : autor
+Raffle "0..*" --> "1" CreatorProfile : creatorProfile
+Raffle "1" *-- "0..*" RaffleParticipant : participants
+RaffleParticipant "0..*" --> "1" User : user
+RafflePrize "0..*" --> "1" Raffle : raffle
+RaffleParticipant "0..*" --> "1" RafflePrize : prize
+OfferingReview "1" --> "1" Order : order
+OfferingReview "0..*" --> "1" User : author
 
 @enduml
 ```
@@ -775,7 +808,7 @@ Las siguientes decisiones de diseño a nivel de código se tomaron para soportar
 | # | Decisión Arquitectónica / Modificación al Modelo Base | Justificación Técnica en el Nivel 4 (Persistencia) |
 |---|---|---|
 | 1 | Multiplicidad explícita (`1`, `0..1`, `0..*`) | Requerido para mapear correctamente relaciones JPA bidireccionales y unidireccionales (`@OneToMany`, `@ManyToOne`). |
-| 2 | Uso de Composición (`*--`) en dependencias estrictas | Para modelar la propagación de operaciones en cascada (`CascadeType.ALL`, `orphanRemoval=true`). Ej: `SalaChat *-- Mensaje`, `Pedido *-- HistorialEstadoPedido`. |
-| 3 | Auditoría y Trazabilidad inmutable | Añadidos atributos explícitos de auditoría (`autor` en Reseñas, `subidoPor` en Adjuntos) necesarios para validar permisos de acceso y roles en los Interceptores de Seguridad del Nivel 3. |
-| 4 | Atributos de Estado y Temporalidad | Campos temporales y de estado (`estadoTicket`, `fechaResolucion`, `estadoAprobacion`) añadidos para posibilitar el procesamiento asíncrono y los Webhooks (p. ej. validaciones de pagos en Escrow). |
-| 5 | Cambio de tipos de datos base (`Integer` a `Long`) | Ajuste en campos de metadatos (ej. `pesoBytes` en `DocumentoAdjunto`) para soportar archivos multimedia de alta calidad almacenados en Cloud Storage / CDN. |
+| 2 | Uso de Composición (`*--`) en dependencias estrictas | Para modelar la propagación de operaciones en cascada (`CascadeType.ALL`, `orphanRemoval=true`). Ej: `ChatRoom *-- Message`, `Order *-- OrderStatusHistory`. |
+| 3 | Auditoría y Trazabilidad inmutable | Añadidos atributos explícitos de auditoría (`author` en Reviews, `sender` en Messages) necesarios para validar permisos de acceso y roles en los Interceptores de Seguridad del Nivel 3. |
+| 4 | Atributos de Estado y Temporalidad | Campos temporales y de estado (`ticketStatus`, `fechaResolucion`, `approvalStatus`) añadidos para posibilitar el procesamiento asíncrono y los Webhooks (p. ej. validaciones de pagos en Escrow). |
+| 5 | Cambio de tipos de datos base (`Integer` a `Long`) | Ajuste en campos de metadatos para soportar archivos multimedia de alta calidad almacenados en Cloud Storage / CDN. |

@@ -9,8 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import uteq.edu.ec.artisync.dto.peticion.social.CreateReviewRequest;
-import uteq.edu.ec.artisync.dto.respuesta.social.ReviewResponse;
+import uteq.edu.ec.artisync.dto.request.social.CreateReviewRequest;
+import uteq.edu.ec.artisync.dto.response.social.ReviewResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.social.ReviewService;
 

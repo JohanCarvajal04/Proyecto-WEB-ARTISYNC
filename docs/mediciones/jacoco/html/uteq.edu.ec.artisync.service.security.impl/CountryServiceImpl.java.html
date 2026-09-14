@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CountryServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.security.impl</a> &gt; <span class="el_source">CountryServiceImpl.java</span></div><h1>CountryServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.security.impl;
+import uteq.edu.ec.artisync.service.security.*;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.dto.security.request.CountryRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.security.response.CountryResponse;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.entity.security.Country;
+import uteq.edu.ec.artisync.repository.security.CountryRepository;
+import uteq.edu.ec.artisync.service.security.CountryService;
+import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class CountryServiceImpl implements CountryService {
+
+    private final CountryRepository paisRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public List&lt;CountryResponse&gt; getAllCountries() {
+<span class="fc" id="L39">        return paisRepository.findAll(Sort.by(Sort.Direction.ASC, &quot;nombrePais&quot;)).stream()</span>
+<span class="fc" id="L40">                .map(this::toResponse)</span>
+<span class="fc" id="L41">                .toList();</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public List&lt;CountryResponse&gt; getActiveCountries() {
+<span class="nc" id="L53">        return paisRepository.findByEstadoTrue(Sort.by(Sort.Direction.ASC, &quot;nombrePais&quot;)).stream()</span>
+<span class="nc" id="L54">                .map(this::toResponse)</span>
+<span class="nc" id="L55">                .toList();</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param id identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public CountryResponse getCountryById(Long id) {
+<span class="fc" id="L68">        Country pais = paisRepository.findById(id)</span>
+<span class="fc" id="L69">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;País no encontrado con ID: &quot; + id));</span>
+<span class="fc" id="L70">        return toResponse(pais);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;País creado desde el panel de administración&quot;, modulo = AuditModule.SISTEMA,
+            entidad = &quot;pais&quot;, idEntidad = &quot;#resultado.idPais&quot;,
+            detalle = &quot;{nombrePais: #request.nombrePais}&quot;)
+    // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4): delega
+    // en fn_guardar_pais, que captura unique_violation sobre el nombre en vez
+    // de la comprobacion findByNombrePais previa a esta version, que no era
+    // atomica respecto al save() (lectura fantasma, misma clase de anomalia
+    // que A9 en updateCountry). El tipo de excepcion de negocio se preserva
+    // (DuplicateResourceException) para no romper el contrato ya establecido
+    // de este servicio con su capa de presentacion.
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public CountryResponse createCountry(CountryRequest request) {
+        Long idPais;
+        try {
+<span class="fc" id="L95">            idPais = paisRepository.guardarPais(null, request.getNombrePais());</span>
+<span class="fc" id="L96">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L97">            throw translateDuplicateException(e, request.getNombrePais());</span>
+<span class="fc" id="L98">        }</span>
+
+        // Camino inalcanzable en operacion normal (la fila que se acaba de
+        // insertar en la MISMA transaccion siempre deberia ser legible aqui):
+        // ResponseStatusException(500), no una excepcion de negocio -- esto
+        // senalaria un fallo del servidor, no un error de entrada del cliente.
+        // (IllegalStateException se descarto: GlobalExceptionHandler la
+        // mapea a 400, la semantica HTTP incorrecta para un fallo interno.)
+<span class="fc" id="L106">        Country pais = paisRepository.findById(idPais)</span>
+<span class="pc" id="L107">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;Error al crear el país&quot;));</span>
+<span class="fc" id="L108">        return toResponse(pais);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;PAIS_EDITAR&quot;, modulo = AuditModule.SISTEMA,
+            entidad = &quot;pais&quot;, idEntidad = &quot;#id&quot;,
+            detalle = &quot;{nombrePais: #request.nombrePais}&quot;)
+    // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4): corrige
+    // la anomalia A9. fn_guardar_pais captura unique_violation sobre el
+    // nombre en vez de la comprobacion findByNombrePais previa a esta
+    // version, que no era atomica respecto al save(): entre comprobar &quot;el
+    // nombre no pertenece a otro pais&quot; y guardar, otra transaccion podia
+    // tomar ese mismo nombre (lectura fantasma).
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param id identificador unico que referencia de manera univoca al registro
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public CountryResponse updateCountry(Long id, CountryRequest request) {
+<span class="fc bfc" id="L131" title="All 2 branches covered.">        if (!paisRepository.existsById(id)) {</span>
+<span class="fc" id="L132">            throw new ResourceNotFoundException(&quot;País no encontrado con ID: &quot; + id);</span>
+        }
+
+        try {
+<span class="fc" id="L136">            paisRepository.guardarPais(id, request.getNombrePais());</span>
+<span class="fc" id="L137">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L138">            throw translateDuplicateException(e, request.getNombrePais());</span>
+<span class="fc" id="L139">        }</span>
+
+<span class="fc" id="L141">        Country pais = paisRepository.findById(id)</span>
+<span class="pc" id="L142">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;País no encontrado con ID: &quot; + id));</span>
+<span class="fc" id="L143">        return toResponse(pais);</span>
+    }
+
+    /**
+     * Traduce la excepcion nativa de fn_guardar_pais al vocabulario de
+     * excepciones de negocio ya establecido en este servicio
+     * (DuplicateResourceException/ResourceNotFoundException), reutilizando
+     * StoredProcedureExceptionTranslator solo para el trabajo de desenvolver
+     * la SQLException y limpiar el mensaje.
+     */
+    private RuntimeException translateDuplicateException(RuntimeException origen, String nombrePais) {
+<span class="fc" id="L154">        ResponseStatusException traducido = StoredProcedureExceptionTranslator.translate(origen, HttpStatus.BAD_REQUEST);</span>
+<span class="pc bpc" id="L155" title="1 of 2 branches missed.">        if (traducido.getStatusCode() == HttpStatus.CONFLICT) {</span>
+<span class="fc" id="L156">            return new DuplicateResourceException(traducido.getReason());</span>
+        }
+<span class="nc bnc" id="L158" title="All 2 branches missed.">        if (traducido.getStatusCode() == HttpStatus.NOT_FOUND) {</span>
+<span class="nc" id="L159">            return new ResourceNotFoundException(traducido.getReason());</span>
+        }
+<span class="nc" id="L161">        return traducido;</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;PAIS_CAMBIAR_ESTADO&quot;, modulo = AuditModule.SISTEMA, entidad = &quot;pais&quot;, idEntidad = &quot;#id&quot;)
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param id identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public MessageResponse deleteCountry(Long id) {
+<span class="fc" id="L175">        Country pais = paisRepository.findById(id)</span>
+<span class="fc" id="L176">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;País no encontrado con ID: &quot; + id));</span>
+
+<span class="fc bfc" id="L178" title="All 2 branches covered.">        boolean nuevoEstado = !pais.getEstado();</span>
+<span class="fc" id="L179">        pais.setEstado(nuevoEstado);</span>
+<span class="fc" id="L180">        paisRepository.save(pais);</span>
+
+<span class="fc bfc" id="L182" title="All 2 branches covered.">        String accionStr = nuevoEstado ? &quot;reactivado&quot; : &quot;desactivado&quot;;</span>
+<span class="fc" id="L183">        return new MessageResponse(&quot;País &quot; + accionStr + &quot; exitosamente&quot;);</span>
+    }
+
+    private CountryResponse toResponse(Country pais) {
+<span class="fc" id="L187">        return CountryResponse.builder()</span>
+<span class="fc" id="L188">                .idPais(pais.getIdPais())</span>
+<span class="fc" id="L189">                .nombrePais(pais.getNombrePais())</span>
+<span class="fc" id="L190">                .estado(pais.getEstado())</span>
+<span class="fc" id="L191">                .build();</span>
+    }
+}
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -39,6 +39,10 @@ public final class AuthenticatedActor {
 
     private static final Actor ANONIMO = new Actor(null, "anonimo");
 
+    /**
+     * Resuelve el actor autenticado a partir de {@link SecurityContextHolder}.
+     * @return el actor autenticado, o el actor anónimo si no hay sesión en el hilo actual
+     */
     public static Actor actual() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof CustomUserDetails detalles) {

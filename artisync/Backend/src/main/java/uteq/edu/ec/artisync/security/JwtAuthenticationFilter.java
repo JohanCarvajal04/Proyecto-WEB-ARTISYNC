@@ -65,7 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
 
         try {
-            Claims claims = jwtService.extraerTodosLosClaims(token);
+            Claims claims = jwtService.extractAllClaims(token);
 
             // Lista blanca (OBS-AUTO-05): solo un token con type=access autentica
             // peticiones HTTP. Antes era lista negra (rechazaba solo type=refresh),

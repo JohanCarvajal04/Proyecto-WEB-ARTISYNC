@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.entity.respaldo.BackupSchedule;
-import uteq.edu.ec.artisync.repository.respaldo.BackupScheduleRepository;
+import uteq.edu.ec.artisync.entity.backup.BackupSchedule;
+import uteq.edu.ec.artisync.repository.backup.BackupScheduleRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,7 +33,7 @@ public class BackupScheduler {
      * procesa en su propio try/catch para que un fallo no bloquee el resto.
      */
     @Scheduled(fixedRate = 60_000)
-    public void procesarProgramacionesPendientes() {
+    public void processPendingSchedules() {
         List<BackupSchedule> pendientes =
                 programacionRepository.findByActivoTrueAndProximaEjecucionLessThanEqual(LocalDateTime.now());
 
@@ -45,7 +45,7 @@ public class BackupScheduler {
 
         for (BackupSchedule programacion : pendientes) {
             try {
-                respaldoEjecutorServicio.iniciarDesdeProgramacion(programacion);
+                respaldoEjecutorServicio.startFromSchedule(programacion);
             } catch (Exception e) {
                 log.error("[BackupScheduler] Error al iniciar la programación {}: {}",
                         programacion.getIdProgramacion(), e.getMessage(), e);

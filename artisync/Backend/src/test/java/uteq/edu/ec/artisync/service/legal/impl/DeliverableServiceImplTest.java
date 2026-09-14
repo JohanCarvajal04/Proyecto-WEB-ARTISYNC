@@ -8,26 +8,26 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
-import uteq.edu.ec.artisync.dto.respuesta.legal.DeliverableResponse;
-import uteq.edu.ec.artisync.entity.catalogo.Offering;
-import uteq.edu.ec.artisync.entity.catalogo.Workflow;
+import uteq.edu.ec.artisync.dto.response.legal.DeliverableResponse;
+import uteq.edu.ec.artisync.entity.catalog.Offering;
+import uteq.edu.ec.artisync.entity.catalog.Workflow;
 import uteq.edu.ec.artisync.entity.legal.FinalDeliverable;
-import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.pedido.OrderStatusHistory;
-import uteq.edu.ec.artisync.entity.pedido.WorkflowStage;
-import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
-import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.entity.order.OrderStatusHistory;
+import uteq.edu.ec.artisync.entity.order.WorkflowStage;
+import uteq.edu.ec.artisync.entity.profile.CreatorProfile;
+import uteq.edu.ec.artisync.entity.security.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContractRepository;
 import uteq.edu.ec.artisync.repository.legal.FinalDeliverableRepository;
 import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
-import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
-import uteq.edu.ec.artisync.repository.pedido.OrderStatusHistoryRepository;
-import uteq.edu.ec.artisync.repository.pedido.WorkflowStageConfigRepository;
+import uteq.edu.ec.artisync.repository.order.OrderRepository;
+import uteq.edu.ec.artisync.repository.order.OrderStatusHistoryRepository;
+import uteq.edu.ec.artisync.repository.order.WorkflowStageConfigRepository;
 import uteq.edu.ec.artisync.service.legal.IDeliverableService;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
+import uteq.edu.ec.artisync.service.shared.storage.DocumentStorage;
 
 import java.util.Optional;
 
@@ -54,8 +54,8 @@ class DeliverableServiceImplTest {
     @Mock private WorkflowStageConfigRepository flujoEtapaConfigRepository;
     @Mock private OrderStatusHistoryRepository historialEstadoPedidoRepository;
     @Mock private DocumentStorage almacenamiento;
-    @Mock private uteq.edu.ec.artisync.service.comunicacion.ChatService chatService;
-    @Mock private uteq.edu.ec.artisync.service.comunicacion.NotificationService notificacionService;
+    @Mock private uteq.edu.ec.artisync.service.communication.ChatService chatService;
+    @Mock private uteq.edu.ec.artisync.service.communication.NotificationService notificacionService;
 
     @InjectMocks private DeliverableServiceImpl servicio;
 
@@ -105,7 +105,7 @@ class DeliverableServiceImplTest {
     void subirEntregable_guardaAmbasVersionesBajoElPrefijoDeEntregables() {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
         when(entregableRepository.findByPedidoIdPedido(ID_PEDIDO)).thenReturn(Optional.empty());
-        when(almacenamiento.guardar(any(), eq("entregables")))
+        when(almacenamiento.save(any(), eq("entregables")))
                 .thenReturn("entregables/marca.png", "entregables/limpia.png");
         when(entregableRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
@@ -113,7 +113,7 @@ class DeliverableServiceImplTest {
         DeliverableResponse respuesta = servicio.uploadDeliverable(
                 ID_PEDIDO, ID_CREADOR, imagen("marca"), imagen("limpia"));
 
-        verify(almacenamiento, times(2)).guardar(any(), eq("entregables"));
+        verify(almacenamiento, times(2)).save(any(), eq("entregables"));
         assertThat(respuesta.getIdPedido()).isEqualTo(ID_PEDIDO);
     }
 
@@ -124,7 +124,7 @@ class DeliverableServiceImplTest {
         assertThrows(BusinessRuleException.class, () -> servicio.uploadDeliverable(
                 ID_PEDIDO, ID_TERCERO, imagen("marca"), imagen("limpia")));
 
-        verify(almacenamiento, never()).guardar(any(), anyString());
+        verify(almacenamiento, never()).save(any(), anyString());
     }
 
     @Test
@@ -145,15 +145,15 @@ class DeliverableServiceImplTest {
         when(entregableRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("entregables/vieja-marca.png",
                         "entregables/vieja-limpia.png", false)));
-        when(almacenamiento.guardar(any(), eq("entregables")))
+        when(almacenamiento.save(any(), eq("entregables")))
                 .thenReturn("entregables/nueva-marca.png", "entregables/nueva-limpia.png");
         when(entregableRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
 
         servicio.uploadDeliverable(ID_PEDIDO, ID_CREADOR, imagen("marca"), imagen("limpia"));
 
-        verify(almacenamiento).eliminar("entregables/vieja-marca.png");
-        verify(almacenamiento).eliminar("entregables/vieja-limpia.png");
+        verify(almacenamiento).delete("entregables/vieja-marca.png");
+        verify(almacenamiento).delete("entregables/vieja-limpia.png");
     }
 
     @Test
@@ -161,11 +161,11 @@ class DeliverableServiceImplTest {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
         when(entregableRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("entregables/vieja.png", "entregables/vieja2.png", false)));
-        when(almacenamiento.guardar(any(), eq("entregables")))
+        when(almacenamiento.save(any(), eq("entregables")))
                 .thenReturn("entregables/nueva.png", "entregables/nueva2.png");
         when(entregableRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
-        doThrow(new BusinessRuleException("Azure caido")).when(almacenamiento).eliminar(anyString());
+        doThrow(new BusinessRuleException("Azure caido")).when(almacenamiento).delete(anyString());
 
         DeliverableResponse respuesta = servicio.uploadDeliverable(
                 ID_PEDIDO, ID_CREADOR, imagen("marca"), imagen("limpia"));
@@ -184,7 +184,7 @@ class DeliverableServiceImplTest {
         assertThrows(BusinessRuleException.class,
                 () -> servicio.downloadCleanVersion(ID_PEDIDO, ID_CLIENTE));
 
-        verify(almacenamiento, never()).leer(anyString());
+        verify(almacenamiento, never()).read(anyString());
     }
 
     @Test
@@ -192,9 +192,9 @@ class DeliverableServiceImplTest {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
         when(entregableRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("entregables/m.png", "entregables/l.pdf", true)));
-        when(almacenamiento.leer("entregables/l.pdf")).thenReturn("%PDF".getBytes());
+        when(almacenamiento.read("entregables/l.pdf")).thenReturn("%PDF".getBytes());
 
-        IDeliverableService.ArchivoDescargado archivo =
+        IDeliverableService.DownloadedFile archivo =
                 servicio.downloadCleanVersion(ID_PEDIDO, ID_CLIENTE);
 
         assertThat(archivo.contenido()).isEqualTo("%PDF".getBytes());
@@ -216,7 +216,7 @@ class DeliverableServiceImplTest {
     void descargarMarcaAgua_clienteYCreadorPuedenVerlaSinPagoLiberado() {
         when(entregableRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("entregables/m.png", "entregables/l.png", false)));
-        when(almacenamiento.leer("entregables/m.png")).thenReturn("png".getBytes());
+        when(almacenamiento.read("entregables/m.png")).thenReturn("png".getBytes());
 
         assertThat(servicio.downloadWatermarkedVersion(ID_PEDIDO, ID_CLIENTE).contenido()).isNotEmpty();
         assertThat(servicio.downloadWatermarkedVersion(ID_PEDIDO, ID_CREADOR).contenido()).isNotEmpty();
@@ -230,7 +230,7 @@ class DeliverableServiceImplTest {
         assertThrows(BusinessRuleException.class,
                 () -> servicio.downloadWatermarkedVersion(ID_PEDIDO, ID_TERCERO));
 
-        verify(almacenamiento, never()).leer(anyString());
+        verify(almacenamiento, never()).read(anyString());
     }
 
     @Test

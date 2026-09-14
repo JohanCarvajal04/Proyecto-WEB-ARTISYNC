@@ -14,16 +14,16 @@ import org.mockito.quality.Strictness;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpStatusCodeException;
-import uteq.edu.ec.artisync.entity.catalogo.Offering;
+import uteq.edu.ec.artisync.entity.catalog.Offering;
 import uteq.edu.ec.artisync.entity.legal.Contract;
 import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
 import uteq.edu.ec.artisync.entity.legal.PaymentTransaction;
-import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
-import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.entity.profile.CreatorProfile;
+import uteq.edu.ec.artisync.entity.security.User;
 import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
+import uteq.edu.ec.artisync.service.communication.NotificationService;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
 import java.math.BigDecimal;
@@ -89,7 +89,7 @@ class PayPalReconciliationExecutorServiceTest {
                 .willReturn(json("""
                         {"status":"COMPLETED"}"""));
 
-        ejecutor.reconciliar(1L);
+        ejecutor.reconcile(1L);
 
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Retenido");
         verify(pagoGarantiaRepository).save(pagoPendiente);
@@ -107,7 +107,7 @@ class PayPalReconciliationExecutorServiceTest {
                 .willReturn(json("""
                         {"status":"COMPLETED"}"""));
 
-        ejecutor.reconciliar(1L);
+        ejecutor.reconcile(1L);
 
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Retenido");
         verify(transaccionPagoRepository).save(any(PaymentTransaction.class));
@@ -124,7 +124,7 @@ class PayPalReconciliationExecutorServiceTest {
         given(payPalClient.callPayPal(eq("/v2/checkout/orders/ORDER-123/capture"), eq(HttpMethod.POST), any()))
                 .willThrow(error);
 
-        ejecutor.reconciliar(1L);
+        ejecutor.reconcile(1L);
 
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Retenido");
         verify(transaccionPagoRepository).save(any(PaymentTransaction.class));
@@ -137,7 +137,7 @@ class PayPalReconciliationExecutorServiceTest {
                 .willReturn(json("""
                         {"status":"VOIDED"}"""));
 
-        ejecutor.reconciliar(1L);
+        ejecutor.reconcile(1L);
 
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Pendiente");
         verify(pagoGarantiaRepository, never()).save(any());
@@ -150,7 +150,7 @@ class PayPalReconciliationExecutorServiceTest {
                 .willReturn(json("""
                         {"status":"CREATED"}"""));
 
-        ejecutor.reconciliar(1L);
+        ejecutor.reconcile(1L);
 
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Pendiente");
         verify(pagoGarantiaRepository, never()).save(any());
@@ -161,7 +161,7 @@ class PayPalReconciliationExecutorServiceTest {
     void pagoYaResueltoPorWebhook_noOp() {
         pagoPendiente.setEstadoFondos("Retenido");
 
-        ejecutor.reconciliar(1L);
+        ejecutor.reconcile(1L);
 
         verifyNoInteractions(payPalClient);
         verify(pagoGarantiaRepository, never()).save(any());

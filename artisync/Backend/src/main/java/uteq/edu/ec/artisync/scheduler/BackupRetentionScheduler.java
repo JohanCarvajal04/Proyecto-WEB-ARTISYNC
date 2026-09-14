@@ -5,11 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import uteq.edu.ec.artisync.config.BackupProperties;
-import uteq.edu.ec.artisync.entity.respaldo.BackupStatus;
-import uteq.edu.ec.artisync.entity.respaldo.Backup;
-import uteq.edu.ec.artisync.entity.respaldo.BackupType;
-import uteq.edu.ec.artisync.repository.respaldo.BackupRepository;
-import uteq.edu.ec.artisync.service.respaldo.impl.BackupFileStorage;
+import uteq.edu.ec.artisync.entity.backup.BackupStatus;
+import uteq.edu.ec.artisync.entity.backup.Backup;
+import uteq.edu.ec.artisync.entity.backup.BackupType;
+import uteq.edu.ec.artisync.repository.backup.BackupRepository;
+import uteq.edu.ec.artisync.service.backup.impl.BackupFileStorage;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -31,7 +31,7 @@ public class BackupRetentionScheduler {
 
     /**
      * Elimina (registro + archivo en disco) los respaldos {@code COMPLETADO}
-     * cuya retención ya venció y que son seguros de borrar (ver {@link #esSeguroEliminar}).
+     * cuya retención ya venció y que son seguros de borrar (ver {@link #isSafeToDelete}).
      * Corre a las 4:00 AM; cada respaldo se procesa en su propio try/catch para
      * que un fallo puntual no bloquee el resto del barrido.
      */
@@ -39,7 +39,7 @@ public class BackupRetentionScheduler {
     public void purgarRespaldosVencidos() {
         for (Backup respaldo : respaldoRepository.findByEstadoRespaldo(BackupStatus.COMPLETADO)) {
             try {
-                if (haVencido(respaldo) && esSeguroEliminar(respaldo)) {
+                if (hasExpired(respaldo) && isSafeToDelete(respaldo)) {
                     if (respaldo.getRutaArchivo() != null) {
                         storage.delete(Path.of(respaldo.getRutaArchivo()));
                     }
@@ -53,7 +53,7 @@ public class BackupRetentionScheduler {
         }
     }
 
-    private boolean haVencido(Backup respaldo) {
+    private boolean hasExpired(Backup respaldo) {
         int dias = respaldo.getProgramacion() != null
                 ? respaldo.getProgramacion().getRetencionDias()
                 : respaldoProperties.getRetencionDiasManual();
@@ -69,10 +69,10 @@ public class BackupRetentionScheduler {
      * retención configurada mientras algún incremental la necesite.
      *
      * Reutilizado también por la eliminación manual del controlador
-     * (BackupServiceImpl#delete): un admin tampoco puede borrar a mano
+     * (BackupServiceImpl#eliminar): un admin tampoco puede borrar a mano
      * un FULL del que dependen incrementales vivos.
      */
-    public boolean esSeguroEliminar(Backup respaldo) {
+    public boolean isSafeToDelete(Backup respaldo) {
         if (respaldo.getTipoRespaldo() == BackupType.INCREMENTAL) {
             return true;
         }

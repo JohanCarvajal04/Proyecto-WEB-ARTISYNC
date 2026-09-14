@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AzureStorage.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.storage</a> &gt; <span class="el_source">AzureStorage.java</span></div><h1>AzureStorage.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.storage;
+
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.blob.models.BlobHttpHeaders;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.sas.BlobSasPermission;
+import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.config.StorageProperties;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.time.OffsetDateTime;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Persistencia de documentos en Azure Blob Storage. Se activa con
+ * &quot;documentos.proveedor=azure&quot;; en su ausencia manda LocalStorage.
+ *
+ * &lt;p&gt;La referencia que devuelve save() es el nombre del blob, no su URL: el
+ * contenedor es privado porque guarda cédulas y títulos, así que una URL directa
+ * no sirve para nada. Para exponer un archivo al frontend sin proxearlo por el
+ * backend está generarUrlTemporal(), que firma un SAS de vigencia corta.
+ */
+<span class="fc" id="L34">@Slf4j</span>
+@Component
+@ConditionalOnProperty(name = &quot;documentos.proveedor&quot;, havingValue = &quot;azure&quot;)
+public class AzureStorage implements DocumentStorage {
+
+    private final BlobContainerClient contenedor;
+    private final long sasMinutos;
+<span class="fc" id="L41">    private volatile boolean contenedorVerificado = false;</span>
+
+<span class="fc" id="L43">    public AzureStorage(StorageProperties propiedades) {</span>
+<span class="fc" id="L44">        StorageProperties.Azure config = propiedades.getAzure();</span>
+<span class="pc bpc" id="L45" title="1 of 4 branches missed.">        if (config.getConnectionString() == null || config.getConnectionString().isBlank()) {</span>
+<span class="fc" id="L46">            throw new IllegalStateException(</span>
+                    &quot;documentos.proveedor=azure requiere documentos.azure.connection-string &quot;
+                            + &quot;(variable de entorno AZURE_STORAGE_CONNECTION_STRING).&quot;);
+        }
+<span class="fc" id="L50">        this.contenedor = new BlobServiceClientBuilder()</span>
+<span class="fc" id="L51">                .connectionString(config.getConnectionString())</span>
+<span class="fc" id="L52">                .buildClient()</span>
+<span class="fc" id="L53">                .getBlobContainerClient(config.getContenedor());</span>
+<span class="fc" id="L54">        this.sasMinutos = config.getSasMinutos();</span>
+<span class="fc" id="L55">        log.info(&quot;Almacenamiento de documentos en Azure, contenedor '{}'&quot;, config.getContenedor());</span>
+<span class="fc" id="L56">    }</span>
+
+    /**
+     * Crea el contenedor la primera vez que se usa. No se hace en el constructor
+     * a propósito: arrancar la aplicación no debe depender de que la red y las
+     * credenciales de Azure respondan.
+     */
+    private void asegurarContenedor() {
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (contenedorVerificado) {</span>
+<span class="fc" id="L65">            return;</span>
+        }
+<span class="fc" id="L67">        synchronized (this) {</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">            if (contenedorVerificado) {</span>
+<span class="nc" id="L69">                return;</span>
+            }
+            try {
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">                if (!contenedor.exists()) {</span>
+<span class="fc" id="L73">                    contenedor.create();</span>
+<span class="fc" id="L74">                    log.info(&quot;Contenedor '{}' creado en Azure&quot;, contenedor.getBlobContainerName());</span>
+                }
+<span class="fc" id="L76">                contenedorVerificado = true;</span>
+<span class="nc" id="L77">            } catch (BlobStorageException e) {</span>
+<span class="nc" id="L78">                throw new BusinessRuleException(</span>
+<span class="nc" id="L79">                        &quot;No se pudo acceder al contenedor de Azure: &quot; + e.getServiceMessage());</span>
+<span class="fc" id="L80">            }</span>
+<span class="fc" id="L81">        }</span>
+<span class="fc" id="L82">    }</span>
+
+    @Override
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param archivo objeto binario multipart representando el documento o medio fisico
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public String save(MultipartFile archivo) {
+<span class="fc" id="L93">        return save(archivo, &quot;&quot;);</span>
+    }
+
+    @Override
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param archivo objeto binario multipart representando el documento o medio fisico
+     * @param prefijo parametro requerido para la correcta ejecucion del procedimiento
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public String save(MultipartFile archivo, String prefijo) {
+<span class="fc" id="L106">        asegurarContenedor();</span>
+<span class="fc" id="L107">        String nombreBlob = StoragePrefix.componer(</span>
+<span class="fc" id="L108">                prefijo, UUID.randomUUID() + FileExtensions.desde(archivo.getContentType()));</span>
+<span class="fc" id="L109">        BlobClient blob = contenedor.getBlobClient(nombreBlob);</span>
+
+<span class="fc" id="L111">        try (InputStream entrada = archivo.getInputStream()) {</span>
+<span class="fc" id="L112">            blob.upload(entrada, archivo.getSize(), true);</span>
+<span class="fc" id="L113">            blob.setHttpHeaders(new BlobHttpHeaders().setContentType(archivo.getContentType()));</span>
+<span class="nc" id="L114">        } catch (IOException | BlobStorageException e) {</span>
+<span class="nc" id="L115">            throw new BusinessRuleException(&quot;No se pudo guardar el documento: &quot; + e.getMessage());</span>
+<span class="fc" id="L116">        }</span>
+
+<span class="fc" id="L118">        log.info(&quot;Documento guardado en Azure: {}&quot;, nombreBlob);</span>
+<span class="fc" id="L119">        return nombreBlob;</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public byte[] read(String referencia) {
+<span class="fc" id="L125">        validateReference(referencia);</span>
+<span class="fc" id="L126">        asegurarContenedor();</span>
+<span class="fc" id="L127">        BlobClient blob = contenedor.getBlobClient(referencia);</span>
+<span class="fc" id="L128">        ByteArrayOutputStream salida = new ByteArrayOutputStream();</span>
+        try {
+<span class="fc" id="L130">            blob.downloadStream(salida);</span>
+<span class="fc" id="L131">        } catch (BlobStorageException e) {</span>
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">            if (e.getStatusCode() == 404) {</span>
+<span class="fc" id="L133">                throw new ResourceNotFoundException(&quot;Documento no disponible: &quot; + referencia);</span>
+            }
+<span class="nc" id="L135">            throw new BusinessRuleException(&quot;No se pudo leer el documento: &quot; + e.getServiceMessage());</span>
+<span class="fc" id="L136">        }</span>
+<span class="fc" id="L137">        return salida.toByteArray();</span>
+    }
+
+    @Override
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param referencia parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public void delete(String referencia) {
+<span class="fc" id="L148">        validateReference(referencia);</span>
+<span class="fc" id="L149">        asegurarContenedor();</span>
+<span class="fc" id="L150">        BlobClient blob = contenedor.getBlobClient(referencia);</span>
+        try {
+<span class="fc" id="L152">            blob.deleteIfExists();</span>
+<span class="nc" id="L153">        } catch (BlobStorageException e) {</span>
+<span class="nc" id="L154">            throw new BusinessRuleException(&quot;No se pudo eliminar el documento: &quot; + e.getServiceMessage());</span>
+<span class="fc" id="L155">        }</span>
+<span class="fc" id="L156">    }</span>
+
+    /**
+     * URL firmada de solo lectura para que el frontend descargue el archivo
+     * directamente de Azure. Pensada para portafolio y entregables, donde
+     * proxear video por el backend sería un desperdicio.
+     */
+    @Override
+    public Optional&lt;String&gt; urlTemporal(String referencia) {
+<span class="fc" id="L165">        validateReference(referencia);</span>
+<span class="fc" id="L166">        asegurarContenedor();</span>
+<span class="fc" id="L167">        BlobClient blob = contenedor.getBlobClient(referencia);</span>
+<span class="fc" id="L168">        BlobServiceSasSignatureValues valores = new BlobServiceSasSignatureValues(</span>
+<span class="fc" id="L169">                OffsetDateTime.now().plusMinutes(sasMinutos),</span>
+<span class="fc" id="L170">                new BlobSasPermission().setReadPermission(true));</span>
+<span class="fc" id="L171">        return Optional.of(blob.getBlobUrl() + &quot;?&quot; + blob.generateSas(valores));</span>
+    }
+
+    /**
+     * Un blob no es una ruta de disco, pero la referencia llega desde la base de
+     * datos y no tiene por qué escaparse del prefijo que le corresponde.
+     */
+    private void validateReference(String referencia) {
+<span class="fc bfc" id="L179" title="All 4 branches covered.">        if (referencia == null || referencia.isBlank()</span>
+<span class="fc bfc" id="L180" title="All 2 branches covered.">                || referencia.startsWith(&quot;/&quot;)</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">                || referencia.contains(&quot;..&quot;)) {</span>
+<span class="fc" id="L182">            throw new BusinessRuleException(&quot;Referencia de documento inválida.&quot;);</span>
+        }
+<span class="fc" id="L184">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

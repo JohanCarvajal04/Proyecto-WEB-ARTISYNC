@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VerificationController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.profile</a> &gt; <span class="el_source">VerificationController.java</span></div><h1>VerificationController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.profile;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.dto.request.profile.VerificationDecisionRequest;
+import uteq.edu.ec.artisync.dto.response.profile.VerificationQueueResponse;
+import uteq.edu.ec.artisync.dto.response.profile.IdentityStatusResponse;
+import uteq.edu.ec.artisync.dto.response.profile.VerificationResponse;
+import uteq.edu.ec.artisync.entity.profile.VerificationDocumentType;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.profile.IVerificationService;
+
+import java.util.List;
+
+/**
+ * REQ-F-006/007. La IA solo asiste (ver /analisis-ia); únicamente /decision
+ * escribe el estado final, y exige CERTIFICADO_REVISAR.
+ */
+@Tag(name = &quot;Verificación&quot;, description = &quot;Verificación de identidad y certificados, asistida por IA&quot;)
+@RestController
+@RequestMapping(&quot;/api/v1/verificaciones&quot;)
+@RequiredArgsConstructor
+public class VerificationController {
+
+    private final IVerificationService verificacionServicio;
+
+    /**
+     * Solicita una verificación de identidad o de certificado, subiendo el documento correspondiente.
+     *
+     * @param tipo tipo de documento de verificación a upload
+     * @param documento archivo del documento a verificar
+     * @param userDetails usuario autenticado que solicita la verificación
+     * @return la verificación creada, con estado 201
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario solicitante no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario ya tiene una solicitud de este tipo en curso, o el documento no puede leerse
+     */
+    @Operation(summary = &quot;Solicitar una verificación de identidad o certificado&quot;)
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;VerificationResponse&gt; upload(
+            @RequestParam(&quot;tipo&quot;) VerificationDocumentType tipo,
+            @RequestParam(&quot;documento&quot;) MultipartFile documento,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L53">        VerificationResponse respuesta = verificacionServicio.upload(userDetails.getIdUsuario(), tipo, documento);</span>
+<span class="fc" id="L54">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+    }
+
+    /**
+     * Obtiene el estado de identidad del usuario autenticado, que gatea la publicación de servicios y la creación de pedidos.
+     *
+     * @param userDetails usuario autenticado
+     * @return el estado de identidad del usuario
+     */
+    @Operation(summary = &quot;Estado de identidad del usuario autenticado (gatea publicar servicios y crear pedidos)&quot;)
+    @GetMapping(&quot;/mi-estado&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;IdentityStatusResponse&gt; getMyIdentityStatus(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L68">        return ResponseEntity.ok(verificacionServicio.getIdentityStatus(userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Lista la cola de verificaciones pendientes de revisión.
+     *
+     * @param estado estado por el cual filtrar la cola (opcional)
+     * @param limite cantidad máxima de resultados a devolver
+     * @param offset cantidad de resultados a saltar, para paginación
+     * @return listado de verificaciones en cola
+     */
+    @Operation(summary = &quot;Cola de verificaciones pendientes de revisión&quot;)
+    @GetMapping
+    @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;VerificationQueueResponse&gt;&gt; listQueue(
+            @RequestParam(required = false) String estado,
+            @RequestParam(defaultValue = &quot;20&quot;) int limite,
+            @RequestParam(defaultValue = &quot;0&quot;) int offset) {
+<span class="fc" id="L86">        return ResponseEntity.ok(verificacionServicio.listQueue(estado, limite, offset));</span>
+    }
+
+    /**
+     * Obtiene el detalle de una verificación.
+     *
+     * @param id identificador de la verificación
+     * @param userDetails usuario autenticado que consulta la verificación
+     * @return el detalle de la verificación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación no existe
+     */
+    @Operation(summary = &quot;Detalle de una verificación&quot;)
+    @GetMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;VerificationResponse&gt; getById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L103">        boolean esRevisor = userDetails.getAuthorities().stream()</span>
+<span class="pc bpc" id="L104" title="1 of 4 branches missed.">                .anyMatch(a -&gt; a.getAuthority().equals(&quot;CERTIFICADO_REVISAR&quot;) || a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
+<span class="fc" id="L105">        return ResponseEntity.ok(verificacionServicio.getById(id, userDetails.getIdUsuario(), esRevisor));</span>
+    }
+
+    /**
+     * Descarga el documento original de una verificación, para su revisión.
+     *
+     * @param id identificador de la verificación
+     * @return el contenido binario del documento en formato JPEG
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación no existe
+     */
+    @Operation(summary = &quot;Descargar el documento original para revisión&quot;)
+    @GetMapping(&quot;/{id}/documento&quot;)
+    @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;byte[]&gt; getDocument(@PathVariable Long id) {
+<span class="fc" id="L119">        byte[] documento = verificacionServicio.getDocument(id);</span>
+<span class="fc" id="L120">        return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(documento);</span>
+    }
+
+    /**
+     * Pide a la IA un dictamen orientativo sobre una verificación; el dictamen no decide el estado final.
+     *
+     * @param id identificador de la verificación
+     * @return la verificación con el dictamen de la IA
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el documento de la verificación ya fue eliminado
+     * @throws uteq.edu.ec.artisync.exception.AiServiceUnavailableException si el servicio de IA no está disponible
+     */
+    @Operation(summary = &quot;Pedir a la IA un dictamen orientativo (no decide)&quot;)
+    @PostMapping(&quot;/{id}/analisis-ia&quot;)
+    @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;VerificationResponse&gt; analyzeWithAi(@PathVariable Long id) {
+<span class="fc" id="L136">        return ResponseEntity.ok(verificacionServicio.analyzeWithAi(id));</span>
+    }
+
+    /**
+     * Registra la decisión del moderador sobre una verificación; es el único punto que cambia su estado final.
+     *
+     * @param id identificador de la verificación
+     * @param peticion decisión del moderador, con el nuevo estado y una nota opcional
+     * @param userDetails moderador autenticado que registra la decisión
+     * @return la verificación con su estado actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación o el estado de verificación indicado no existen
+     */
+    @Operation(summary = &quot;Registrar la decisión del moderador (único punto que cambia el estado)&quot;)
+    @PatchMapping(&quot;/{id}/decision&quot;)
+    @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;VerificationResponse&gt; recordDecision(
+            @PathVariable Long id,
+            @Valid @RequestBody VerificationDecisionRequest peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L155">        VerificationResponse respuesta = verificacionServicio.recordDecision(</span>
+<span class="fc" id="L156">                id, userDetails.getIdUsuario(), peticion.idEstadoVerificacion(), peticion.notaModerador());</span>
+<span class="fc" id="L157">        return ResponseEntity.ok(respuesta);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

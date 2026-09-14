@@ -11,10 +11,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import uteq.edu.ec.artisync.service.comunicacion.ChatService;
-import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
+import uteq.edu.ec.artisync.service.communication.ChatService;
+import uteq.edu.ec.artisync.service.communication.NotificationService;
 import uteq.edu.ec.artisync.service.legal.IDeliverableService;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
+import uteq.edu.ec.artisync.service.shared.storage.DocumentStorage;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;

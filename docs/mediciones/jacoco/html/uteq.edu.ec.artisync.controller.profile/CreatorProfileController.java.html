@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CreatorProfileController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.profile</a> &gt; <span class="el_source">CreatorProfileController.java</span></div><h1>CreatorProfileController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.profile;
+
+import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.request.profile.CreateProfileRequest;
+import uteq.edu.ec.artisync.dto.request.profile.UpdateProfileRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.profile.ProfileResponse;
+import uteq.edu.ec.artisync.service.profile.ICreatorProfileService;
+
+import java.util.List;
+
+/** Consulta y edición del perfil público de un creador. */
+@RestController
+@RequestMapping(&quot;/api/v1/perfiles&quot;)
+@RequiredArgsConstructor
+public class CreatorProfileController {
+
+    private final ICreatorProfileService perfilServicio;
+
+    /**
+     * Crea el perfil de creador del usuario autenticado (o de un tercero,
+     * cuando quien llama tiene rol ADMIN).
+     * @param peticion datos del perfil de creador a registrar
+     * @param autenticacion usuario autenticado que solicita la creación
+     * @return perfil de creador recién creado, con código 201
+     */
+    @PostMapping
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;ProfileResponse&gt; createProfile(
+            @Valid @RequestBody CreateProfileRequest peticion,
+            Authentication autenticacion) {
+<span class="fc" id="L39">        ProfileResponse respuesta = perfilServicio.createProfile(</span>
+<span class="fc" id="L40">                peticion, autenticacion.getName(), isAdmin(autenticacion));</span>
+<span class="fc" id="L41">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+    }
+
+    /**
+     * Obtiene el perfil de creador identificado por su clave primaria.
+     * @param id identificador del perfil de creador
+     * @return perfil de creador correspondiente
+     */
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;ProfileResponse&gt; getProfileById(@PathVariable Long id) {
+<span class="fc" id="L51">        return ResponseEntity.ok(perfilServicio.getProfileById(id));</span>
+    }
+
+    /**
+     * Obtiene el perfil de creador asociado a una cuenta de usuario.
+     * @param idUsuario identificador del usuario dueño del perfil
+     * @return perfil de creador de ese usuario
+     */
+    @GetMapping(&quot;/usuario/{idUsuario}&quot;)
+    public ResponseEntity&lt;ProfileResponse&gt; getProfileByUser(@PathVariable Long idUsuario) {
+<span class="fc" id="L61">        return ResponseEntity.ok(perfilServicio.getProfileByUser(idUsuario));</span>
+    }
+
+    /**
+     * Lista todos los perfiles de creador registrados en la plataforma.
+     * @return listado completo de perfiles de creador
+     */
+    @GetMapping
+    public ResponseEntity&lt;List&lt;ProfileResponse&gt; &gt; listProfiles() {
+<span class="fc" id="L70">        return ResponseEntity.ok(perfilServicio.listProfiles());</span>
+    }
+
+    /**
+     * Lista los perfiles de creador con cuenta activa, para el directorio
+     * público de creadores.
+     * @return listado de perfiles de creadores activos
+     */
+    @Operation(summary = &quot;Directorio público de creadores con cuenta activa&quot;)
+    @GetMapping(&quot;/activos&quot;)
+    public ResponseEntity&lt;List&lt;ProfileResponse&gt;&gt; listActiveProfiles() {
+<span class="fc" id="L81">        return ResponseEntity.ok(perfilServicio.listActiveProfiles());</span>
+    }
+
+    /**
+     * Actualiza los datos del perfil de creador indicado; solo el dueño del
+     * perfil o un ADMIN pueden hacerlo.
+     * @param id identificador del perfil a actualizar
+     * @param peticion datos actualizados del perfil
+     * @param autenticacion usuario autenticado que solicita el cambio
+     * @return perfil de creador ya actualizado
+     */
+    @PutMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;ProfileResponse&gt; updateProfile(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateProfileRequest peticion,
+            Authentication autenticacion) {
+<span class="fc" id="L98">        return ResponseEntity.ok(perfilServicio.updateProfile(</span>
+<span class="fc" id="L99">                id, peticion, autenticacion.getName(), isAdmin(autenticacion)));</span>
+    }
+
+    /**
+     * Elimina el perfil de creador indicado.
+     * @param id identificador del perfil a eliminar
+     * @return mensaje de confirmación de la eliminación
+     */
+    @DeleteMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasAuthority('USUARIO_ELIMINAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;MessageResponse&gt; deleteProfile(@PathVariable Long id) {
+<span class="fc" id="L110">        perfilServicio.deleteProfile(id);</span>
+<span class="fc" id="L111">        return ResponseEntity.ok(new MessageResponse(&quot;Perfil de creador eliminado exitosamente&quot;));</span>
+    }
+
+    /**
+     * Un ADMIN puede operar sobre el perfil de cualquiera; el resto solo sobre el
+     * suyo. Se resuelve aquí y se pasa al servicio como booleano para que este no
+     * dependa del SecurityContextHolder y siga siendo comprobable con un test
+     * unitario corriente.
+     */
+    private boolean isAdmin(Authentication autenticacion) {
+<span class="fc" id="L121">        return autenticacion.getAuthorities().stream()</span>
+<span class="fc" id="L122">                .anyMatch(a -&gt; &quot;ROLE_ADMIN&quot;.equals(a.getAuthority()));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

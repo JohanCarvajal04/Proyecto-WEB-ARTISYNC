@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.dto.respuesta.legal.IntegrityVerificationResponse;
+import uteq.edu.ec.artisync.dto.response.legal.IntegrityVerificationResponse;
 import uteq.edu.ec.artisync.service.legal.IContractService;
 
 /**
@@ -36,7 +36,7 @@ public class ContractIntegrityExecutorService {
      * @param idContrato identificador del contrato ya firmado a verificar
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void verificar(Long idContrato) {
+    public void verify(Long idContrato) {
         IntegrityVerificationResponse resultado = contratoServicio.verifyHashIntegrity(idContrato);
         if (!resultado.isIntegro()) {
             log.error("[ContractIntegrityExecutorService] Discrepancia de integridad detectada en el contrato {}",

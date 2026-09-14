@@ -1,0 +1,31 @@
+package uteq.edu.ec.artisync.dto.response.comun;
+
+/**
+ * Objeto de transferencia de datos (DTO) utilizado como carga útil de respuesta (Response).
+ * 
+ * Propósito: mensaje de confirmación genérico de una operación (por ejemplo,
+ * "Sesión cerrada exitosamente").
+ *
+ * Este DTO se encarga de serializar la información hacia el cliente, enmascarando
+ * el modelo de dominio interno (Entidades JPA) y exponiendo estrictamente los
+ * atributos necesarios para cumplir con el contrato de esta vista del API.
+ *
+ * @param mensaje texto del mensaje de confirmación
+ */
+public record MessageResponse(
+        String mensaje
+) {
+    /**
+     * Alias de compatibilidad para el componente {@code mensaje}, usado por código
+     * que espera el patrón de nomenclatura JavaBean (getX) en lugar del accesor
+     * canónico generado por el record.
+     *
+     * @return el texto del mensaje de confirmación
+     */
+    public String getMessage() {
+        return mensaje;
+    }
+}
+
+
+

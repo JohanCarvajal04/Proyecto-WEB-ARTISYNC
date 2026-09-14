@@ -13,10 +13,10 @@ import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
 import uteq.edu.ec.artisync.entity.legal.PaymentTransaction;
-import uteq.edu.ec.artisync.entity.pedido.Order;
+import uteq.edu.ec.artisync.entity.order.Order;
 import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
+import uteq.edu.ec.artisync.service.communication.NotificationService;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
 /**
@@ -57,7 +57,7 @@ public class PayPalReconciliationExecutorService {
     @Auditable(accion = "PAGO_RECONCILIAR", modulo = AuditModule.FINANZAS,
             correoActor = "'sistema:paypal'",
             entidad = "pagos_garantia", idEntidad = "#idPago")
-    public void reconciliar(Long idPago) {
+    public void reconcile(Long idPago) {
         // Relectura con lock: si el webhook confirmó el pago entre que el
         // scheduler lo leyó y esta transacción arrancó, gana el webhook y aquí
         // no hay nada que hacer.
@@ -78,8 +78,8 @@ public class PayPalReconciliationExecutorService {
 
         String estado = orden.path("status").asText();
         switch (estado) {
-            case "COMPLETED" -> confirmarPago(pago, "reconciliación: la orden ya estaba COMPLETED en PayPal");
-            case "APPROVED" -> capturarYConfirmar(pago);
+            case "COMPLETED" -> confirmPayment(pago, "reconciliación: la orden ya estaba COMPLETED en PayPal");
+            case "APPROVED" -> captureAndConfirm(pago);
             case "VOIDED" -> log.warn(
                     "[PayPalReconciliationExecutorService] Orden {} (pago {}) VOIDED en PayPal; sigue Pendiente, "
                             + "el cliente deberá iniciar un nuevo intento de pago",
@@ -91,21 +91,21 @@ public class PayPalReconciliationExecutorService {
         }
     }
 
-    private void capturarYConfirmar(EscrowPayment pago) {
+    private void captureAndConfirm(EscrowPayment pago) {
         try {
             JsonNode respuesta = payPalClient.callPayPal(
                     "/v2/checkout/orders/" + pago.getIdOrdenPaypal() + "/capture",
                     HttpMethod.POST, objectMapper.createObjectNode());
             String estadoCaptura = respuesta.path("status").asText();
             if ("COMPLETED".equals(estadoCaptura)) {
-                confirmarPago(pago, "reconciliación: orden APPROVED capturada de forma proactiva");
+                confirmPayment(pago, "reconciliación: orden APPROVED capturada de forma proactiva");
             } else {
                 log.error("[PayPalReconciliationExecutorService] Captura de la orden {} devolvió estado {}",
                         pago.getIdOrdenPaypal(), estadoCaptura);
             }
         } catch (HttpStatusCodeException e) {
             if (e.getResponseBodyAsString().contains("ORDER_ALREADY_CAPTURED")) {
-                confirmarPago(pago, "reconciliación: la orden ya estaba capturada");
+                confirmPayment(pago, "reconciliación: la orden ya estaba capturada");
                 return;
             }
             log.error("[PayPalReconciliationExecutorService] Error capturando la orden {}: {}",
@@ -116,7 +116,7 @@ public class PayPalReconciliationExecutorService {
         }
     }
 
-    private void confirmarPago(EscrowPayment pago, String motivo) {
+    private void confirmPayment(EscrowPayment pago, String motivo) {
         pago.setEstadoFondos(FONDOS_RETENIDO);
         pagoGarantiaRepository.save(pago);
 

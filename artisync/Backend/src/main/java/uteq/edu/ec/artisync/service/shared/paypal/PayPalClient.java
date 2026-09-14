@@ -46,10 +46,10 @@ public class PayPalClient {
     private String paypalMode;
 
     /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     * Resuelve la URL base de la API de PayPal según el modo configurado
+     * ({@code paypal.mode}): sandbox para pruebas, o producción en cualquier otro caso.
      *
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @return la URL base de la API de PayPal a usar para las peticiones
      */
     public String getPayPalBaseUrl() {
         return "sandbox".equalsIgnoreCase(paypalMode)
@@ -57,15 +57,15 @@ public class PayPalClient {
                 : "https://api-m.paypal.com";
     }
 
-    /** Llamada autenticada a la API de PayPal. `cuerpo` null para GET. */
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Llamada autenticada a la API de PayPal, sin cabecera de idempotencia. Obtiene
+     * un access token nuevo por cada llamada y lo adjunta como Bearer.
      *
-     * @param ruta parametro requerido para la correcta ejecucion del procedimiento
-     * @param metodo parametro requerido para la correcta ejecucion del procedimiento
-     * @param cuerpo parametro requerido para la correcta ejecucion del procedimiento
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param ruta ruta relativa del endpoint de PayPal a invocar (por ejemplo {@code "/v2/checkout/orders"})
+     * @param metodo método HTTP de la petición
+     * @param cuerpo cuerpo JSON de la petición, o {@code null} para una petición GET
+     * @return el cuerpo de la respuesta de PayPal, parseado como JSON
+     * @throws BusinessRuleException si la respuesta de PayPal no puede interpretarse como JSON
      */
     public JsonNode callPayPal(String ruta, HttpMethod metodo, JsonNode cuerpo) {
         return callPayPal(ruta, metodo, cuerpo, null);

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WorkflowController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.order</a> &gt; <span class="el_source">WorkflowController.java</span></div><h1>WorkflowController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.order;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.dto.request.order.CreateWorkflowRequest;
+import uteq.edu.ec.artisync.dto.request.order.StageConfigRequest;
+import uteq.edu.ec.artisync.dto.request.order.SwapStagesRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.order.WorkflowResponse;
+import uteq.edu.ec.artisync.service.order.IWorkflowService;
+
+import java.util.List;
+
+/**
+ * Desde V25 (flujos_por_creador) cada Workflow es propiedad de un
+ * creador. FLUJO_GESTIONAR es autoservicio: gestiona los flujos propios.
+ * FLUJO_MODERAR (V26) es supervisión: ve y gestiona los de todos los
+ * creadores — lo necesita, por ejemplo, el selector de flujo en Categorías,
+ * que no tiene sentido acotado a los flujos de un solo usuario.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/flujos&quot;)
+@RequiredArgsConstructor
+public class WorkflowController {
+
+    private final IWorkflowService flujoTrabajoServicio;
+
+    /**
+     * Crea un nuevo flujo de trabajo para el usuario autenticado.
+     *
+     * @param peticion datos del flujo de trabajo a crear, incluyendo sus etapas
+     * @param userDetails usuario autenticado propietario del flujo
+     * @return el flujo de trabajo creado, con estado 201
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si ya existe un flujo con el mismo nombre
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si las etapas indicadas tienen nombres o números de orden repetidos
+     */
+    @PostMapping
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;WorkflowResponse&gt; createWorkflow(
+            @Valid @RequestBody CreateWorkflowRequest peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L49">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L50">                .body(flujoTrabajoServicio.createWorkflow(userDetails.getIdUsuario(), peticion));</span>
+    }
+
+    /**
+     * Lista los flujos de trabajo visibles para el usuario autenticado: los propios,
+     * o todos si tiene FLUJO_MODERAR/ADMIN.
+     *
+     * @param userDetails usuario autenticado
+     * @return listado de flujos de trabajo
+     */
+    @GetMapping
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;WorkflowResponse&gt;&gt; listWorkflows(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L64">        return ResponseEntity.ok(flujoTrabajoServicio.listWorkflows(</span>
+<span class="fc" id="L65">                userDetails.getIdUsuario(), canViewAll(userDetails)));</span>
+    }
+
+    /**
+     * Obtiene el detalle de un flujo de trabajo por su identificador.
+     *
+     * @param id identificador del flujo de trabajo
+     * @param userDetails usuario autenticado que consulta el flujo
+     * @return el flujo de trabajo solicitado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo no existe o no es accesible para el usuario
+     */
+    @GetMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;WorkflowResponse&gt; getWorkflow(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L81">        return ResponseEntity.ok(flujoTrabajoServicio.getWorkflowById(</span>
+<span class="fc" id="L82">                id, userDetails.getIdUsuario(), canViewAll(userDetails)));</span>
+    }
+
+    /**
+     * Actualiza los datos de un flujo de trabajo existente.
+     *
+     * @param id identificador del flujo de trabajo a actualizar
+     * @param peticion datos actualizados del flujo de trabajo
+     * @param userDetails usuario autenticado que solicita la actualización
+     * @return el flujo de trabajo actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo no existe o no es accesible para el usuario
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si ya existe otro flujo con el mismo nombre
+     */
+    @PutMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;WorkflowResponse&gt; updateWorkflow(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateWorkflowRequest peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L101">        return ResponseEntity.ok(flujoTrabajoServicio.updateWorkflow(</span>
+<span class="fc" id="L102">                id, userDetails.getIdUsuario(), canViewAll(userDetails), peticion));</span>
+    }
+
+    /**
+     * Agrega una nueva etapa a un flujo de trabajo.
+     *
+     * @param id identificador del flujo de trabajo
+     * @param peticion datos de la etapa a agregar
+     * @param userDetails usuario autenticado que solicita agregar la etapa
+     * @return el flujo de trabajo actualizado, con estado 201
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo no existe o no es accesible para el usuario
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si ya existe una etapa con el mismo nombre en el flujo
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el número de orden de la etapa ya está en uso
+     */
+    @PostMapping(&quot;/{id}/etapas&quot;)
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;WorkflowResponse&gt; addStage(
+            @PathVariable Long id,
+            @Valid @RequestBody StageConfigRequest peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L122">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L123">                .body(flujoTrabajoServicio.addStage(</span>
+<span class="fc" id="L124">                        id, userDetails.getIdUsuario(), canViewAll(userDetails), peticion));</span>
+    }
+
+    /**
+     * Actualiza la configuración de una etapa de un flujo de trabajo.
+     *
+     * @param id identificador del flujo de trabajo
+     * @param etapaId identificador de la configuración de etapa a actualizar
+     * @param peticion datos actualizados de la etapa
+     * @param userDetails usuario autenticado que solicita la actualización
+     * @return el flujo de trabajo actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo o la configuración de etapa no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la etapa no pertenece al flujo especificado
+     */
+    @PutMapping(&quot;/{id}/etapas/{etapaId}&quot;)
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;WorkflowResponse&gt; updateStage(
+            @PathVariable Long id,
+            @PathVariable Long etapaId,
+            @Valid @RequestBody StageConfigRequest peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L145">        return ResponseEntity.ok(flujoTrabajoServicio.updateStage(</span>
+<span class="fc" id="L146">                id, etapaId, userDetails.getIdUsuario(), canViewAll(userDetails), peticion));</span>
+    }
+
+    /**
+     * Intercambia el orden de dos etapas de un flujo de trabajo.
+     *
+     * @param id identificador del flujo de trabajo
+     * @param peticion identificadores de las dos etapas a intercambiar
+     * @param userDetails usuario autenticado que solicita el intercambio
+     * @return el flujo de trabajo actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo o alguna de las configuraciones de etapa no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si se intenta intercambiar una etapa consigo misma, o las etapas no pertenecen al flujo
+     */
+    @PutMapping(&quot;/{id}/etapas/reordenar&quot;)
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;WorkflowResponse&gt; swapStageOrder(
+            @PathVariable Long id,
+            @Valid @RequestBody SwapStagesRequest peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L165">        return ResponseEntity.ok(flujoTrabajoServicio.swapStageOrder(</span>
+<span class="fc" id="L166">                id, userDetails.getIdUsuario(), canViewAll(userDetails), peticion));</span>
+    }
+
+    /**
+     * Elimina una etapa de un flujo de trabajo.
+     *
+     * @param id identificador del flujo de trabajo
+     * @param etapaId identificador de la configuración de etapa a eliminar
+     * @param userDetails usuario autenticado que solicita la eliminación
+     * @return mensaje de confirmación de la eliminación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo o la configuración de etapa no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la etapa no pertenece al flujo o hay pedidos actualmente detenidos en ella
+     */
+    @DeleteMapping(&quot;/{id}/etapas/{etapaId}&quot;)
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;MessageResponse&gt; deleteStage(
+            @PathVariable Long id,
+            @PathVariable Long etapaId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L185">        flujoTrabajoServicio.deleteStage(id, etapaId, userDetails.getIdUsuario(), canViewAll(userDetails));</span>
+<span class="fc" id="L186">        return ResponseEntity.ok(new MessageResponse(&quot;Etapa eliminada exitosamente del flujo de trabajo&quot;));</span>
+    }
+
+    private boolean canViewAll(CustomUserDetails userDetails) {
+<span class="fc" id="L190">        return userDetails.getAuthorities().stream()</span>
+<span class="fc bfc" id="L191" title="All 4 branches covered.">                .anyMatch(a -&gt; a.getAuthority().equals(&quot;FLUJO_MODERAR&quot;) || a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

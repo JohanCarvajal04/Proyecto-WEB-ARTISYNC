@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContractReportServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.legal.impl</a> &gt; <span class="el_source">ContractReportServiceImpl.java</span></div><h1>ContractReportServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.legal.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.dto.request.legal.ContractReportFilter;
+import uteq.edu.ec.artisync.dto.response.legal.ContractReportRow;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.repository.legal.ContractRepository;
+import uteq.edu.ec.artisync.service.legal.IContractReportService;
+import uteq.edu.ec.artisync.service.shared.report.ReportColumn;
+import uteq.edu.ec.artisync.service.shared.report.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.report.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.report.IExportService;
+import uteq.edu.ec.artisync.service.shared.report.ReportModel;
+import uteq.edu.ec.artisync.service.shared.report.ColumnType;
+import uteq.edu.ec.artisync.service.shared.report.ReportTotal;
+import uteq.edu.ec.artisync.util.PagedResponse;
+import uteq.edu.ec.artisync.util.PagedResponseBuilder;
+
+import java.math.BigDecimal;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Cierra el permiso huérfano REPORTE_CONTRATO_EXPORTAR (V19__permisos_reportes.sql):
+ * sembrado desde que se creó el motor común de reportes, pero sin controlador
+ * ni servicio hasta ahora. Calcado de FinancialReportServiceImpl.
+ */
+<span class="fc" id="L37">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class ContractReportServiceImpl implements IContractReportService {
+
+    private final ContractRepository contratoRepository;
+    private final IExportService servicioExportacion;
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
+     * @param page parametro requerido para la correcta ejecucion del procedimiento
+     * @param size parametro requerido para la correcta ejecucion del procedimiento
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public PagedResponse&lt;ContractReportRow&gt; list(ContractReportFilter filtro, int page, int size) {
+<span class="fc" id="L57">        Page&lt;ContractReportRow&gt; resultado = contratoRepository.findForReport(</span>
+<span class="fc" id="L58">                filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),</span>
+<span class="fc" id="L59">                PageRequest.of(page, size));</span>
+<span class="fc" id="L60">        return PagedResponseBuilder.build(resultado);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Auditable(accion = &quot;REPORTE_CONTRATO_EXPORTAR&quot;, modulo = AuditModule.FINANZAS,
+            entidad = &quot;contratos&quot;, detalle = &quot;{formato: #formato, page: #page, size: #size}&quot;)
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     *
+     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
+     * @param formato parametro requerido para la correcta ejecucion del procedimiento
+     * @param page parametro requerido para la correcta ejecucion del procedimiento
+     * @param size parametro requerido para la correcta ejecucion del procedimiento
+     * @param correoSolicitante direccion de correo electronico del actor o usuario principal
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public GeneratedDocument export(ContractReportFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante) {
+        Page&lt;ContractReportRow&gt; pagina;
+<span class="fc" id="L80">        String titulo = &quot;Contratos&quot;;</span>
+<span class="fc" id="L81">        String subtitulo = &quot;Reporte de contratos formalizados&quot;;</span>
+
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        if (page != null) {</span>
+<span class="pc bpc" id="L84" title="3 of 6 branches missed.">            int pageSize = (size != null &amp;&amp; size &gt; 0 &amp;&amp; size &lt;= formato.topeFilas()) ? size : formato.topeFilas();</span>
+<span class="fc" id="L85">            pagina = contratoRepository.findForReport(</span>
+<span class="fc" id="L86">                    filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),</span>
+<span class="fc" id="L87">                    PageRequest.of(page, pageSize, Sort.by(Sort.Direction.DESC, &quot;fechaFormalizacion&quot;)));</span>
+<span class="fc" id="L88">            int parte = page + 1;</span>
+<span class="fc" id="L89">            int totalPartes = Math.max(1, pagina.getTotalPages());</span>
+<span class="fc" id="L90">            titulo = &quot;Contratos - Parte &quot; + parte;</span>
+<span class="fc" id="L91">            subtitulo = &quot;Reporte de contratos formalizados — Parte &quot; + parte + &quot; de &quot; + totalPartes</span>
+<span class="fc" id="L92">                    + &quot; (&quot; + pagina.getTotalElements() + &quot; contratos en total)&quot;;</span>
+<span class="fc" id="L93">        } else {</span>
+<span class="fc" id="L94">            pagina = contratoRepository.findForReport(</span>
+<span class="fc" id="L95">                    filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),</span>
+<span class="fc" id="L96">                    PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.DESC, &quot;fechaFormalizacion&quot;)));</span>
+
+<span class="fc bfc" id="L98" title="All 2 branches covered.">            if (pagina.getTotalElements() &gt; formato.topeFilas()) {</span>
+<span class="fc" id="L99">                throw new BusinessRuleException(</span>
+<span class="fc" id="L100">                        &quot;El reporte devuelve &quot; + pagina.getTotalElements() + &quot; contratos, más de los &quot;</span>
+<span class="fc" id="L101">                                + formato.topeFilas() + &quot; que admite una exportación en &quot; + formato</span>
+                                + &quot;. Acote el rango de fechas o utilice la opción de export por partes.&quot;);
+            }
+        }
+
+<span class="fc" id="L106">        log.info(&quot;Reporte de contratos exportado en formato {} (page={}, size={}) por {}&quot;, formato, page, size, correoSolicitante);</span>
+
+<span class="fc" id="L108">        ReportModel&lt;ContractReportRow&gt; modelo = ReportModel.&lt;ContractReportRow&gt;builder()</span>
+<span class="fc" id="L109">                .titulo(titulo)</span>
+<span class="fc" id="L110">                .subtitulo(subtitulo)</span>
+<span class="fc" id="L111">                .filtrosAplicados(filtrosLegibles(filtro))</span>
+<span class="fc" id="L112">                .columnas(List.of(</span>
+<span class="fc" id="L113">                        ReportColumn.entero(&quot;Id. contrato&quot;, ContractReportRow::idContrato),</span>
+<span class="fc" id="L114">                        ReportColumn.entero(&quot;Id. pedido&quot;, ContractReportRow::idPedido),</span>
+<span class="fc" id="L115">                        ReportColumn.texto(&quot;Offering&quot;, ContractReportRow::servicio),</span>
+<span class="fc" id="L116">                        ReportColumn.texto(&quot;Cliente&quot;, ContractReportRow::cliente),</span>
+<span class="fc" id="L117">                        ReportColumn.texto(&quot;Creador&quot;, ContractReportRow::creador),</span>
+<span class="fc" id="L118">                        ReportColumn.moneda(&quot;Precio pactado&quot;, ContractReportRow::precioPactado),</span>
+<span class="fc" id="L119">                        ReportColumn.entero(&quot;Límite de revisiones&quot;, ContractReportRow::limiteRevisiones),</span>
+<span class="fc" id="L120">                        ReportColumn.dateTime(&quot;Formalizado&quot;, ContractReportRow::fechaFormalizacion),</span>
+<span class="fc" id="L121">                        ReportColumn.booleano(&quot;Firmado (cliente)&quot;, ContractReportRow::firmadoCliente),</span>
+<span class="fc" id="L122">                        ReportColumn.booleano(&quot;Firmado (creador)&quot;, ContractReportRow::firmadoCreador)))</span>
+<span class="fc" id="L123">                .filas(pagina.getContent())</span>
+<span class="fc" id="L124">                .totales(List.of(new ReportTotal(&quot;Importe pactado total&quot;, sumPrices(pagina.getContent()), ColumnType.MONEDA)))</span>
+<span class="fc" id="L125">                .generadoPor(correoSolicitante)</span>
+<span class="fc" id="L126">                .build();</span>
+
+<span class="fc" id="L128">        return servicioExportacion.export(modelo, formato);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     *
+     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
+     * @param formato parametro requerido para la correcta ejecucion del procedimiento
+     * @param correoSolicitante direccion de correo electronico del actor o usuario principal
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public GeneratedDocument export(ContractReportFilter filtro, ReportFormat formato, String correoSolicitante) {
+<span class="fc" id="L143">        return export(filtro, formato, null, null, correoSolicitante);</span>
+    }
+
+    private BigDecimal sumPrices(List&lt;ContractReportRow&gt; filas) {
+<span class="fc" id="L147">        return filas.stream()</span>
+<span class="fc" id="L148">                .map(ContractReportRow::precioPactado)</span>
+<span class="fc" id="L149">                .filter(java.util.Objects::nonNull)</span>
+<span class="fc" id="L150">                .reduce(BigDecimal.ZERO, BigDecimal::add);</span>
+    }
+
+    private Map&lt;String, String&gt; filtrosLegibles(ContractReportFilter filtro) {
+<span class="fc" id="L154">        Map&lt;String, String&gt; filtros = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">        if (filtro.getDesde() != null) {</span>
+<span class="fc" id="L156">            filtros.put(&quot;Desde&quot;, filtro.getDesde().toString());</span>
+        }
+<span class="fc bfc" id="L158" title="All 2 branches covered.">        if (filtro.getHasta() != null) {</span>
+<span class="fc" id="L159">            filtros.put(&quot;Hasta&quot;, filtro.getHasta().toString());</span>
+        }
+<span class="fc bfc" id="L161" title="All 2 branches covered.">        if (filtro.getIdPerfilCreador() != null) {</span>
+<span class="fc" id="L162">            filtros.put(&quot;Id. perfil del creador&quot;, String.valueOf(filtro.getIdPerfilCreador()));</span>
+        }
+<span class="fc bfc" id="L164" title="All 2 branches covered.">        if (filtro.getSoloFirmados() != null) {</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">            filtros.put(&quot;Solo firmados&quot;, filtro.getSoloFirmados() ? &quot;Sí&quot; : &quot;No&quot;);</span>
+        }
+<span class="fc" id="L167">        return filtros;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

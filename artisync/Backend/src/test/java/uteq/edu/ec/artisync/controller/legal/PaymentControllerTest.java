@@ -7,8 +7,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import uteq.edu.ec.artisync.dto.peticion.legal.CancelPaymentRequest;
-import uteq.edu.ec.artisync.dto.respuesta.legal.PaymentResponse;
+import uteq.edu.ec.artisync.dto.request.legal.CancelPaymentRequest;
+import uteq.edu.ec.artisync.dto.response.legal.PaymentResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IPaymentService;
 

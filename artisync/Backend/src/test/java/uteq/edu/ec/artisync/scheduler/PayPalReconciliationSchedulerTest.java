@@ -37,9 +37,9 @@ class PayPalReconciliationSchedulerTest {
         when(pagoGarantiaRepository.findByEstadoFondosAndFechaActualizacionBefore(eq("Pendiente"), any()))
                 .thenReturn(List.of(vencido));
 
-        scheduler.reconciliarPagosPendientes();
+        scheduler.reconcilePendingPayments();
 
-        verify(reconciliacionPayPalEjecutorServicio).reconciliar(1L);
+        verify(reconciliacionPayPalEjecutorServicio).reconcile(1L);
     }
 
     @Test
@@ -47,7 +47,7 @@ class PayPalReconciliationSchedulerTest {
         when(pagoGarantiaRepository.findByEstadoFondosAndFechaActualizacionBefore(eq("Pendiente"), any()))
                 .thenReturn(List.of());
 
-        scheduler.reconciliarPagosPendientes();
+        scheduler.reconcilePendingPayments();
 
         verifyNoInteractions(reconciliacionPayPalEjecutorServicio);
     }
@@ -58,13 +58,13 @@ class PayPalReconciliationSchedulerTest {
         EscrowPayment b = EscrowPayment.builder().idPago(2L).estadoFondos("Pendiente").build();
         when(pagoGarantiaRepository.findByEstadoFondosAndFechaActualizacionBefore(eq("Pendiente"), any()))
                 .thenReturn(List.of(a, b));
-        doThrow(new RuntimeException("fallo simulado")).when(reconciliacionPayPalEjecutorServicio).reconciliar(1L);
+        doThrow(new RuntimeException("fallo simulado")).when(reconciliacionPayPalEjecutorServicio).reconcile(1L);
 
-        scheduler.reconciliarPagosPendientes();
+        scheduler.reconcilePendingPayments();
 
         // El fallo en 'a' no debe impedir que 'b' se procese: cada uno vive en
         // su propia transaccion (REQUIRES_NEW).
-        verify(reconciliacionPayPalEjecutorServicio).reconciliar(1L);
-        verify(reconciliacionPayPalEjecutorServicio).reconciliar(2L);
+        verify(reconciliacionPayPalEjecutorServicio).reconcile(1L);
+        verify(reconciliacionPayPalEjecutorServicio).reconcile(2L);
     }
 }

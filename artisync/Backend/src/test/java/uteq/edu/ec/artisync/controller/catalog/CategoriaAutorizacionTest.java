@@ -1,0 +1,133 @@
+package uteq.edu.ec.artisync.controller.catalog;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import uteq.edu.ec.artisync.dto.request.catalog.UpdateCategoryRequest;
+import uteq.edu.ec.artisync.dto.request.catalog.CreateCategoryRequest;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.catalog.ICategoryService;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+
+/**
+ * La gestión de categorías se autoriza por permiso y no por rol. Estaba escrita
+ * como hasRole('ADMIN'), lo que devolvía 403 a MODERADOR pese a que la semilla
+ * le concede CATEGORIA_GESTIONAR y su panel expone la pantalla de categorías.
+ *
+ * <p>Levanta un contexto mínimo con seguridad de métodos: @PreAuthorize se
+ * aplica por AOP, así que invocar el controlador a mano —como hacen el resto de
+ * pruebas de controlador— nunca evaluaría la expresión.
+ */
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = CategoriaAutorizacionTest.ContextoDePrueba.class)
+class CategoriaAutorizacionTest {
+
+    @Configuration
+    @EnableMethodSecurity
+    static class ContextoDePrueba {
+
+        @Bean
+        ICategoryService categoriaServicio() {
+            return mock(ICategoryService.class);
+        }
+
+        @Bean
+        CategoryController categoriaControlador(ICategoryService servicio) {
+            return new CategoryController(servicio);
+        }
+    }
+
+    @Autowired
+    private CategoryController controlador;
+
+    @AfterEach
+    void limpiarContexto() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private CustomUserDetails autenticar(String... authorities) {
+        var concedidas = java.util.Arrays.stream(authorities)
+                .map(SimpleGrantedAuthority::new)
+                .map(a -> (org.springframework.security.core.GrantedAuthority) a)
+                .toList();
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("usuario", "x", concedidas));
+        // @PreAuthorize se evalúa con el SecurityContext de arriba; @AuthenticationPrincipal
+        // no se resuelve solo (no hay capa MVC en esta prueba), así que el mismo
+        // CustomUserDetails se pasa a mano como argumento del controlador.
+        return new CustomUserDetails(1L, "usuario", "x", true, true, true, true, concedidas);
+    }
+
+    private CreateCategoryRequest peticion() {
+        return new CreateCategoryRequest();
+    }
+
+    @Test
+    void crearCategoria_moderadorConCategoriaGestionar_estaAutorizado() {
+        var principal = autenticar("ROLE_MODERADOR", "CATEGORIA_GESTIONAR");
+
+        controlador.createCategory(peticion(), principal); // no debe lanzar AccessDeniedException
+    }
+
+    @Test
+    void crearCategoria_administrador_sigueAutorizado() {
+        var principal = autenticar("ROLE_ADMIN");
+
+        controlador.createCategory(peticion(), principal);
+    }
+
+    @Test
+    void crearCategoria_creadorConCategoriaCrear_estaAutorizado() {
+        var principal = autenticar("ROLE_CREADOR", "CATEGORIA_CREAR");
+
+        controlador.createCategory(peticion(), principal);
+    }
+
+    @Test
+    void crearCategoria_rolSinElPermiso_esRechazado() {
+        var principal = autenticar("ROLE_CREADOR");
+
+        assertThrows(AccessDeniedException.class, () -> controlador.createCategory(peticion(), principal));
+    }
+
+    @Test
+    void actualizarYEliminar_moderadorConElPermiso_estanAutorizados() {
+        autenticar("ROLE_MODERADOR", "CATEGORIA_GESTIONAR");
+
+        controlador.updateCategory(1L, new UpdateCategoryRequest());
+        controlador.deleteCategory(1L, null);
+    }
+
+    @Test
+    void listarTodas_moderadorConElPermiso_estaAutorizado() {
+        autenticar("ROLE_MODERADOR", "CATEGORIA_GESTIONAR");
+
+        controlador.listAllCategories();
+    }
+
+    @Test
+    void listarTodas_sinPermisoNiRol_esRechazado() {
+        autenticar("ROLE_CLIENTE");
+
+        assertThrows(AccessDeniedException.class, () -> controlador.listAllCategories());
+    }
+
+    /** El listado público debe seguir abierto: sin autenticación no debe lanzar. */
+    @Test
+    void listarActivas_siguePublico() {
+        assertDoesNotThrow(() -> controlador.listActiveCategories());
+    }
+}

@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.entity.social;
 
-import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.security.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;

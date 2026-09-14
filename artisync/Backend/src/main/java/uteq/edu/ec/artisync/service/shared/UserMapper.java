@@ -2,16 +2,16 @@ package uteq.edu.ec.artisync.service.shared;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
-import uteq.edu.ec.artisync.entity.seguridad.TwoFactorAuthentication;
-import uteq.edu.ec.artisync.entity.seguridad.Permission;
-import uteq.edu.ec.artisync.entity.seguridad.User;
-import uteq.edu.ec.artisync.entity.seguridad.UserRole;
-import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UserRoleRepository;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.ProfilePhotoUrl;
+import uteq.edu.ec.artisync.dto.security.response.UserResponse;
+import uteq.edu.ec.artisync.entity.security.TwoFactorAuthentication;
+import uteq.edu.ec.artisync.entity.security.Permission;
+import uteq.edu.ec.artisync.entity.security.User;
+import uteq.edu.ec.artisync.entity.security.UserRole;
+import uteq.edu.ec.artisync.repository.security.TwoFactorAuthenticationRepository;
+import uteq.edu.ec.artisync.repository.security.UserRoleRepository;
+import uteq.edu.ec.artisync.service.shared.storage.ProfilePhotoUrl;
 
-import uteq.edu.ec.artisync.service.perfil.IVerificationService;
+import uteq.edu.ec.artisync.service.profile.IVerificationService;
 
 import java.util.HashSet;
 import java.util.List;
@@ -27,13 +27,15 @@ public class UserMapper {
     private final TwoFactorAuthenticationRepository autenticacionDosFactoresRepository;
     private final IVerificationService verificacionServicio;
 
-    /** Mapeo de una sola fila (getUserById, tras crear/editar un usuario): una consulta por usuario es aceptable aquí. */
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Mapea un único {@link User} a su {@link UserResponse}, resolviendo sus roles,
+     * si tiene 2FA habilitado y si su identidad está verificada. Pensado para el
+     * mapeo de una sola fila (por ejemplo {@code getUserById}, o tras crear/editar
+     * un usuario): las consultas adicionales que dispara son aceptables aquí porque
+     * ocurren una sola vez, a diferencia de {@link #toUserResponseList(List)}.
      *
-     * @param usuario parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param usuario entidad de usuario a mapear
+     * @return la representación de respuesta del usuario, con roles, permisos y estado de verificación
      */
     public UserResponse toUserResponse(User usuario) {
         List<UserRole> usuarioRoles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario());
@@ -42,7 +44,7 @@ public class UserMapper {
                 .map(Boolean.TRUE::equals)
                 .orElse(false);
         boolean identidadVerificada = verificacionServicio.isIdentityVerified(usuario.getIdUsuario());
-        return construir(usuario, usuarioRoles, dosFactoresHabilitado, identidadVerificada);
+        return build(usuario, usuarioRoles, dosFactoresHabilitado, identidadVerificada);
     }
 
     /**
@@ -70,7 +72,7 @@ public class UserMapper {
         // En un caso ideal deberiamos consultar todas las verificaciones de una en vez de N consultas,
         // pero por ahora reutilizamos el servicio.
         return usuarios.stream()
-                .map(usuario -> construir(
+                .map(usuario -> build(
                         usuario,
                         rolesPorUsuario.getOrDefault(usuario.getIdUsuario(), List.of()),
                         con2faHabilitado.contains(usuario.getIdUsuario()),
@@ -78,7 +80,7 @@ public class UserMapper {
                 .toList();
     }
 
-    private UserResponse construir(User usuario, List<UserRole> usuarioRoles, boolean dosFactoresHabilitado, boolean identidadVerificada) {
+    private UserResponse build(User usuario, List<UserRole> usuarioRoles, boolean dosFactoresHabilitado, boolean identidadVerificada) {
         List<String> roles = usuarioRoles.stream()
                 .map(ur -> ur.getRol().getNombreRol())
                 .toList();
@@ -103,7 +105,7 @@ public class UserMapper {
                 .roles(roles)
                 .permisos(permisos)
                 .dosFactoresHabilitado(dosFactoresHabilitado)
-                .urlFotoPerfil(ProfilePhotoUrl.construir(usuario.getUrlFotoPerfil()))
+                .urlFotoPerfil(ProfilePhotoUrl.build(usuario.getUrlFotoPerfil()))
                 .identidadVerificada(identidadVerificada)
                 .build();
     }

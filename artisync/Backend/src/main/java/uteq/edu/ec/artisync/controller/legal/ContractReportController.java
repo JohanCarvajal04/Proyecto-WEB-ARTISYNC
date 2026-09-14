@@ -8,11 +8,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import uteq.edu.ec.artisync.dto.peticion.legal.ContractReportFilter;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractReportRow;
+import uteq.edu.ec.artisync.dto.request.legal.ContractReportFilter;
+import uteq.edu.ec.artisync.dto.response.legal.ContractReportRow;
 import uteq.edu.ec.artisync.service.legal.IContractReportService;
-import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
-import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.report.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.report.ReportFormat;
 import uteq.edu.ec.artisync.util.PagedResponse;
 import uteq.edu.ec.artisync.util.DocumentResponse;
 

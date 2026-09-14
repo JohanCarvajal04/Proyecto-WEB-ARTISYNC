@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractAiService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.ai</a> &gt; <span class="el_source">AbstractAiService.java</span></div><h1>AbstractAiService.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.ai;
+
+import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.JsonNode;
+import uteq.edu.ec.artisync.exception.AiServiceUnavailableException;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.function.Supplier;
+
+/**
+ * Utilidades compartidas por las implementaciones de {@link AiService}: reintento
+ * de fallos transitorios del proveedor, sanitización de prompts, carga de
+ * plantillas y parseo defensivo de la respuesta JSON del modelo.
+ */
+<span class="fc" id="L18">@Slf4j</span>
+public abstract class AbstractAiService {
+
+    /** Constructor por defecto, sin estado propio: toda la clase es utilitaria para las subclases. */
+<span class="fc" id="L22">    protected AbstractAiService() {</span>
+<span class="fc" id="L23">    }</span>
+
+    /**
+     * Un intento + 1 reintento, solo si el fallo es transitorio (429/timeout,
+     * ver AiServiceUnavailableException#isReintentable). Mismo patrón que
+     * VerificationServiceImpl#analyzeWithRetry, generalizado aquí para
+     * que moderarContenido/classifyOffering/sugerirPreguntasBriefing/
+     * analyzeReview no descarten en silencio un 429 momentáneo del
+     * proveedor (revisión técnica 2026-09-01: antes caían directo al
+     * catch-all y devolvían el valor por defecto sin reintentar).
+     *
+     * @param &lt;T&gt; tipo del resultado de la llamada
+     * @param llamada llamada al proveedor de IA a ejecutar
+     * @return el resultado de la llamada
+     */
+    protected &lt;T&gt; T conReintentoTransitorio(Supplier&lt;T&gt; llamada) {
+        try {
+<span class="fc" id="L40">            return llamada.get();</span>
+<span class="fc" id="L41">        } catch (AiServiceUnavailableException e) {</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">            if (!e.isReintentable()) {</span>
+<span class="fc" id="L43">                throw e;</span>
+            }
+<span class="fc" id="L45">            log.warn(&quot;Fallo transitorio de IA, reintentando en 2s: {}&quot;, e.getMessage());</span>
+            try {
+<span class="fc" id="L47">                Thread.sleep(2000);</span>
+<span class="nc" id="L48">            } catch (InterruptedException interrupted) {</span>
+<span class="nc" id="L49">                Thread.currentThread().interrupt();</span>
+<span class="nc" id="L50">                throw e;</span>
+<span class="fc" id="L51">            }</span>
+<span class="fc" id="L52">            return llamada.get();</span>
+        }
+    }
+
+    /**
+     * Mitigación básica de inyección de prompt (revisión técnica
+     * 2026-09-01): los prompts de moderación/clasificación insertan texto de
+     * usuario sin sanitizar vía String.format, delimitado solo por comillas
+     * simples en la plantilla -- un texto que las cierra puede escribir
+     * instrucciones que el modelo interpreta como parte del prompt del
+     * sistema en vez de como dato a analizar. Esto no es una garantía contra
+     * inyección de prompt (ningún escapado de texto lo es del todo frente a
+     * un LLM), pero cierra la vía más directa: ya no se puede cerrar el
+     * delimitador de comillas de la plantilla, y se acota la longitud para
+     * no inflar el payload con un intento de relleno.
+     *
+     * @param texto texto de entrada del usuario a interpolar en el prompt
+     * @return el texto acotado a 4000 caracteres y sin comillas dobles
+     */
+    protected String sanitizeForPrompt(String texto) {
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">        if (texto == null) return &quot;&quot;;</span>
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">        String limitado = texto.length() &gt; 4000 ? texto.substring(0, 4000) : texto;</span>
+<span class="fc" id="L74">        return limitado.replace(&quot;\&quot;&quot;, &quot;'&quot;);</span>
+    }
+
+    /**
+     * Carga una plantilla de prompt desde {@code resources/IA/} y, si se dan argumentos,
+     * la interpola con {@link String#format}.
+     * @param nombreArchivo nombre del archivo de plantilla dentro de {@code resources/IA/}
+     * @param args argumentos a interpolar en la plantilla, en el orden de sus marcadores
+     * @return la plantilla ya interpolada, lista para enviar al proveedor de IA
+     */
+    protected String loadPrompt(String nombreArchivo, Object... args) {
+<span class="fc" id="L85">        try (InputStream is = getClass().getClassLoader().getResourceAsStream(&quot;IA/&quot; + nombreArchivo)) {</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">            if (is == null) {</span>
+<span class="fc" id="L87">                throw new RuntimeException(&quot;Prompt no encontrado: &quot; + nombreArchivo);</span>
+            }
+<span class="fc" id="L89">            String plantilla = new String(is.readAllBytes(), StandardCharsets.UTF_8);</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">            return args.length &gt; 0 ? String.format(plantilla, args) : plantilla;</span>
+<span class="nc" id="L91">        } catch (IOException e) {</span>
+<span class="nc" id="L92">            throw new RuntimeException(&quot;Error al cargar prompt: &quot; + nombreArchivo, e);</span>
+        }
+    }
+
+    /**
+     * Extrae el objeto JSON de la respuesta cruda del modelo, tolerando que venga
+     * envuelto en un bloque de código Markdown (```json ... ```) o con texto alrededor.
+     * @param respuesta texto crudo devuelto por el proveedor de IA
+     * @return el JSON extraído, o {@code &quot;{}&quot;} si no se pudo identificar uno válido
+     */
+    protected String extractJson(String respuesta) {
+<span class="pc bpc" id="L103" title="2 of 4 branches missed.">        if (respuesta == null || respuesta.isBlank()) {</span>
+<span class="nc" id="L104">            return &quot;{}&quot;;</span>
+        }
+<span class="fc" id="L106">        String recortado = respuesta.trim();</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">        if (recortado.contains(&quot;```json&quot;)) {</span>
+<span class="fc" id="L108">            int inicio = recortado.indexOf(&quot;```json&quot;) + 7;</span>
+<span class="fc" id="L109">            int fin = recortado.indexOf(&quot;```&quot;, inicio);</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">            if (fin &gt; inicio) {</span>
+<span class="fc" id="L111">                return recortado.substring(inicio, fin).trim();</span>
+            }
+        }
+<span class="pc bpc" id="L114" title="3 of 4 branches missed.">        if (recortado.startsWith(&quot;```&quot;) &amp;&amp; recortado.endsWith(&quot;```&quot;)) {</span>
+<span class="nc" id="L115">            return recortado.substring(3, recortado.length() - 3).trim();</span>
+        }
+<span class="pc bpc" id="L117" title="1 of 4 branches missed.">        if (recortado.startsWith(&quot;{&quot;) &amp;&amp; recortado.endsWith(&quot;}&quot;)) {</span>
+<span class="fc" id="L118">            return recortado;</span>
+        }
+<span class="fc" id="L120">        int inicio = recortado.indexOf('{');</span>
+<span class="fc" id="L121">        int fin = recortado.lastIndexOf('}');</span>
+<span class="pc bpc" id="L122" title="1 of 4 branches missed.">        if (inicio &gt;= 0 &amp;&amp; fin &gt; inicio) {</span>
+<span class="fc" id="L123">            return recortado.substring(inicio, fin + 1);</span>
+        }
+<span class="fc" id="L125">        log.warn(&quot;No se pudo extraer JSON válido de la respuesta de IA: {}&quot;,</span>
+<span class="fc" id="L126">                recortado.substring(0, Math.min(100, recortado.length())));</span>
+<span class="fc" id="L127">        return &quot;{}&quot;;</span>
+    }
+
+    /**
+     * Lee un campo de texto distinguiendo &quot;vale null&quot; y &quot;no vino&quot; de un valor
+     * real — ambos deben mapear a null de Java, nunca a la cadena &quot;null&quot;.
+     *
+     * @param nodo nodo JSON de la respuesta del proveedor de IA
+     * @param campo nombre del campo a leer
+     * @return el valor textual del campo, o {@code null} si es JSON {@code null} o no vino
+     */
+    protected String textoONull(JsonNode nodo, String campo) {
+<span class="fc" id="L139">        JsonNode valor = nodo.path(campo);</span>
+<span class="fc bfc" id="L140" title="All 4 branches covered.">        if (valor.isNull() || valor.isMissingNode()) {</span>
+<span class="fc" id="L141">            return null;</span>
+        }
+<span class="fc" id="L143">        return valor.asString();</span>
+    }
+
+    /**
+     * Convierte un valor numérico arbitrario devuelto por el proveedor de IA a {@link BigDecimal}.
+     * @param valor el valor a convertir; puede ser un {@link Number}, su representación textual, o {@code null}
+     * @return el valor convertido, o {@link BigDecimal#ZERO} si es {@code null} o no es numérico
+     */
+    protected BigDecimal toBigDecimal(Object valor) {
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        if (valor == null) return BigDecimal.ZERO;</span>
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">        if (valor instanceof Number n) return BigDecimal.valueOf(n.doubleValue());</span>
+        try {
+<span class="nc" id="L155">            return new BigDecimal(valor.toString());</span>
+<span class="nc" id="L156">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L157">            return BigDecimal.ZERO;</span>
+        }
+    }
+
+    /**
+     * Acota la confianza reportada por la IA a [0,1] (límite de la columna en BD).
+     * @param confianza puntaje de confianza devuelto por el proveedor de IA
+     * @return el puntaje acotado al rango [0,1]; {@link BigDecimal#ZERO} si es {@code null}
+     */
+    protected BigDecimal acotarConfianza(BigDecimal confianza) {
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">        if (confianza == null) return BigDecimal.ZERO;</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        if (confianza.compareTo(BigDecimal.ZERO) &lt; 0) return BigDecimal.ZERO;</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">        if (confianza.compareTo(BigDecimal.ONE) &gt; 0) return BigDecimal.ONE;</span>
+<span class="fc" id="L170">        return confianza;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

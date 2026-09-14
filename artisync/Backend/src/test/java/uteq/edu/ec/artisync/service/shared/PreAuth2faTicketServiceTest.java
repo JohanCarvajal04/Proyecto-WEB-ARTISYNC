@@ -37,7 +37,7 @@ class PreAuth2faTicketServiceTest {
     void emitir_ShouldStoreHashedTicketWithTtl() {
         when(redisTemplate.<String, String>opsForHash()).thenReturn(hashOperations);
 
-        String ticket = service.emitir(1L, "juan@example.com");
+        String ticket = service.issue(1L, "juan@example.com");
 
         assertNotNull(ticket);
         assertFalse(ticket.isBlank());
@@ -51,7 +51,7 @@ class PreAuth2faTicketServiceTest {
     void emitir_ShouldNotStorePlaintextTicket() {
         when(redisTemplate.<String, String>opsForHash()).thenReturn(hashOperations);
 
-        String ticket = service.emitir(1L, "juan@example.com");
+        String ticket = service.issue(1L, "juan@example.com");
 
         verify(hashOperations).putAll(argThat(clave -> !clave.contains(ticket)), anyMap());
     }
@@ -61,14 +61,14 @@ class PreAuth2faTicketServiceTest {
         when(redisTemplate.<String, String>opsForHash()).thenReturn(hashOperations);
         when(hashOperations.entries(anyString())).thenReturn(Map.of());
 
-        Optional<PreAuth2faTicketService.DatosTicket> resultado = service.resolver("ticket-inexistente");
+        Optional<PreAuth2faTicketService.TicketData> resultado = service.resolve("ticket-inexistente");
 
         assertTrue(resultado.isEmpty());
     }
 
     @Test
     void resolver_ShouldReturnEmpty_WhenTicketBlank() {
-        Optional<PreAuth2faTicketService.DatosTicket> resultado = service.resolver("");
+        Optional<PreAuth2faTicketService.TicketData> resultado = service.resolve("");
 
         assertTrue(resultado.isEmpty());
         verifyNoInteractions(redisTemplate);
@@ -85,7 +85,7 @@ class PreAuth2faTicketServiceTest {
         when(hashOperations.entries(anyString())).thenReturn(almacenado);
         when(hashOperations.increment(anyString(), eq("intentos"), eq(1L))).thenReturn(1L);
 
-        Optional<PreAuth2faTicketService.DatosTicket> resultado = service.resolver("ticket-valido");
+        Optional<PreAuth2faTicketService.TicketData> resultado = service.resolve("ticket-valido");
 
         assertTrue(resultado.isPresent());
         assertEquals(1L, resultado.get().idUsuario());
@@ -104,7 +104,7 @@ class PreAuth2faTicketServiceTest {
         when(hashOperations.entries(anyString())).thenReturn(almacenado);
         when(hashOperations.increment(anyString(), eq("intentos"), eq(1L))).thenReturn(6L); // supera el tope de 5
 
-        Optional<PreAuth2faTicketService.DatosTicket> resultado = service.resolver("ticket-con-muchos-intentos");
+        Optional<PreAuth2faTicketService.TicketData> resultado = service.resolve("ticket-con-muchos-intentos");
 
         assertTrue(resultado.isEmpty());
         verify(redisTemplate).delete(anyString());
@@ -114,14 +114,14 @@ class PreAuth2faTicketServiceTest {
     void consumir_ShouldReturnTrue_OnFirstCall() {
         when(redisTemplate.delete(anyString())).thenReturn(true);
 
-        assertTrue(service.consumir("ticket-valido"));
+        assertTrue(service.consume("ticket-valido"));
     }
 
     @Test
     void consumir_ShouldReturnFalse_OnSecondCall() {
         when(redisTemplate.delete(anyString())).thenReturn(false); // ya no existe: alguien más lo borró primero
 
-        assertFalse(service.consumir("ticket-valido"));
+        assertFalse(service.consume("ticket-valido"));
     }
 
     @Test
@@ -129,13 +129,13 @@ class PreAuth2faTicketServiceTest {
         when(redisTemplate.<String, String>opsForHash()).thenThrow(new QueryTimeoutException("Redis no disponible"));
 
         // Fail-closed: sin ticket no hay prueba de que la contraseña se validó.
-        assertThrows(ResponseStatusException.class, () -> service.emitir(1L, "juan@example.com"));
+        assertThrows(ResponseStatusException.class, () -> service.issue(1L, "juan@example.com"));
     }
 
     @Test
     void resolver_ShouldThrowServiceUnavailable_WhenRedisFails() {
         when(redisTemplate.<String, String>opsForHash()).thenThrow(new QueryTimeoutException("Redis no disponible"));
 
-        assertThrows(ResponseStatusException.class, () -> service.resolver("cualquier-ticket"));
+        assertThrows(ResponseStatusException.class, () -> service.resolve("cualquier-ticket"));
     }
 }

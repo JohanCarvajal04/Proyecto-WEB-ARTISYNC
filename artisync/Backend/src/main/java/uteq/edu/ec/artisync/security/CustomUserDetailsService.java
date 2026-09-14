@@ -10,7 +10,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
+import uteq.edu.ec.artisync.repository.security.UserRepository;
 
 import java.util.ArrayList;
 import java.util.List;

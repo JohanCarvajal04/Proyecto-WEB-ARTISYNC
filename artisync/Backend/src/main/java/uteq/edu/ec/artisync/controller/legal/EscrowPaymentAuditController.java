@@ -9,10 +9,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import uteq.edu.ec.artisync.dto.peticion.legal.EscrowPaymentFilter;
-import uteq.edu.ec.artisync.dto.respuesta.legal.EscrowPaymentResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.EscrowPaymentDetailResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.EscrowSummaryResponse;
+import uteq.edu.ec.artisync.dto.request.legal.EscrowPaymentFilter;
+import uteq.edu.ec.artisync.dto.response.legal.EscrowPaymentResponse;
+import uteq.edu.ec.artisync.dto.response.legal.EscrowPaymentDetailResponse;
+import uteq.edu.ec.artisync.dto.response.legal.EscrowSummaryResponse;
 import uteq.edu.ec.artisync.service.legal.IEscrowPaymentAuditService;
 
 import java.util.List;

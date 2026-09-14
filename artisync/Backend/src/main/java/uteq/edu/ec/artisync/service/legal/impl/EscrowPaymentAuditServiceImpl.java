@@ -5,14 +5,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.dto.peticion.legal.EscrowPaymentFilter;
-import uteq.edu.ec.artisync.dto.respuesta.legal.EscrowPaymentResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.EscrowPaymentDetailResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.EscrowSummaryResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.PaymentTransactionResponse;
+import uteq.edu.ec.artisync.dto.request.legal.EscrowPaymentFilter;
+import uteq.edu.ec.artisync.dto.response.legal.EscrowPaymentResponse;
+import uteq.edu.ec.artisync.dto.response.legal.EscrowPaymentDetailResponse;
+import uteq.edu.ec.artisync.dto.response.legal.EscrowSummaryResponse;
+import uteq.edu.ec.artisync.dto.response.legal.PaymentTransactionResponse;
 import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
-import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.entity.security.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
@@ -43,7 +43,7 @@ public class EscrowPaymentAuditServiceImpl implements IEscrowPaymentAuditService
                 filtro.getEstadoFondos(), filtro.getIdPerfilCreador(), filtro.getIdUsuarioCliente(),
                 filtro.getDesde(), filtro.getHasta());
 
-        return pagoGarantiaRepository.findAll(spec, pageable).map(this::mapearAResumen);
+        return pagoGarantiaRepository.findAll(spec, pageable).map(this::mapToSummary);
     }
 
     @Override
@@ -103,7 +103,7 @@ public class EscrowPaymentAuditServiceImpl implements IEscrowPaymentAuditService
         return pagoGarantiaRepository.resumenPorEstado();
     }
 
-    private EscrowPaymentResponse mapearAResumen(EscrowPayment pago) {
+    private EscrowPaymentResponse mapToSummary(EscrowPayment pago) {
         Order pedido = pago.getContrato().getPedido();
         User cliente = pedido.getUsuarioCliente();
         User creador = pedido.getServicio().getPerfil().getUsuario();

@@ -9,15 +9,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import uteq.edu.ec.artisync.entity.catalogo.Offering;
+import uteq.edu.ec.artisync.entity.catalog.Offering;
 import uteq.edu.ec.artisync.entity.legal.RevisionTicketPayment;
-import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
-import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
-import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.entity.order.RevisionTicket;
+import uteq.edu.ec.artisync.entity.profile.CreatorProfile;
+import uteq.edu.ec.artisync.entity.security.User;
 import uteq.edu.ec.artisync.repository.legal.RevisionTicketPaymentRepository;
-import uteq.edu.ec.artisync.repository.pedido.RevisionTicketRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
+import uteq.edu.ec.artisync.repository.order.RevisionTicketRepository;
+import uteq.edu.ec.artisync.service.communication.NotificationService;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -65,7 +65,7 @@ class RevisionTicketExpirationServiceTest {
         given(pagoTicketRevisionRepository.findByTicketIdTicketParaActualizar(9L))
                 .willReturn(Optional.of(pagoPendiente));
 
-        servicio.expirarTicket(9L);
+        servicio.expireTicket(9L);
 
         assertThat(ticketAbierto.getEstadoTicket()).isEqualTo("Rechazado");
         assertThat(pagoPendiente.getEstadoPago()).isEqualTo("Expirado");
@@ -78,7 +78,7 @@ class RevisionTicketExpirationServiceTest {
     void yaResuelto_noOp() {
         ticketAbierto.setEstadoTicket("Resuelto");
 
-        servicio.expirarTicket(9L);
+        servicio.expireTicket(9L);
 
         verify(ticketRevisionRepository, never()).save(any());
         verify(pagoTicketRevisionRepository, never()).save(any());
@@ -89,7 +89,7 @@ class RevisionTicketExpirationServiceTest {
     void sinFilaDePago_rechazaTicketIgual() {
         given(pagoTicketRevisionRepository.findByTicketIdTicketParaActualizar(9L)).willReturn(Optional.empty());
 
-        servicio.expirarTicket(9L);
+        servicio.expireTicket(9L);
 
         assertThat(ticketAbierto.getEstadoTicket()).isEqualTo("Rechazado");
         verify(pagoTicketRevisionRepository, never()).save(any());

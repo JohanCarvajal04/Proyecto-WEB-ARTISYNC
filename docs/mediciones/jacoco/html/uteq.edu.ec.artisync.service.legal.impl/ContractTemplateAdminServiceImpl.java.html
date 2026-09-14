@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContractTemplateAdminServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.legal.impl</a> &gt; <span class="el_source">ContractTemplateAdminServiceImpl.java</span></div><h1>ContractTemplateAdminServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.legal.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.request.legal.UpdateContractTemplateRequest;
+import uteq.edu.ec.artisync.dto.request.legal.CreateContractTemplateRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.legal.ContractTemplateResponse;
+import uteq.edu.ec.artisync.dto.response.legal.ContractTemplateSummaryResponse;
+import uteq.edu.ec.artisync.entity.order.ContractTemplate;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.repository.order.ContractTemplateRepository;
+import uteq.edu.ec.artisync.service.legal.IContractTemplateAdminService;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+<span class="fc" id="L21">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class ContractTemplateAdminServiceImpl implements IContractTemplateAdminService {
+
+    private final ContractTemplateRepository plantillaContratoRepository;
+
+    @Override
+    @Transactional
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public ContractTemplateResponse create(CreateContractTemplateRequest peticion) {
+<span class="fc bfc" id="L38" title="All 2 branches covered.">        if (plantillaContratoRepository.findByVersionLegal(peticion.getVersionLegal()).isPresent()) {</span>
+<span class="fc" id="L39">            throw new BusinessRuleException(&quot;Ya existe una plantilla con la version legal '&quot; + peticion.getVersionLegal() + &quot;'&quot;);</span>
+        }
+
+<span class="pc bpc" id="L42" title="1 of 2 branches missed.">        if (peticion.isEsPredeterminada()) {</span>
+<span class="fc" id="L43">            clearCurrentDefault();</span>
+        }
+
+<span class="fc" id="L46">        ContractTemplate plantilla = ContractTemplate.builder()</span>
+<span class="fc" id="L47">                .nombrePlantilla(peticion.getNombrePlantilla().trim())</span>
+<span class="fc" id="L48">                .versionLegal(peticion.getVersionLegal().trim())</span>
+<span class="fc" id="L49">                .cuerpoHtmlPlantilla(peticion.getCuerpoHtmlPlantilla())</span>
+<span class="fc" id="L50">                .esPredeterminada(peticion.isEsPredeterminada())</span>
+<span class="fc" id="L51">                .activa(true)</span>
+<span class="fc" id="L52">                .build();</span>
+
+<span class="fc" id="L54">        plantilla = plantillaContratoRepository.save(plantilla);</span>
+<span class="fc" id="L55">        log.info(&quot;Plantilla de contrato '{}' creada (id {})&quot;, plantilla.getNombrePlantilla(), plantilla.getIdPlantilla());</span>
+<span class="fc" id="L56">        return mapToRespuesta(plantilla);</span>
+    }
+
+    @Override
+    @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idPlantilla identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public ContractTemplateResponse update(Long idPlantilla, UpdateContractTemplateRequest peticion) {
+<span class="fc" id="L70">        ContractTemplate plantilla = plantillaContratoRepository.findById(idPlantilla)</span>
+<span class="pc" id="L71">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Plantilla de contrato no encontrada: &quot; + idPlantilla));</span>
+
+<span class="pc bpc" id="L73" title="3 of 4 branches missed.">        if (peticion.isEsPredeterminada() &amp;&amp; !Boolean.TRUE.equals(plantilla.getEsPredeterminada())) {</span>
+<span class="nc" id="L74">            clearCurrentDefault();</span>
+        }
+<span class="pc bpc" id="L76" title="2 of 4 branches missed.">        if (!peticion.isEsPredeterminada() &amp;&amp; Boolean.TRUE.equals(plantilla.getEsPredeterminada())) {</span>
+<span class="fc" id="L77">            throw new BusinessRuleException(</span>
+                    &quot;Debe existir siempre una plantilla predeterminada; marca otra como predeterminada antes de quitarle esta condición&quot;);
+        }
+
+<span class="nc" id="L81">        plantilla.setNombrePlantilla(peticion.getNombrePlantilla().trim());</span>
+<span class="nc" id="L82">        plantilla.setVersionLegal(peticion.getVersionLegal().trim());</span>
+<span class="nc" id="L83">        plantilla.setCuerpoHtmlPlantilla(peticion.getCuerpoHtmlPlantilla());</span>
+<span class="nc" id="L84">        plantilla.setEsPredeterminada(peticion.isEsPredeterminada());</span>
+<span class="nc" id="L85">        plantilla.setActiva(peticion.isActiva());</span>
+
+<span class="nc" id="L87">        plantilla = plantillaContratoRepository.save(plantilla);</span>
+<span class="nc" id="L88">        log.info(&quot;Plantilla de contrato {} actualizada&quot;, idPlantilla);</span>
+<span class="nc" id="L89">        return mapToRespuesta(plantilla);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public List&lt;ContractTemplateResponse&gt; listAll() {
+<span class="nc" id="L101">        return plantillaContratoRepository.findAll().stream()</span>
+<span class="nc" id="L102">                .map(this::mapToRespuesta)</span>
+<span class="nc" id="L103">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idPlantilla identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public MessageResponse deactivate(Long idPlantilla) {
+<span class="fc" id="L116">        ContractTemplate plantilla = plantillaContratoRepository.findById(idPlantilla)</span>
+<span class="fc" id="L117">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Plantilla de contrato no encontrada: &quot; + idPlantilla));</span>
+
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        if (Boolean.TRUE.equals(plantilla.getEsPredeterminada())) {</span>
+<span class="fc" id="L120">            throw new BusinessRuleException(</span>
+                    &quot;No se puede deactivate la plantilla predeterminada; marca otra como predeterminada primero&quot;);
+        }
+
+<span class="fc" id="L124">        plantilla.setActiva(false);</span>
+<span class="fc" id="L125">        plantillaContratoRepository.save(plantilla);</span>
+<span class="fc" id="L126">        log.info(&quot;Plantilla de contrato {} desactivada&quot;, idPlantilla);</span>
+<span class="fc" id="L127">        return new MessageResponse(&quot;Plantilla desactivada correctamente&quot;);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public List&lt;ContractTemplateSummaryResponse&gt; listActive() {
+<span class="fc" id="L139">        return plantillaContratoRepository.findByActivaTrueOrderByNombrePlantillaAsc().stream()</span>
+<span class="fc" id="L140">                .map(p -&gt; ContractTemplateSummaryResponse.builder()</span>
+<span class="fc" id="L141">                        .idPlantilla(p.getIdPlantilla())</span>
+<span class="fc" id="L142">                        .nombrePlantilla(p.getNombrePlantilla())</span>
+<span class="fc" id="L143">                        .esPropia(false)</span>
+<span class="fc" id="L144">                        .build())</span>
+<span class="fc" id="L145">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public List&lt;ContractTemplateSummaryResponse&gt; listActiveVisibleTo(Long idUsuarioCreador) {
+<span class="fc" id="L158">        return plantillaContratoRepository.findActivasVisiblesParaCreador(idUsuarioCreador).stream()</span>
+<span class="fc" id="L159">                .map(p -&gt; ContractTemplateSummaryResponse.builder()</span>
+<span class="fc" id="L160">                        .idPlantilla(p.getIdPlantilla())</span>
+<span class="fc" id="L161">                        .nombrePlantilla(p.getNombrePlantilla())</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">                        .esPropia(p.getIdCreador() != null)</span>
+<span class="fc" id="L163">                        .build())</span>
+<span class="fc" id="L164">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Flush obligatorio: ux_plantilla_contrato_predeterminada es un índice
+     * único parcial (WHERE es_predeterminada). Sin forzar el UPDATE que
+     * desmarca la plantilla vieja antes del INSERT/UPDATE de la nueva, ambas
+     * filas podrían coexistir con es_predeterminada = true dentro del mismo
+     * flush y violar la restricción.
+     */
+    private void clearCurrentDefault() {
+<span class="fc" id="L175">        plantillaContratoRepository.findByEsPredeterminadaTrue().ifPresent(actual -&gt; {</span>
+<span class="fc" id="L176">            actual.setEsPredeterminada(false);</span>
+<span class="fc" id="L177">            plantillaContratoRepository.save(actual);</span>
+<span class="fc" id="L178">            plantillaContratoRepository.flush();</span>
+<span class="fc" id="L179">        });</span>
+<span class="fc" id="L180">    }</span>
+
+    private ContractTemplateResponse mapToRespuesta(ContractTemplate plantilla) {
+<span class="fc" id="L183">        return ContractTemplateResponse.builder()</span>
+<span class="fc" id="L184">                .idPlantilla(plantilla.getIdPlantilla())</span>
+<span class="fc" id="L185">                .nombrePlantilla(plantilla.getNombrePlantilla())</span>
+<span class="fc" id="L186">                .versionLegal(plantilla.getVersionLegal())</span>
+<span class="fc" id="L187">                .cuerpoHtmlPlantilla(plantilla.getCuerpoHtmlPlantilla())</span>
+<span class="fc" id="L188">                .esPredeterminada(plantilla.getEsPredeterminada())</span>
+<span class="fc" id="L189">                .activa(plantilla.getActiva())</span>
+<span class="fc" id="L190">                .idCreador(plantilla.getIdCreador())</span>
+<span class="fc" id="L191">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

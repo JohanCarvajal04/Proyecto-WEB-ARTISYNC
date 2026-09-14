@@ -1,0 +1,49 @@
+package uteq.edu.ec.artisync.repository.order;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import uteq.edu.ec.artisync.entity.order.OrderStatusHistory;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link OrderStatusHistory}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
+ */
+@Repository
+public interface OrderStatusHistoryRepository extends JpaRepository<OrderStatusHistory, Long> {
+
+    /** Historial completo de transiciones de un pedido, en el orden en que ocurrieron. */
+    List<OrderStatusHistory> findByPedidoIdPedidoOrderByFechaTransicionAsc(Long idPedido);
+
+    /** La transición más reciente de un pedido (su etapa/estado actual). */
+    Optional<OrderStatusHistory> findTopByPedidoIdPedidoOrderByFechaTransicionDesc(Long idPedido);
+
+    /**
+     * Existe algún pedido de este flujo cuya transición MÁS RECIENTE apunta a
+     * esta etapa — es decir, un pedido que está actualmente detenido ahí.
+     * Usado para bloquear el borrado de una etapa en uso: sin este chequeo,
+     * OrderServiceImpl.obtenerOrdenActual no encuentra la etapa en la
+     * configuración del flujo y el pedido "retrocede" a la primera etapa en
+     * el siguiente avance (ver H-flujo-01).
+     */
+    @Query("""
+            SELECT CASE WHEN COUNT(h) > 0 THEN true ELSE false END
+            FROM OrderStatusHistory h
+            WHERE h.pedido.flujo.idFlujo = :idFlujo
+              AND h.etapa.idEtapa = :idEtapa
+              AND h.fechaTransicion = (
+                  SELECT MAX(h2.fechaTransicion) FROM OrderStatusHistory h2
+                  WHERE h2.pedido = h.pedido
+              )
+            """)
+    boolean existePedidoEnEtapaActual(@Param("idFlujo") Long idFlujo, @Param("idEtapa") Long idEtapa);
+}
+

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthAttemptsService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared</a> &gt; <span class="el_source">AuthAttemptsService.java</span></div><h1>AuthAttemptsService.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+import uteq.edu.ec.artisync.exception.QuotaExceededException;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Duration;
+import java.util.HexFormat;
+
+/**
+ * §2.2 / OBS-AUTO-06: cuota de intentos POR CUENTA (a diferencia de
+ * AuthRateLimitFilter, que limita por IP). Necesaria porque un rate limit
+ * solo por IP es un bucket compartido: cualquiera detrás del mismo NAT puede
+ * agotarlo, y un atacante distribuido en varias IPs lo esquiva por completo.
+ *
+ * Fail-open ante caída de Redis, igual criterio que AuthRateLimitFilter: una
+ * mitigación no debe bloquear el login completo del sistema.
+ */
+<span class="fc" id="L24">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class AuthAttemptsService {
+
+    private final StringRedisTemplate redisTemplate;
+
+    /**
+     * Incrementa el contador de (ambito, identificador) y lanza
+     * {@link QuotaExceededException} (429, con Retry-After) si supera el
+     * límite dentro de la ventana.
+     *
+     * En AuthServiceImpl.login() se invoca únicamente cuando la autenticación
+     * ACABA de fallar (no antes de intentarla): así, un usuario que sabe su
+     * contraseña nunca se ve afectado, y uno que se equivoca varias veces
+     * antes de acertar puede seguir intentándolo mientras no supere el
+     * límite. En forgotPassword() se invoca de forma incondicional al inicio,
+     * porque ahí no hay noción de &quot;fallo&quot;: cada llamada implica el mismo
+     * costo de abuso (email potencialmente enviado) exista o no la cuenta.
+     */
+    public void checkQuota(String ambito, String identificador, int limite, Duration ventana) {
+<span class="fc" id="L45">        String clave = buildKey(ambito, identificador);</span>
+        try {
+<span class="fc" id="L47">            Long intentos = redisTemplate.opsForValue().increment(clave);</span>
+<span class="pc bpc" id="L48" title="1 of 4 branches missed.">            if (intentos != null &amp;&amp; intentos == 1L) {</span>
+<span class="fc" id="L49">                redisTemplate.expire(clave, ventana);</span>
+            }
+
+<span class="pc bpc" id="L52" title="1 of 4 branches missed.">            if (intentos != null &amp;&amp; intentos &gt; limite) {</span>
+<span class="fc" id="L53">                log.warn(&quot;Cuota de intentos por cuenta excedida para ámbito={}&quot;, ambito);</span>
+<span class="fc" id="L54">                throw new QuotaExceededException(</span>
+                        &quot;Demasiados intentos. Intenta nuevamente en unos minutos.&quot;,
+<span class="fc" id="L56">                        ventana.getSeconds());</span>
+            }
+<span class="fc" id="L58">        } catch (DataAccessException e) {</span>
+<span class="fc" id="L59">            log.warn(&quot;No se pudo contactar a Redis para la cuota de {}; se permite la solicitud (fail-open): {}&quot;,</span>
+<span class="fc" id="L60">                    ambito, e.getMessage());</span>
+<span class="fc" id="L61">        }</span>
+<span class="fc" id="L62">    }</span>
+
+    /**
+     * Limpia el contador de intentos de (ambito, identificador) — se invoca tras un
+     * éxito de autenticación para que el conteo de fallos no se acumule entre sesiones.
+     *
+     * @param ambito espacio de la cuota (por ejemplo &quot;login&quot; o &quot;forgotPassword&quot;)
+     * @param identificador identificador de la cuenta cuyo contador se limpia (se hashea internamente)
+     */
+    public void clear(String ambito, String identificador) {
+        try {
+<span class="fc" id="L73">            redisTemplate.delete(buildKey(ambito, identificador));</span>
+<span class="fc" id="L74">        } catch (DataAccessException e) {</span>
+<span class="fc" id="L75">            log.warn(&quot;No se pudo limpiar la cuota de {} en Redis: {}&quot;, ambito, e.getMessage());</span>
+<span class="fc" id="L76">        }</span>
+<span class="fc" id="L77">    }</span>
+
+    /** Hashea el identificador (correo) para que un volcado de Redis no sea una lista de usuarios. */
+    private String buildKey(String ambito, String identificador) {
+<span class="fc" id="L81">        return &quot;rl:&quot; + ambito + &quot;:&quot; + hashSha256(identificador);</span>
+    }
+
+    private String hashSha256(String input) {
+        try {
+<span class="fc" id="L86">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L87">            byte[] encodedhash = digest.digest(input.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L88">            return HexFormat.of().formatHex(encodedhash);</span>
+<span class="nc" id="L89">        } catch (Exception e) {</span>
+<span class="nc" id="L90">            throw new RuntimeException(&quot;Error al generar hash SHA-256&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

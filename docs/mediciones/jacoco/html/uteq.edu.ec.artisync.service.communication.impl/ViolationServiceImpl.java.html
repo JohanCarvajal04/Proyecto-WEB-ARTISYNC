@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ViolationServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.communication.impl</a> &gt; <span class="el_source">ViolationServiceImpl.java</span></div><h1>ViolationServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.communication.impl;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditContext;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.dto.response.communication.ViolationResponse;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.entity.communication.MessageViolation;
+import uteq.edu.ec.artisync.entity.security.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.repository.communication.ViolationRepository;
+import uteq.edu.ec.artisync.repository.security.UserRepository;
+import uteq.edu.ec.artisync.service.communication.ViolationService;
+import uteq.edu.ec.artisync.service.communication.MessageFilterService;
+import uteq.edu.ec.artisync.service.communication.NotificationService;
+
+import java.time.LocalDateTime;
+
+/**
+ * Implementación del servicio de infracciones.
+ * RF-15: 3 infracciones en 30 días → suspensión automática de 15 días.
+ */
+<span class="fc" id="L32">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class ViolationServiceImpl implements ViolationService {
+
+    private static final int PERIODO_DIAS      = 30;
+    private static final int SUSPENSION_DIAS   = 15;
+
+    private final ViolationRepository    infraccionRepo;
+    private final UserRepository       usuarioRepo;
+    private final MessageFilterService    mensajeFilterService;
+    private final NotificationService     notificacionService;
+    private final ObjectMapper            objectMapper;
+
+    @Override
+    // REQUIRES_NEW: quien llama a este metodo (ej. ChatServiceImpl.sendMessage)
+    // suele lanzar una excepcion de regla de negocio inmediatamente despues,
+    // dentro de su propia transaccion @Transactional -- con la propagacion
+    // por defecto (REQUIRED) esa excepcion marca rollback-only y deshace este
+    // INSERT y la suspension junto con todo lo demas de la transaccion del
+    // llamador. Una transaccion propia hace que la infraccion quede
+    // confirmada en el motor aunque el llamador aborte la suya despues.
+    //
+    // Jamás #mensaje en el detalle: el texto ya vive en
+    // infracciones_mensaje.mensaje_original con su propio control de acceso;
+    // duplicarlo en una bitácora que ni el ADMIN puede borrar empeoraría la
+    // posición de privacidad. Solo se registra su longitud y el patrón.
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Auditable(accion = &quot;INFRACCION_REGISTRAR&quot;, modulo = AuditModule.COMUNICACION,
+            entidad = &quot;pedidos&quot;, idEntidad = &quot;#idPedido&quot;)
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param mensaje parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public void registerViolation(Long idUsuario, Long idPedido, String mensaje) {
+        // REQ-F-015: fn_registrar_infraccion inserta la infraccion, cuenta el
+        // total en la ventana de 30 dias y suspende la cuenta si corresponde,
+        // todo en una unica transaccion atomica en el motor (evita la carrera
+        // entre el COUNT y el UPDATE condicional que tenia la version en tres
+        // llamadas independientes al repositorio).
+<span class="fc" id="L76">        String patron = mensajeFilterService.detectPattern(mensaje);</span>
+<span class="fc" id="L77">        AuditContext.put(&quot;idUsuarioInfractor&quot;, idUsuario);</span>
+<span class="fc" id="L78">        AuditContext.put(&quot;patronDetectado&quot;, patron);</span>
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">        AuditContext.put(&quot;longitudMensaje&quot;, mensaje != null ? mensaje.length() : 0);</span>
+
+<span class="fc" id="L81">        String resultadoJson = infraccionRepo.registerViolation(idUsuario, idPedido, mensaje, patron);</span>
+<span class="fc" id="L82">        JsonNode resultado = parseResultado(resultadoJson);</span>
+<span class="fc" id="L83">        int totalPeriodo = resultado.get(&quot;totalInfraccionesPeriodo&quot;).asInt();</span>
+<span class="fc" id="L84">        boolean cuentaSuspendida = resultado.get(&quot;cuentaSuspendida&quot;).asBoolean();</span>
+
+<span class="fc" id="L86">        log.info(&quot;Infracción registrada para usuario {}. Total en últimos {} días: {}&quot;,</span>
+<span class="fc" id="L87">                idUsuario, PERIODO_DIAS, totalPeriodo);</span>
+
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        if (cuentaSuspendida) {</span>
+<span class="fc" id="L90">            User usuario = usuarioRepo.findById(idUsuario)</span>
+<span class="pc" id="L91">                    .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User no encontrado: &quot; + idUsuario));</span>
+<span class="fc" id="L92">            notifySuspension(usuario);</span>
+        }
+<span class="fc" id="L94">    }</span>
+
+    private JsonNode parseResultado(String json) {
+        try {
+<span class="fc" id="L98">            return objectMapper.readTree(json);</span>
+<span class="nc" id="L99">        } catch (Exception e) {</span>
+<span class="nc" id="L100">            throw new RuntimeException(&quot;Error al interpretar el resultado de fn_registrar_infraccion&quot;, e);</span>
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public Page&lt;ViolationResponse&gt; listViolations(Pageable pageable) {
+<span class="fc" id="L114">        return infraccionRepo.findAll(pageable).map(this::mapToResponse);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public Page&lt;ViolationResponse&gt; getHistoryByUser(Long idUsuario, Pageable pageable) {
+<span class="fc" id="L128">        return infraccionRepo.findByUsuarioIdUsuario(idUsuario, pageable)</span>
+<span class="fc" id="L129">                .map(this::mapToResponse);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;SUSPENSION_REVERTIR&quot;, modulo = AuditModule.COMUNICACION,
+            entidad = &quot;usuarios&quot;, idEntidad = &quot;#idUsuario&quot;)
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public MessageResponse revertSuspension(Long idUsuario) {
+<span class="fc" id="L144">        User usuario = usuarioRepo.findById(idUsuario)</span>
+<span class="fc" id="L145">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User no encontrado: &quot; + idUsuario));</span>
+<span class="fc" id="L146">        usuario.setEstadoCuenta(true);</span>
+<span class="fc" id="L147">        usuarioRepo.save(usuario);</span>
+<span class="fc" id="L148">        log.info(&quot;Suspensión revertida para usuario {} por admin&quot;, idUsuario);</span>
+<span class="fc" id="L149">        return new MessageResponse(&quot;Cuenta del usuario &quot; + usuario.getCorreo() + &quot; reactivada correctamente&quot;);</span>
+    }
+
+    // -------------------------------------------------------------------------
+
+    /** El estado_cuenta ya lo actualizo fn_registrar_infraccion; aqui solo se notifica. */
+    private void notifySuspension(User usuario) {
+<span class="fc" id="L156">        LocalDateTime hastaFecha = LocalDateTime.now().plusDays(SUSPENSION_DIAS);</span>
+<span class="fc" id="L157">        String mensajeNotif = &quot;Tu cuenta está suspendida hasta &quot; + hastaFecha.toLocalDate()</span>
+                + &quot; por superar el límite de infracciones de datos de contacto.&quot;;
+
+<span class="fc" id="L160">        log.warn(&quot;Cuenta del usuario {} suspendida hasta {}&quot;, usuario.getCorreo(), hastaFecha.toLocalDate());</span>
+<span class="fc" id="L161">        notificacionService.notify(usuario, &quot;CUENTA_SUSPENDIDA&quot;, mensajeNotif);</span>
+<span class="fc" id="L162">    }</span>
+
+    private ViolationResponse mapToResponse(MessageViolation i) {
+<span class="fc" id="L165">        return ViolationResponse.builder()</span>
+<span class="fc" id="L166">                .idInfraccion(i.getIdInfraccion())</span>
+<span class="fc" id="L167">                .idUsuario(i.getUsuario().getIdUsuario())</span>
+<span class="fc" id="L168">                .nombreUsuario(i.getUsuario().getNombres() + &quot; &quot; + i.getUsuario().getApellidos())</span>
+<span class="fc" id="L169">                .correoUsuario(i.getUsuario().getCorreo())</span>
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">                .idPedido(i.getPedido() != null ? i.getPedido().getIdPedido() : null)</span>
+<span class="fc" id="L171">                .mensajeOriginal(i.getMensajeOriginal())</span>
+<span class="fc" id="L172">                .patronDetectado(i.getPatronDetectado())</span>
+<span class="fc" id="L173">                .fechaInfraccion(i.getFechaInfraccion())</span>
+<span class="fc" id="L174">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

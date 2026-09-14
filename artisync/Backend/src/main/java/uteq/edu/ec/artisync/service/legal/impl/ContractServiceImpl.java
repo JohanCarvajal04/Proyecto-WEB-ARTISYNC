@@ -9,18 +9,18 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.SignatureStatusResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.IntegrityVerificationResponse;
+import uteq.edu.ec.artisync.dto.response.legal.ContractResponse;
+import uteq.edu.ec.artisync.dto.response.legal.SignatureStatusResponse;
+import uteq.edu.ec.artisync.dto.response.legal.IntegrityVerificationResponse;
 import uteq.edu.ec.artisync.entity.legal.Contract;
-import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.pedido.ContractTemplate;
-import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.entity.order.ContractTemplate;
+import uteq.edu.ec.artisync.entity.security.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContractRepository;
-import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
-import uteq.edu.ec.artisync.repository.pedido.ContractTemplateRepository;
+import uteq.edu.ec.artisync.repository.order.OrderRepository;
+import uteq.edu.ec.artisync.repository.order.ContractTemplateRepository;
 import uteq.edu.ec.artisync.service.legal.IContractService;
 import uteq.edu.ec.artisync.service.legal.IPdfGenerationService;
 import uteq.edu.ec.artisync.util.OrderOwnershipValidator;
@@ -273,6 +273,7 @@ public class ContractServiceImpl implements IContractService {
                 .build();
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long idContrato, Long idUsuarioSolicitante) {

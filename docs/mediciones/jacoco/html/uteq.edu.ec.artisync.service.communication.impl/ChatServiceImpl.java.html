@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ChatServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.communication.impl</a> &gt; <span class="el_source">ChatServiceImpl.java</span></div><h1>ChatServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.communication.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.response.communication.ChatMessageResponse;
+import uteq.edu.ec.artisync.dto.response.communication.ChatRoomResponse;
+import uteq.edu.ec.artisync.entity.legal.Message;
+import uteq.edu.ec.artisync.entity.legal.ChatRoom;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.entity.security.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.repository.legal.MessageRepository;
+import uteq.edu.ec.artisync.repository.legal.ChatRoomRepository;
+import uteq.edu.ec.artisync.repository.security.UserRepository;
+import uteq.edu.ec.artisync.service.communication.ChatService;
+import uteq.edu.ec.artisync.service.communication.ViolationService;
+import uteq.edu.ec.artisync.service.communication.MessageFilterService;
+import uteq.edu.ec.artisync.service.communication.NotificationService;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Implementación del servicio de chat.
+ * RF-14: Chat en tiempo real vía WebSocket.
+ * RF-15: Filtrado de datos de contacto con registro de infracciones.
+ */
+<span class="fc" id="L35">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class ChatServiceImpl implements ChatService {
+
+    private final ChatRoomRepository      salaChatRepo;
+    private final MessageRepository       mensajeRepo;
+    private final UserRepository       usuarioRepo;
+    private final ViolationService       infraccionService;
+    private final MessageFilterService    mensajeFilterService;
+    private final NotificationService     notificacionService;
+    private final SimpMessagingTemplate   messagingTemplate;
+
+    // -------------------------------------------------------------------------
+    // Sala de Chat
+    // -------------------------------------------------------------------------
+
+    @Override
+    @Transactional
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param pedido parametro requerido para la correcta ejecucion del procedimiento
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public ChatRoom createRoom(Order pedido) {
+        // Prevenir duplicados: un pedido → una sala
+<span class="fc" id="L63">        return salaChatRepo.findByPedidoIdPedido(pedido.getIdPedido())</span>
+<span class="fc" id="L64">                .orElseGet(() -&gt; {</span>
+<span class="fc" id="L65">                    ChatRoom sala = ChatRoom.builder()</span>
+<span class="fc" id="L66">                            .pedido(pedido)</span>
+<span class="fc" id="L67">                            .salaActiva(true)</span>
+<span class="fc" id="L68">                            .build();</span>
+<span class="fc" id="L69">                    log.info(&quot;Sala de chat creada para pedido {}&quot;, pedido.getIdPedido());</span>
+<span class="fc" id="L70">                    return salaChatRepo.save(sala);</span>
+                });
+    }
+
+    @Override
+    @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public void closeRoom(Long idPedido) {
+<span class="fc" id="L83">        salaChatRepo.findByPedidoIdPedido(idPedido).ifPresent(sala -&gt; {</span>
+<span class="fc" id="L84">            sala.setSalaActiva(false);</span>
+<span class="fc" id="L85">            salaChatRepo.save(sala);</span>
+
+            // Notificar a los participantes que la sala fue cerrada
+<span class="fc" id="L88">            messagingTemplate.convertAndSend(</span>
+<span class="fc" id="L89">                    &quot;/topic/sala.&quot; + sala.getIdSala(),</span>
+<span class="fc" id="L90">                    (Object) Map.of(&quot;tipo&quot;, &quot;SALA_CERRADA&quot;, &quot;mensaje&quot;, &quot;Esta sala ha sido cerrada&quot;)</span>
+            );
+<span class="fc" id="L92">            log.info(&quot;Sala {} cerrada para pedido {}&quot;, sala.getIdSala(), idPedido);</span>
+<span class="fc" id="L93">        });</span>
+<span class="fc" id="L94">    }</span>
+
+    // -------------------------------------------------------------------------
+    // Mensajes
+    // -------------------------------------------------------------------------
+
+    @Override
+    @Transactional
+    /**
+     * Despacha un mensaje o notificacion a los destinatarios especificados.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idRemitente identificador unico que referencia de manera univoca al registro
+     * @param cuerpoMensaje parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public ChatMessageResponse sendMessage(Long idPedido, Long idRemitente, String cuerpoMensaje) {
+<span class="fc" id="L112">        ChatRoom sala = salaChatRepo.findByPedidoIdPedido(idPedido)</span>
+<span class="pc" id="L113">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;No existe sala de chat para el pedido &quot; + idPedido));
+
+        // Los controladores (REST y @MessageMapping) solo exigen
+        // isAuthenticated(): sin esto, cualquier usuario logueado podía
+        // escribir en el chat de un pedido ajeno.
+<span class="fc" id="L119">        verifyParticipant(sala.getPedido(), idRemitente);</span>
+
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (Boolean.FALSE.equals(sala.getSalaActiva())) {</span>
+<span class="fc" id="L122">            throw new BusinessRuleException(&quot;Esta sala ha sido cerrada&quot;);</span>
+        }
+
+        // RF-15: Filtrar datos de contacto antes de persistir el mensaje.
+        // infraccionService.registerViolation corre en su propia transaccion
+        // (REQUIRES_NEW): queda confirmada en el motor aunque esta llamada
+        // termine lanzando la excepcion de abajo, que hace rollback de la
+        // transaccion de sendMessage pero no de la de la infraccion.
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        if (mensajeFilterService.containsContactInfo(cuerpoMensaje)) {</span>
+<span class="fc" id="L131">            infraccionService.registerViolation(idRemitente, sala.getPedido().getIdPedido(), cuerpoMensaje);</span>
+<span class="fc" id="L132">            throw new BusinessRuleException(</span>
+                    &quot;Tu mensaje no fue entregado porque contiene datos de contacto. Infracción registrada.&quot;);
+        }
+
+<span class="fc" id="L136">        User remitente = usuarioRepo.getReferenceById(idRemitente);</span>
+<span class="fc" id="L137">        Message mensaje = Message.builder()</span>
+<span class="fc" id="L138">                .sala(sala)</span>
+<span class="fc" id="L139">                .remitente(remitente)</span>
+<span class="fc" id="L140">                .cuerpoMensaje(cuerpoMensaje)</span>
+<span class="fc" id="L141">                .leido(false)</span>
+<span class="fc" id="L142">                .build();</span>
+<span class="fc" id="L143">        mensaje = mensajeRepo.save(mensaje);</span>
+
+<span class="fc" id="L145">        ChatMessageResponse response = mapToResponse(mensaje, remitente);</span>
+
+        // Publicar en el tópico de la sala para entrega en tiempo real
+<span class="fc" id="L148">        messagingTemplate.convertAndSend(&quot;/topic/sala.&quot; + sala.getIdSala(), response);</span>
+
+        // El WS solo llega a quien tenga esa sala abierta en ese momento; sin
+        // esto, la otra parte no se enteraba de un mensaje nuevo salvo que
+        // entrara a revisar el pedido por su cuenta.
+<span class="fc" id="L153">        Order pedido = sala.getPedido();</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        User destinatario = idRemitente.equals(pedido.getUsuarioCliente().getIdUsuario())</span>
+<span class="fc" id="L155">                ? pedido.getServicio().getPerfil().getUsuario()</span>
+<span class="fc" id="L156">                : pedido.getUsuarioCliente();</span>
+<span class="fc" id="L157">        notificacionService.notify(destinatario, &quot;MENSAJE_RECIBIDO&quot;,</span>
+<span class="fc" id="L158">                remitente.getNombres() + &quot; te escribió en \&quot;&quot; + pedido.getServicio().getTituloServicio()</span>
+<span class="fc" id="L159">                        + &quot;\&quot;: &quot; + summarizeMessage(cuerpoMensaje));</span>
+
+<span class="fc" id="L161">        return response;</span>
+    }
+
+    private String summarizeMessage(String cuerpoMensaje) {
+<span class="fc" id="L165">        final int maxCaracteres = 80;</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">        return cuerpoMensaje.length() &gt; maxCaracteres</span>
+<span class="fc" id="L167">                ? cuerpoMensaje.substring(0, maxCaracteres) + &quot;…&quot;</span>
+<span class="fc" id="L168">                : cuerpoMensaje;</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public Page&lt;ChatMessageResponse&gt; getMessages(Long idPedido, Long idUsuario, Pageable pageable) {
+<span class="fc" id="L183">        ChatRoom sala = salaChatRepo.findByPedidoIdPedido(idPedido)</span>
+<span class="pc" id="L184">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;No existe sala de chat para el pedido &quot; + idPedido));
+
+        // El controlador solo exige isAuthenticated(): sin esto, cualquier
+        // usuario logueado podía leer el historial de un chat ajeno.
+<span class="fc" id="L189">        verifyParticipant(sala.getPedido(), idUsuario);</span>
+
+<span class="fc" id="L191">        List&lt;Message&gt; mensajes = mensajeRepo.findBySalaIdSalaOrderByFechaHoraEnvioAsc(sala.getIdSala());</span>
+<span class="fc" id="L192">        List&lt;ChatMessageResponse&gt; dtos = mensajes.stream()</span>
+<span class="pc" id="L193">                .map(m -&gt; mapToResponse(m, m.getRemitente()))</span>
+<span class="fc" id="L194">                .toList();</span>
+
+<span class="fc" id="L196">        int start = (int) pageable.getOffset();</span>
+<span class="fc" id="L197">        int end = Math.min(start + pageable.getPageSize(), dtos.size());</span>
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">        List&lt;ChatMessageResponse&gt; page = start &gt; dtos.size() ? List.of() : dtos.subList(start, end);</span>
+<span class="fc" id="L199">        return new PageImpl&lt;&gt;(page, pageable, dtos.size());</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public ChatRoomResponse getRoomStatus(Long idPedido, Long idUsuario) {
+<span class="fc" id="L213">        ChatRoom sala = salaChatRepo.findByPedidoIdPedido(idPedido)</span>
+<span class="fc" id="L214">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;No existe sala de chat para el pedido &quot; + idPedido));
+
+        // El controlador solo exige isAuthenticated(): sin esto, cualquier
+        // usuario logueado podía ver el estado del chat de un pedido ajeno.
+<span class="fc" id="L219">        verifyParticipant(sala.getPedido(), idUsuario);</span>
+
+<span class="fc" id="L221">        return ChatRoomResponse.builder()</span>
+<span class="fc" id="L222">                .idSala(sala.getIdSala())</span>
+<span class="fc" id="L223">                .idPedido(sala.getPedido().getIdPedido())</span>
+<span class="fc" id="L224">                .salaActiva(sala.getSalaActiva())</span>
+<span class="fc" id="L225">                .fechaApertura(sala.getFechaApertura())</span>
+<span class="fc" id="L226">                .build();</span>
+    }
+
+    /**
+     * Único chequeo de pertenencia al pedido, reutilizado por los tres
+     * métodos de arriba: nadie fuera del cliente o el creador del pedido
+     * puede leer, escuchar o escribir en su sala de chat.
+     */
+    private void verifyParticipant(Order pedido, Long idUsuario) {
+<span class="fc" id="L235">        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuario);</span>
+<span class="fc" id="L236">        boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuario);</span>
+<span class="fc bfc" id="L237" title="All 4 branches covered.">        if (!esCliente &amp;&amp; !esCreador) {</span>
+<span class="fc" id="L238">            throw new BusinessRuleException(&quot;No tiene acceso al chat de este pedido&quot;);</span>
+        }
+<span class="fc" id="L240">    }</span>
+
+    // -------------------------------------------------------------------------
+    private ChatMessageResponse mapToResponse(Message m, User remitente) {
+<span class="fc" id="L244">        return ChatMessageResponse.builder()</span>
+<span class="fc" id="L245">                .idMensaje(m.getIdMensaje())</span>
+<span class="fc" id="L246">                .idSala(m.getSala().getIdSala())</span>
+<span class="fc" id="L247">                .idRemitente(remitente.getIdUsuario())</span>
+<span class="fc" id="L248">                .nombreRemitente(remitente.getNombres() + &quot; &quot; + remitente.getApellidos())</span>
+<span class="fc" id="L249">                .cuerpoMensaje(m.getCuerpoMensaje())</span>
+<span class="fc" id="L250">                .fechaHoraEnvio(m.getFechaHoraEnvio())</span>
+<span class="fc" id="L251">                .leido(m.getLeido())</span>
+<span class="fc" id="L252">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

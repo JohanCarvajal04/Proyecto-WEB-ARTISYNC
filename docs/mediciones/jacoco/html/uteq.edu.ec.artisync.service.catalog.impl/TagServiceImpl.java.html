@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TagServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.catalog.impl</a> &gt; <span class="el_source">TagServiceImpl.java</span></div><h1>TagServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.catalog.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.dto.request.catalog.CreateTagRequest;
+import uteq.edu.ec.artisync.dto.response.catalog.TagResponse;
+import uteq.edu.ec.artisync.entity.catalog.Tag;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.repository.catalog.TagRepository;
+import uteq.edu.ec.artisync.service.catalog.ITagService;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class TagServiceImpl implements ITagService {
+
+    private final TagRepository etiquetaRepository;
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;TagResponse&gt; listTags() {
+<span class="fc" id="L29">        return etiquetaRepository.findAll()</span>
+<span class="fc" id="L30">                .stream()</span>
+<span class="fc" id="L31">                .map(this::mapToTagResponse)</span>
+<span class="fc" id="L32">                .collect(Collectors.toList());</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(readOnly = true)
+    public TagResponse getById(Long idEtiqueta) {
+<span class="fc" id="L39">        Tag et = etiquetaRepository.findById(idEtiqueta)</span>
+<span class="fc" id="L40">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Tag no encontrada con ID: &quot; + idEtiqueta));</span>
+<span class="fc" id="L41">        return mapToTagResponse(et);</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;ETIQUETA_CREAR&quot;, modulo = AuditModule.CATALOGO,
+            entidad = &quot;etiquetas&quot;, idEntidad = &quot;#resultado.idEtiqueta&quot;,
+            detalle = &quot;{nombreEtiqueta: #peticion.nombreEtiqueta}&quot;)
+    public TagResponse createTag(CreateTagRequest peticion) {
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        if (etiquetaRepository.existsByNombreEtiquetaIgnoreCase(peticion.getNombreEtiqueta())) {</span>
+<span class="fc" id="L52">            throw new BusinessRuleException(&quot;Ya existe la etiqueta: &quot; + peticion.getNombreEtiqueta());</span>
+        }
+<span class="fc" id="L54">        Tag et = Tag.builder()</span>
+<span class="fc" id="L55">                .nombreEtiqueta(peticion.getNombreEtiqueta().trim())</span>
+<span class="fc" id="L56">                .build();</span>
+<span class="fc" id="L57">        et = etiquetaRepository.save(et);</span>
+<span class="fc" id="L58">        return mapToTagResponse(et);</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;ETIQUETA_ELIMINAR&quot;, modulo = AuditModule.CATALOGO,
+            entidad = &quot;etiquetas&quot;, idEntidad = &quot;#idEtiqueta&quot;)
+    public void deleteTag(Long idEtiqueta) {
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        if (!etiquetaRepository.existsById(idEtiqueta)) {</span>
+<span class="fc" id="L68">            throw new ResourceNotFoundException(&quot;Tag no encontrada con ID: &quot; + idEtiqueta);</span>
+        }
+<span class="fc" id="L70">        etiquetaRepository.deleteById(idEtiqueta);</span>
+<span class="fc" id="L71">    }</span>
+
+    private TagResponse mapToTagResponse(Tag et) {
+<span class="fc" id="L74">        return TagResponse.builder()</span>
+<span class="fc" id="L75">                .idEtiqueta(et.getIdEtiqueta())</span>
+<span class="fc" id="L76">                .nombreEtiqueta(et.getNombreEtiqueta())</span>
+<span class="fc" id="L77">                .actualizadoEn(et.getActualizadoEn())</span>
+<span class="fc" id="L78">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

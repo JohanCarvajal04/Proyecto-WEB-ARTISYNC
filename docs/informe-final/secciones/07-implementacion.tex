@@ -85,7 +85,7 @@ que lo invoca, siguiendo la especificación JPA~2.1 (\texttt{ADR-006},
 Capítulo~\ref{cap:diseno-arquitectura}~\S6.2).
 El Listado~\ref{lst:sp-registrar-decision} presenta la definición SQL, mientras que el Listado~\ref{lst:repo-registrar-decision} detalla su invocación formal con la anotación \texttt{@Procedure}.
 
-\begin{lstlisting}[language=SQL,caption={\texttt{sp\_registrar\_decision\_verificacion} (categoría: validaciones cruzadas). Fuente: \texttt{db/procs/sp\_registrar\_decision\_verificacion.sql}},label=lst:sp-registrar-decision]
+\begin{lstlisting}[language=SQL,caption={\texttt{sp\_registrar\_decision\_verificacion} (categoría: validaciones cruzadas). Fuente: \texttt{artisync/\allowbreak Backend/\allowbreak src/\allowbreak main/\allowbreak resources/\allowbreak db/\allowbreak migration/\allowbreak V7\_\_verificacion\_asistida\_ia.sql}},label=lst:sp-registrar-decision]
 CREATE OR REPLACE PROCEDURE sp_registrar_decision_verificacion(
     p_id_certificado BIGINT,
     p_id_estado BIGINT,
@@ -102,7 +102,7 @@ END;
 $$;
 \end{lstlisting}
 
-\begin{lstlisting}[language=Java,caption={Método de repositorio que invoca \texttt{sp\_registrar\_decision\_verificacion}. Fuente: \texttt{artisync/\allowbreak Backend/\allowbreak src/\allowbreak main/\allowbreak java/\allowbreak .../\allowbreak repository/\allowbreak perfil/\allowbreak CertificadoIaRepository.java}},label=lst:repo-registrar-decision]
+\begin{lstlisting}[language=Java,caption={Método de repositorio que invoca \texttt{sp\_registrar\_decision\_verificacion}. Fuente: \texttt{artisync/\allowbreak Backend/\allowbreak src/\allowbreak main/\allowbreak java/\allowbreak .../\allowbreak repository/\allowbreak profile/\allowbreak AiCertificateRepository.java}},label=lst:repo-registrar-decision]
     @Procedure(procedureName = "sp_registrar_decision_verificacion")
     void registrarDecision(
             @Param("p_id_certificado") Long idCertificado,
@@ -146,3 +146,89 @@ Para estos casos, \texttt{@Query(nativeQuery = true)} contra la propia función 
 (Hibernate~7.4.1 más PostgreSQL), no una alternativa de conveniencia. El inventario completo,
 rutina por rutina, con el mecanismo usado y su justificación individual, está en
 \texttt{docs/basedatos/CATALOGO-SP.md} (\S14).
+
+\textbf{Segunda revisión técnica (2026-09-14):} antes de aceptar la excepción anterior como
+definitiva se repitió la investigación desde cero, contra Postgres real (\texttt{docker compose up
+-d postgres}), probando deliberadamente las variantes que la revisión de 2026-09-05 no había
+agotado: (a) \texttt{@NamedStoredProcedureQuery} con parámetros \emph{puramente posicionales} (sin
+\texttt{@Param}, sin nombre alguno en la anotación), para descartar que el causante fuera
+específicamente el nombre puesto por el desarrollador; (b) la API nativa de Hibernate
+(\texttt{org.hibernate.procedure.ProcedureCall}) invocada directamente vía
+\texttt{Session.createStoredProcedureCall(...)}; y (c) inspección del bytecode de
+\texttt{hibernate-core-7.4.1.Final.jar} (\texttt{PostgreSQLCallableStatementSupport},
+\texttt{NamedCallableQueryMementoImpl}) para ubicar la causa raíz exacta en vez de inferirla del
+mensaje de error.
+
+El resultado descarta (a): incluso sin ningún nombre de parámetro puesto por el desarrollador,
+Spring Data JPA sigue emitiendo \texttt{call fn\_es\_seguidor(idUsuarioSeguidor => ?,
+idPerfilCreador => ?, out => ?)} --- toma los nombres de los parámetros del método Java vía
+reflexión (compilado con \texttt{-parameters}) cuando no hay \texttt{@Param}, así que "puramente
+posicional" no existe en la práctica para \texttt{@Procedure}/\texttt{@NamedStoredProcedureQuery}
+de Spring Data contra Postgres. Ambas anotaciones ejecutan siempre la ruta JPA estándar
+(\texttt{jakarta.persistence.StoredProcedureQuery} → \texttt{ProcedureExecution} de Spring Data →
+\texttt{PostgreSQLCallableStatementSupport} de Hibernate), y esa ruta registra cualquier tipo de
+retorno no-\texttt{void} como un parámetro \texttt{OUT} adicional dentro del escape
+\texttt{\{call ...\}} (modo \texttt{CALL\_RETURN}), sintaxis que Postgres no acepta para una
+\texttt{FUNCTION}.
+
+(b) sí funciona: \texttt{Session.createStoredProcedureCall("fn\_es\_seguidor")} seguido de
+\texttt{ProcedureCall.markAsFunctionCall(Types.BOOLEAN)} hace que Hibernate genere
+\texttt{select fn\_es\_seguidor(?,?)} --- sin \texttt{\{call ...\}}, sin \texttt{"=>"} --- y la
+llamada se ejecuta y devuelve el valor correcto contra Postgres real. Pero (c) explica por qué esto
+no cierra el caso: \texttt{markAsFunctionCall} rellena un campo (\texttt{functionReturn}, de tipo
+\texttt{FunctionReturnImplementor}) que solo existe en la API nativa e imperativa de Hibernate
+(\texttt{ProcedureCallImplementor}); \texttt{NamedCallableQueryMementoImpl} --- la clase que
+respalda \texttt{@NamedStoredProcedureQuery} --- no tiene ningún campo equivalente, y la
+especificación JPA no define un atributo para declarar "esto es una función, no un procedimiento".
+En otras palabras: existe una forma de invocar estas funciones sin \texttt{nativeQuery}, pero exige
+abandonar por completo la anotación declarativa e implementar el método a mano con
+\texttt{EntityManager}/\texttt{Session}, lo que ya no es \texttt{@Procedure} ni
+\texttt{@NamedStoredProcedureQuery} en el sentido literal que exige la conformidad --- sería
+cambiar una forma de acceso nativo por otra, sin ganancia real de conformidad y con un costo de
+mantenimiento mayor (una implementación por rutina en vez de una anotación).
+
+De paso se revisaron también los dos \texttt{PROCEDURE} de purga
+(\texttt{sp\_purgar\_notificaciones}, \texttt{sp\_purgar\_datos\_seguridad}, invocados hoy con
+\texttt{JdbcTemplate.update("CALL ...")} desde \texttt{NotificationPurgeScheduler} y
+\texttt{SecurityPurgeScheduler}) como candidatos aparentemente favorables: son \texttt{void}, solo
+parámetros \texttt{IN}, exactamente el patrón que sí funciona con \texttt{@Procedure}. Se descartó
+migrarlos: ambos ejecutan \texttt{COMMIT} explícito por lote dentro del propio
+\texttt{PROCEDURE} (para no sostener una transacción larga que bloquee \texttt{VACUUM}), lo que
+exige que la conexión no tenga ya una transacción abierta por Spring
+(\texttt{Propagation.NOT\_SUPPORTED} está declarado como obligatorio en ambos \textit{schedulers},
+no cosmético) --- Postgres falla con \texttt{2D000 invalid\_transaction\_termination} si el
+\texttt{CALL} ocurre dentro de una transacción ya iniciada. Una invocación gestionada por el
+\texttt{EntityManager}/\texttt{Session} de Hibernate (que es lo que exige \texttt{@Procedure}) está
+atada al ciclo de vida transaccional de JPA de una forma en que \texttt{JdbcTemplate} con una
+conexión de \textit{autocommit} propia no lo está; forzar esto a \texttt{@Procedure} arriesgaba
+reproducir para la purga el mismo tipo de incidente de producción que ya ocurrió una vez con el
+login. Se mantienen en \texttt{JdbcTemplate}, no por descuido sino por una restricción de manejo de
+transacciones ortogonal al bug de Hibernate.
+
+Conclusión de la segunda revisión: el reparto por mecanismo \textbf{no cambia} respecto a la
+revisión de 2026-09-05. No se trata de una limitación no explorada a fondo, sino de una
+restricción estructural confirmada por dos vías independientes (reproducción end-to-end contra
+Postgres real, e inspección del bytecode de Hibernate) en dos revisiones separadas.
+
+\textbf{Tercera verificación (2026-09-14, misma noche):} para descartar que se tratara de un defecto
+ya corregido en una versión posterior que el proyecto simplemente no había adoptado, se sobrescribió
+temporalmente \texttt{hibernate.version} a \texttt{7.4.5.Final} (cuatro versiones \textit{patch} por
+delante de la 7.4.1 en uso) y se repitió el experimento mínimo (\texttt{@Procedure} sobre
+\texttt{fn\_es\_seguidor}) contra Postgres real. Falló de forma idéntica
+(\texttt{syntax error at or near "=>"}, misma posición del error). El override se revirtió por
+completo inmediatamente después, sin dejar rastro en \texttt{pom.xml} ni en \texttt{src/test}: el
+bug no está corregido entre 7.4.1 y 7.4.5, así que no es una brecha de actualización pendiente. Ver
+el detalle completo, rutina por rutina y las tres revisiones, en
+\texttt{docs/basedatos/CATALOGO-SP.md} (\S14).
+
+De las 28 rutinas activas (26 de \texttt{db/procs/} más 2 de verificación asistida por IA), el
+reparto exacto por mecanismo de invocación --- verificable de forma reproducible con
+\texttt{python scripts/auditoria-rubrica.py p6}, que descuenta las menciones dentro de comentarios
+Javadoc --- es: \textbf{3} vía \texttt{@Procedure} (método \texttt{void}, sin parámetros
+\texttt{OUT}/\texttt{INOUT}), \textbf{0} vía \texttt{@NamedStoredProcedureQuery} (mismo bug de
+Hibernate~7.4.1 al declarar un parámetro \texttt{OUT}, confirmado también con parámetros puramente
+posicionales) y \textbf{23} vía \texttt{@Query(nativeQuery = true)} contra la función (toda rutina
+que deba devolver un valor escalar, \texttt{JSONB} o \texttt{TABLE}), más las 2 rutinas de purga vía
+\texttt{JdbcTemplate} directo por la restricción de transacciones descrita arriba. El mecanismo de
+acceso a datos, en conjunto, es \emph{híbrido y documentado por diseño} (ADR-006), no accidental ni
+pendiente de resolución.

@@ -1,0 +1,560 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.security.impl</a> &gt; <span class="el_source">AuthServiceImpl.java</span></div><h1>AuthServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.security.impl;
+import uteq.edu.ec.artisync.service.security.*;
+
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.dto.security.request.*;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.security.response.TokenResponse;
+import uteq.edu.ec.artisync.dto.security.response.UserResponse;
+import uteq.edu.ec.artisync.entity.profile.CreatorProfile;
+import uteq.edu.ec.artisync.entity.security.*;
+import uteq.edu.ec.artisync.repository.security.*;
+import uteq.edu.ec.artisync.repository.profile.*;
+import uteq.edu.ec.artisync.repository.catalog.*;
+import uteq.edu.ec.artisync.repository.order.*;
+import uteq.edu.ec.artisync.repository.legal.*;
+import uteq.edu.ec.artisync.repository.communication.*;
+import uteq.edu.ec.artisync.repository.social.*;
+import uteq.edu.ec.artisync.security.ClientIpResolver;
+import uteq.edu.ec.artisync.security.CustomUserDetailsService;
+import uteq.edu.ec.artisync.security.JwtService;
+import uteq.edu.ec.artisync.service.security.AuthService;
+import uteq.edu.ec.artisync.service.security.TwoFactorService;
+import uteq.edu.ec.artisync.service.shared.EmailService;
+import uteq.edu.ec.artisync.service.shared.AuthAttemptsService;
+import uteq.edu.ec.artisync.service.shared.PreAuth2faTicketService;
+import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
+import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.UUID;
+
+<span class="fc" id="L55">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class AuthServiceImpl implements AuthService {
+
+    // §2.2 (OBS-AUTO-06): cuota por CUENTA, complementaria a la cuota por IP de
+    // AuthRateLimitFilter. Ventana acotada a 15 min a propósito: un contador por
+    // cuenta es, en sí mismo, un vector de bloqueo dirigido contra una cuenta
+    // conocida (p. ej. un admin); una ventana corta limita ese daño. No existe
+    // endpoint de desbloqueo — ver runbook: `redis-cli DEL rl:login-cuenta:&lt;hash&gt;`.
+    private static final String AMBITO_LOGIN = &quot;login-cuenta&quot;;
+    private static final int LIMITE_INTENTOS_LOGIN = 5;
+<span class="fc" id="L67">    private static final Duration VENTANA_INTENTOS_LOGIN = Duration.ofMinutes(15);</span>
+
+    private static final String AMBITO_RECUPERACION = &quot;recuperacion-cuenta&quot;;
+    private static final int LIMITE_INTENTOS_RECUPERACION = 3;
+<span class="fc" id="L71">    private static final Duration VENTANA_INTENTOS_RECUPERACION = Duration.ofHours(1);</span>
+
+    private final UserRepository usuarioRepository;
+    private final UserRoleRepository usuarioRolRepository;
+    private final UserSessionRepository sesionUsuarioRepository;
+
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtService jwtService;
+    private final CustomUserDetailsService userDetailsService;
+    private final SessionRevocationService sessionRevocationService;
+    private final EmailService emailService;
+    private final TwoFactorService twoFactorService;
+    private final AuthAttemptsService intentosAutenticacionService;
+    private final PreAuth2faTicketService preAuth2faTicketService;
+    private final ObjectMapper objectMapper;
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;User registrado desde el panel de crear cuenta&quot;, modulo = AuditModule.SEGURIDAD,
+            entidad = &quot;usuarios&quot;, idEntidad = &quot;#resultado.idUsuario&quot;,
+            correoActor = &quot;#request.correo&quot;,
+            detalle = &quot;{rol: #request.rol}&quot;)
+    /**
+     * Registra un nuevo usuario, con el rol indicado (o {@code CLIENTE} por defecto).
+     *
+     * @param request datos personales, contraseña y rol solicitado
+     * @return el usuario recién registrado
+     * @throws org.springframework.web.server.ResponseStatusException 400 si el correo ya está en uso,
+     *         si el usuario no cumple la edad mínima, o si el rol no es válido
+     */
+    public UserResponse register(RegisterRequest request) {
+<span class="pc bpc" id="L103" title="1 of 4 branches missed.">        String rolNombre = request.getRol() != null &amp;&amp; !request.getRol().isBlank()</span>
+<span class="fc" id="L104">                ? request.getRol().toUpperCase() : &quot;CLIENTE&quot;;</span>
+
+        // REQ-F-001: fn_registrar_usuario valida correo unico, mayoria de edad
+        // (RNF-12) y rol permitido, e inserta usuario + usuario_roles + perfil
+        // de creador opcional en una unica transaccion atomica en el motor.
+        Long idUsuario;
+        try {
+<span class="fc" id="L111">            idUsuario = usuarioRepository.registrarUsuario(</span>
+<span class="fc" id="L112">                    request.getNombres(),</span>
+<span class="fc" id="L113">                    request.getApellidos(),</span>
+<span class="fc" id="L114">                    request.getCorreo(),</span>
+<span class="fc" id="L115">                    passwordEncoder.encode(request.getContrasena()),</span>
+<span class="fc" id="L116">                    request.getFechaNacimiento(),</span>
+                    rolNombre);
+<span class="fc" id="L118">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L119">            throw StoredProcedureExceptionTranslator.translate(e, HttpStatus.BAD_REQUEST);</span>
+<span class="fc" id="L120">        }</span>
+
+<span class="fc" id="L122">        User usuario = usuarioRepository.findById(idUsuario)</span>
+<span class="pc" id="L123">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;Error al registrar el usuario&quot;));</span>
+
+<span class="fc" id="L125">        return UserResponse.builder()</span>
+<span class="fc" id="L126">                .idUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L127">                .nombres(usuario.getNombres())</span>
+<span class="fc" id="L128">                .apellidos(usuario.getApellidos())</span>
+<span class="fc" id="L129">                .correo(usuario.getCorreo())</span>
+<span class="fc" id="L130">                .fechaNacimiento(usuario.getFechaNacimiento())</span>
+<span class="fc" id="L131">                .fechaRegistro(usuario.getFechaRegistro())</span>
+<span class="fc" id="L132">                .estadoCuenta(usuario.getEstadoCuenta())</span>
+<span class="fc" id="L133">                .roles(List.of(rolNombre))</span>
+<span class="fc" id="L134">                .dosFactoresHabilitado(false)</span>
+<span class="fc" id="L135">                .build();</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;AUTENTICACION_LOGIN&quot;, modulo = AuditModule.SEGURIDAD,
+            correoActor = &quot;#request.correo&quot;)
+    /**
+     * Autentica con correo y contraseña. Si el usuario tiene 2FA habilitado,
+     * devuelve un ticket de preautenticación en vez de tokens; si no, emite
+     * access y refresh token directamente.
+     *
+     * @param request correo y contraseña
+     * @return tokens de sesión, o un ticket de preautenticación si requiere 2FA
+     * @throws org.springframework.security.core.AuthenticationException si las credenciales son inválidas
+     * @throws uteq.edu.ec.artisync.exception.QuotaExceededException si se supera el límite de intentos
+     *         fallidos por cuenta en la ventana configurada
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
+     */
+    public TokenResponse login(LoginRequest request) {
+<span class="fc" id="L155">        String ip = getCurrentIp();</span>
+
+        try {
+<span class="fc" id="L158">            authenticationManager.authenticate(</span>
+<span class="fc" id="L159">                    new UsernamePasswordAuthenticationToken(request.getCorreo(), request.getContrasena())</span>
+            );
+<span class="fc" id="L161">        } catch (AuthenticationException e) {</span>
+<span class="fc" id="L162">            log.warn(&quot;evento=LOGIN resultado=FALLIDO correo={} ip={}&quot;, request.getCorreo(), ip);</span>
+            // Cuota por CUENTA: se incrementa únicamente cuando la autenticación
+            // ACABA de fallar (no antes de intentarla), para que un usuario que
+            // conoce su contraseña nunca se vea afectado — solo los fallos cuentan.
+<span class="fc" id="L166">            intentosAutenticacionService.checkQuota(</span>
+<span class="fc" id="L167">                    AMBITO_LOGIN, request.getCorreo(), LIMITE_INTENTOS_LOGIN, VENTANA_INTENTOS_LOGIN);</span>
+<span class="fc" id="L168">            throw e;</span>
+<span class="fc" id="L169">        }</span>
+
+        // Autenticación correcta: limpiar cualquier cuota acumulada por fallos previos.
+<span class="fc" id="L172">        intentosAutenticacionService.clear(AMBITO_LOGIN, request.getCorreo());</span>
+
+        // REQ-F-002: fn_resolver_estado_login resuelve en una sola llamada el
+        // estado de cuenta, el flag de 2FA y los roles (join usuario_roles-roles),
+        // en vez de tres consultas separadas.
+<span class="fc" id="L177">        String estadoLoginJson = usuarioRepository.resolverEstadoLogin(request.getCorreo());</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">        if (estadoLoginJson == null) {</span>
+<span class="fc" id="L179">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;User no encontrado&quot;);</span>
+        }
+<span class="fc" id="L181">        JsonNode estado = parseLoginState(estadoLoginJson);</span>
+<span class="fc" id="L182">        Long idUsuario = estado.get(&quot;idUsuario&quot;).asLong();</span>
+<span class="fc" id="L183">        String correoUsuario = estado.get(&quot;correo&quot;).asText();</span>
+<span class="fc" id="L184">        boolean dosFactoresHabilitado = estado.get(&quot;dosFactoresHabilitado&quot;).asBoolean();</span>
+
+<span class="fc" id="L186">        User usuario = usuarioRepository.getReferenceById(idUsuario);</span>
+
+<span class="fc bfc" id="L188" title="All 2 branches covered.">        if (dosFactoresHabilitado) {</span>
+<span class="fc" id="L189">            log.info(&quot;evento=LOGIN resultado=PENDIENTE_2FA correo={} ip={} sub={}&quot;, correoUsuario, ip, idUsuario);</span>
+            // §2.1 (OBS-AUTO-05): ticket de un solo uso que prueba que la
+            // contraseña ya se validó — AuthController lo mueve a una cookie
+            // HttpOnly. Sin esto, verify2Fa() no tenía forma de saber si el
+            // llamante había pasado por aquí.
+<span class="fc" id="L194">            String ticket = preAuth2faTicketService.issue(idUsuario, correoUsuario);</span>
+<span class="fc" id="L195">            return TokenResponse.builder()</span>
+<span class="fc" id="L196">                    .correo(correoUsuario)</span>
+<span class="fc" id="L197">                    .idUsuario(idUsuario)</span>
+<span class="fc" id="L198">                    .requiere2fa(true)</span>
+<span class="fc" id="L199">                    .preAuthTicket(ticket)</span>
+<span class="fc" id="L200">                    .build();</span>
+        }
+
+<span class="fc" id="L203">        UserDetails userDetails = userDetailsService.loadUserByUsername(correoUsuario);</span>
+<span class="fc" id="L204">        String accessToken = jwtService.generateToken(userDetails);</span>
+<span class="fc" id="L205">        String refreshToken = jwtService.generateRefreshToken(userDetails);</span>
+
+<span class="fc" id="L207">        List&lt;String&gt; roles = extractRoles(estado);</span>
+
+<span class="fc" id="L209">        List&lt;String&gt; permisos = userDetails.getAuthorities().stream()</span>
+<span class="fc" id="L210">                .map(GrantedAuthority::getAuthority)</span>
+<span class="pc bpc" id="L211" title="1 of 2 branches missed.">                .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="fc" id="L212">                .toList();</span>
+
+<span class="fc" id="L214">        recordSessionBestEffort(usuario, jwtService.extractJti(accessToken), jwtService.getExpirationMs());</span>
+<span class="fc" id="L215">        recordSessionRequired(usuario, jwtService.extractJti(refreshToken), jwtService.getRefreshExpirationMs());</span>
+
+<span class="fc" id="L217">        log.info(&quot;evento=LOGIN resultado=EXITOSO correo={} ip={} sub={}&quot;, correoUsuario, ip, idUsuario);</span>
+
+<span class="fc" id="L219">        return TokenResponse.builder()</span>
+<span class="fc" id="L220">                .accessToken(accessToken)</span>
+<span class="fc" id="L221">                .refreshToken(refreshToken)</span>
+<span class="fc" id="L222">                .idUsuario(idUsuario)</span>
+<span class="fc" id="L223">                .correo(correoUsuario)</span>
+<span class="fc" id="L224">                .roles(roles)</span>
+<span class="fc" id="L225">                .permisos(permisos)</span>
+<span class="fc" id="L226">                .requiere2fa(false)</span>
+<span class="fc" id="L227">                .build();</span>
+    }
+
+    @Override
+    @Transactional
+    // El correo real se resuelve DENTRO del método a partir del ticket
+    // (preAuthTicket), no está disponible como parámetro para el SpEL de
+    // correoActor; el evento queda con actor &quot;anonimo&quot;, que es correcto: en
+    // este punto el usuario aún no tiene una sesión completa.
+    @Auditable(accion = &quot;AUTENTICACION_2FA_VERIFICAR&quot;, modulo = AuditModule.SEGURIDAD)
+    /**
+     * Completa el login verificando el código 2FA (TOTP o de respaldo) contra
+     * el ticket de preautenticación emitido por {@link #login}.
+     *
+     * @param preAuthTicket ticket emitido tras validar la contraseña
+     * @param request código TOTP o de respaldo ingresado
+     * @return los tokens de sesión ya emitidos
+     * @throws org.springframework.web.server.ResponseStatusException 401 si el ticket es inválido,
+     *         expirado o ya fue consumido, o si el código es incorrecto; 404 si el usuario no
+     *         existe; 400 si el usuario ya no tiene 2FA habilitado
+     */
+    public TokenResponse verify2Fa(String preAuthTicket, TwoFactorRequest request) {
+        // §2.1 (OBS-AUTO-05): el usuario se resuelve EXCLUSIVAMENTE desde el
+        // ticket emitido por login() tras validar la contraseña — ya no desde
+        // un correo en el body, que no probaba nada.
+<span class="fc" id="L252">        PreAuth2faTicketService.TicketData datos = preAuth2faTicketService.resolve(preAuthTicket)</span>
+<span class="fc" id="L253">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.UNAUTHORIZED,</span>
+                        &quot;Sesión de verificación inválida o expirada. Vuelve a iniciar sesión.&quot;));
+
+        // REQ-F-002: misma funcion que login() -- consolida usuario + roles + 2FA
+        // en una sola llamada en vez de findByCorreo + findByUsuarioIdUsuario.
+<span class="fc" id="L258">        String estadoLoginJson = usuarioRepository.resolverEstadoLogin(datos.correo());</span>
+<span class="fc bfc" id="L259" title="All 2 branches covered.">        if (estadoLoginJson == null) {</span>
+<span class="fc" id="L260">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;User no encontrado&quot;);</span>
+        }
+<span class="fc" id="L262">        JsonNode estado = parseLoginState(estadoLoginJson);</span>
+<span class="fc" id="L263">        Long idUsuario = estado.get(&quot;idUsuario&quot;).asLong();</span>
+<span class="fc" id="L264">        boolean dosFactoresHabilitado = estado.get(&quot;dosFactoresHabilitado&quot;).asBoolean();</span>
+
+<span class="fc bfc" id="L266" title="All 2 branches covered.">        if (!dosFactoresHabilitado) {</span>
+<span class="fc" id="L267">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El 2FA no se encuentra habilitado para este usuario&quot;);</span>
+        }
+
+<span class="fc" id="L270">        User usuario = usuarioRepository.getReferenceById(idUsuario);</span>
+
+<span class="fc bfc" id="L272" title="All 2 branches covered.">        if (!twoFactorService.validateCodeOrBackup(datos.correo(), request.getCodigo())) {</span>
+<span class="fc" id="L273">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Código inválido o expirado&quot;);</span>
+        }
+
+        // Uso único: si otra petición concurrente ya consumió este ticket, no se
+        // emiten tokens dos veces para el mismo ticket.
+<span class="fc bfc" id="L278" title="All 2 branches covered.">        if (!preAuth2faTicketService.consume(preAuthTicket)) {</span>
+<span class="fc" id="L279">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,</span>
+                    &quot;Sesión de verificación inválida o expirada. Vuelve a iniciar sesión.&quot;);
+        }
+
+<span class="fc" id="L283">        UserDetails userDetails = userDetailsService.loadUserByUsername(datos.correo());</span>
+<span class="fc" id="L284">        String accessToken = jwtService.generateToken(userDetails);</span>
+<span class="fc" id="L285">        String refreshToken = jwtService.generateRefreshToken(userDetails);</span>
+
+<span class="fc" id="L287">        List&lt;String&gt; roles = extractRoles(estado);</span>
+
+<span class="fc" id="L289">        List&lt;String&gt; permisos = userDetails.getAuthorities().stream()</span>
+<span class="fc" id="L290">                .map(GrantedAuthority::getAuthority)</span>
+<span class="pc bpc" id="L291" title="1 of 2 branches missed.">                .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="fc" id="L292">                .toList();</span>
+
+<span class="fc" id="L294">        recordSessionBestEffort(usuario, jwtService.extractJti(accessToken), jwtService.getExpirationMs());</span>
+<span class="fc" id="L295">        recordSessionRequired(usuario, jwtService.extractJti(refreshToken), jwtService.getRefreshExpirationMs());</span>
+
+<span class="fc" id="L297">        return TokenResponse.builder()</span>
+<span class="fc" id="L298">                .accessToken(accessToken)</span>
+<span class="fc" id="L299">                .refreshToken(refreshToken)</span>
+<span class="fc" id="L300">                .idUsuario(idUsuario)</span>
+<span class="fc" id="L301">                .correo(datos.correo())</span>
+<span class="fc" id="L302">                .roles(roles)</span>
+<span class="fc" id="L303">                .permisos(permisos)</span>
+<span class="fc" id="L304">                .requiere2fa(false)</span>
+<span class="fc" id="L305">                .build();</span>
+    }
+
+    @Override
+    @Transactional
+    /**
+     * Renueva la sesión: revoca el refresh token usado y emite un access y
+     * refresh token nuevos (rotación de refresh token).
+     *
+     * @param refreshToken refresh token vigente a rotar
+     * @return los nuevos tokens de sesión
+     * @throws org.springframework.web.server.ResponseStatusException 401 si el token está vacío,
+     *         revocado, expirado o es inválido; 404 si el usuario no existe; 403 si la cuenta está inactiva
+     */
+    public TokenResponse refreshToken(String refreshToken) {
+<span class="pc bpc" id="L320" title="1 of 4 branches missed.">        if (refreshToken == null || refreshToken.isBlank()) {</span>
+<span class="fc" id="L321">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token no proporcionado&quot;);</span>
+        }
+
+        try {
+<span class="fc" id="L325">            String jti = jwtService.extractJti(refreshToken);</span>
+            // §2.5 (OBS-AUTO-06): un jti nulo cortocircuitaba el &amp;&amp; anterior y SALTABA
+            // por completo la comprobación de revocación (bug F3). Ahora un jti
+            // ausente se trata igual que &quot;no encontrado&quot;: rechazado.
+<span class="fc bfc" id="L329" title="All 4 branches covered.">            if (jti == null || sesionUsuarioRepository.findByJti(jti).isEmpty()) {</span>
+<span class="fc" id="L330">                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token revocado o expirado&quot;);</span>
+            }
+
+<span class="fc" id="L333">            String username = jwtService.extractUsername(refreshToken);</span>
+<span class="fc" id="L334">            UserDetails userDetails = userDetailsService.loadUserByUsername(username);</span>
+
+<span class="fc bfc" id="L336" title="All 2 branches covered.">            if (!jwtService.isRefreshTokenValid(refreshToken, userDetails)) {</span>
+<span class="fc" id="L337">                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token inválido&quot;);</span>
+            }
+
+<span class="fc" id="L340">            User usuario = usuarioRepository.findByCorreo(username)</span>
+<span class="pc" id="L341">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;User no encontrado&quot;));</span>
+
+<span class="fc bfc" id="L343" title="All 2 branches covered.">            if (!Boolean.TRUE.equals(usuario.getEstadoCuenta())) {</span>
+<span class="fc" id="L344">                throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;La cuenta del usuario está inactiva&quot;);</span>
+            }
+
+<span class="fc" id="L347">            sessionRevocationService.revokeToken(refreshToken);</span>
+<span class="fc" id="L348">            sesionUsuarioRepository.deleteByJti(jti);</span>
+
+<span class="fc" id="L350">            String nuevoAccessToken = jwtService.generateToken(userDetails);</span>
+<span class="fc" id="L351">            String nuevoRefreshToken = jwtService.generateRefreshToken(userDetails);</span>
+
+<span class="fc" id="L353">            recordSessionBestEffort(usuario, jwtService.extractJti(nuevoAccessToken), jwtService.getExpirationMs());</span>
+<span class="fc" id="L354">            recordSessionRequired(usuario, jwtService.extractJti(nuevoRefreshToken), jwtService.getRefreshExpirationMs());</span>
+
+<span class="fc" id="L356">            List&lt;String&gt; roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
+<span class="fc" id="L357">                    .map(ur -&gt; ur.getRol().getNombreRol())</span>
+<span class="fc" id="L358">                    .toList();</span>
+
+<span class="fc" id="L360">            List&lt;String&gt; permisos = userDetails.getAuthorities().stream()</span>
+<span class="fc" id="L361">                    .map(GrantedAuthority::getAuthority)</span>
+<span class="pc bpc" id="L362" title="1 of 2 branches missed.">                    .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="fc" id="L363">                    .toList();</span>
+
+<span class="fc" id="L365">            return TokenResponse.builder()</span>
+<span class="fc" id="L366">                    .accessToken(nuevoAccessToken)</span>
+<span class="fc" id="L367">                    .refreshToken(nuevoRefreshToken)</span>
+<span class="fc" id="L368">                    .idUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L369">                    .correo(usuario.getCorreo())</span>
+<span class="fc" id="L370">                    .roles(roles)</span>
+<span class="fc" id="L371">                    .permisos(permisos)</span>
+<span class="fc" id="L372">                    .requiere2fa(false)</span>
+<span class="fc" id="L373">                    .build();</span>
+
+<span class="fc" id="L375">        } catch (ResponseStatusException e) {</span>
+<span class="fc" id="L376">            throw e;</span>
+<span class="fc" id="L377">        } catch (Exception e) {</span>
+<span class="fc" id="L378">            log.warn(&quot;Error al procesar refresh token: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L379">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token inválido o malformado&quot;);</span>
+        }
+    }
+
+    @Override
+    @Transactional
+    // tokenHeader y refreshToken son secretos: nunca en detalle. No hace falta
+    // correoActor explícito, hay SecurityContext porque se llama autenticado.
+    @Auditable(accion = &quot;AUTENTICACION_LOGOUT&quot;, modulo = AuditModule.SEGURIDAD)
+    /**
+     * Cierra la sesión: revoca el access token (de la cabecera) y el refresh
+     * token (si viene), de forma best-effort para el refresh token ya inválido.
+     *
+     * @param tokenHeader cabecera {@code Authorization: Bearer &lt;token&gt;} con el access token
+     * @param refreshToken refresh token de la cookie, si lo hay
+     * @return mensaje de confirmación
+     */
+    public MessageResponse logout(String tokenHeader, String refreshToken) {
+<span class="fc" id="L397">        sessionRevocationService.revokeTokenFromHeader(tokenHeader);</span>
+<span class="pc bpc" id="L398" title="1 of 4 branches missed.">        if (refreshToken != null &amp;&amp; !refreshToken.isBlank()) {</span>
+<span class="fc" id="L399">            sessionRevocationService.revokeToken(refreshToken);</span>
+            // Best-effort: un refresh token ya expirado o malformado en el momento del
+            // logout no debe impedir cerrar sesión (no hay fila que borrar de todas formas).
+            try {
+<span class="fc" id="L403">                String jti = jwtService.extractJti(refreshToken);</span>
+<span class="pc bpc" id="L404" title="1 of 2 branches missed.">                if (jti != null) {</span>
+<span class="fc" id="L405">                    sesionUsuarioRepository.deleteByJti(jti);</span>
+                }
+<span class="fc" id="L407">            } catch (Exception e) {</span>
+<span class="fc" id="L408">                log.debug(&quot;No se pudo extraer el jti del refresh token en logout (probablemente expirado o inválido): {}&quot;, e.getMessage());</span>
+<span class="fc" id="L409">            }</span>
+        }
+<span class="fc" id="L411">        return new MessageResponse(&quot;Sesión cerrada exitosamente&quot;);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;CONTRASENA_SOLICITAR_RESET&quot;, modulo = AuditModule.SEGURIDAD,
+            correoActor = &quot;#request.correo&quot;)
+    /**
+     * Solicita la recuperación de contraseña: si la cuenta existe, invalida
+     * tokens de recuperación previos, genera uno nuevo y envía el correo. La
+     * respuesta es siempre la misma, exista o no la cuenta, para no filtrar
+     * qué correos están registrados.
+     *
+     * @param request correo de la cuenta
+     * @return mensaje genérico de confirmación
+     * @throws uteq.edu.ec.artisync.exception.QuotaExceededException si se supera el límite de
+     *         solicitudes de recuperación por cuenta en la ventana configurada
+     */
+    public MessageResponse forgotPassword(ForgotPasswordRequest request) {
+        // Incondicional (a diferencia de login): aquí no hay noción de &quot;fallo&quot;, toda
+        // llamada implica el mismo costo de abuso (correo potencialmente enviado)
+        // exista o no la cuenta — mail-bombing a una víctima, cuota SMTP agotada.
+<span class="fc" id="L433">        intentosAutenticacionService.checkQuota(</span>
+<span class="fc" id="L434">                AMBITO_RECUPERACION, request.getCorreo(), LIMITE_INTENTOS_RECUPERACION, VENTANA_INTENTOS_RECUPERACION);</span>
+
+<span class="fc" id="L436">        String tokenPlain = UUID.randomUUID().toString();</span>
+<span class="fc" id="L437">        String tokenHash = hashSha256(tokenPlain);</span>
+
+        // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §6):
+        // fn_solicitar_recuperacion invalida los tokens previos no usados del
+        // usuario e inserta el nuevo en la MISMA transaccion, cerrando la
+        // ventana en la que una cuenta acumulaba N tokens de recuperacion
+        // validos simultaneamente (A5). Devuelve NULL (no encontro cuenta
+        // activa) sin lanzar, preservando la respuesta indistinguible.
+<span class="fc" id="L445">        String resultadoJson = usuarioRepository.solicitarRecuperacion(request.getCorreo(), tokenHash);</span>
+<span class="fc bfc" id="L446" title="All 2 branches covered.">        if (resultadoJson != null) {</span>
+<span class="fc" id="L447">            JsonNode resultado = parseJson(resultadoJson, &quot;Error al interpretar la solicitud de recuperación&quot;);</span>
+<span class="fc" id="L448">            String nombres = resultado.get(&quot;nombres&quot;).asText();</span>
+<span class="fc" id="L449">            log.debug(&quot;Generado token de recuperación para usuario ID: {}&quot;, resultado.get(&quot;idUsuario&quot;).asLong());</span>
+<span class="fc" id="L450">            emailService.sendRecoveryEmail(request.getCorreo(), nombres, tokenPlain);</span>
+        }
+<span class="fc" id="L452">        return new MessageResponse(&quot;Si el correo se encuentra registrado, recibirás un enlace de recuperación&quot;);</span>
+    }
+
+    @Override
+    @Transactional
+    // request.getToken() y la nueva contraseña son secretos: jamás #request
+    // completo en detalle. El usuario se resuelve dentro por el token, no hay
+    // correo disponible como parámetro.
+    @Auditable(accion = &quot;CONTRASENA_RESTABLECER&quot;, modulo = AuditModule.SEGURIDAD)
+    /**
+     * Restablece la contraseña a partir de un token de recuperación válido y no usado.
+     *
+     * @param request token de recuperación y nueva contraseña
+     * @return mensaje de confirmación
+     * @throws org.springframework.web.server.ResponseStatusException 400 si el token no existe,
+     *         ya fue usado o expiró
+     */
+    public MessageResponse resetPassword(ResetPasswordRequest request) {
+        // REQ-F-005: sp_restablecer_contrasena valida (con FOR UPDATE) que el
+        // token exista, no este usado y no haya expirado, y actualiza usuarios +
+        // tokens_recuperacion de forma atomica, evitando la ventana de doble uso
+        // concurrente que tenia la version en dos save() secuenciales.
+<span class="fc" id="L474">        String tokenHash = hashSha256(request.getToken());</span>
+        try {
+<span class="fc" id="L476">            usuarioRepository.restablecerContrasena(tokenHash, passwordEncoder.encode(request.getNuevaContrasena()));</span>
+<span class="fc" id="L477">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L478">            throw StoredProcedureExceptionTranslator.translate(e, HttpStatus.BAD_REQUEST);</span>
+<span class="fc" id="L479">        }</span>
+
+<span class="fc" id="L481">        return new MessageResponse(&quot;Contraseña reestablecida exitosamente&quot;);</span>
+    }
+
+    /** OBS-08 (A09 OWASP): IP del solicitante actual, usada tanto en el registro de sesión como en el log de auditoría de login. */
+    private String getCurrentIp() {
+<span class="fc" id="L486">        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();</span>
+<span class="pc bpc" id="L487" title="3 of 4 branches missed.">        if (attributes != null &amp;&amp; attributes.getRequest() != null) {</span>
+<span class="nc" id="L488">            return ClientIpResolver.resolve(attributes.getRequest());</span>
+        }
+<span class="fc" id="L490">        return null;</span>
+    }
+
+    /**
+     * Registro del access token: best-effort. Es telemetría (auditoría/listado de
+     * sesiones); si falla, el usuario ya tiene su access token en la respuesta y
+     * puede seguir operando con él con normalidad.
+     */
+    private void recordSessionBestEffort(User usuario, String jti, long expirationMs) {
+        try {
+<span class="fc" id="L500">            recordSession(usuario, jti, expirationMs);</span>
+<span class="nc" id="L501">        } catch (Exception e) {</span>
+<span class="nc" id="L502">            log.error(&quot;Error registrando sesión de acceso para usuario {}&quot;, usuario.getIdUsuario(), e);</span>
+<span class="fc" id="L503">        }</span>
+<span class="fc" id="L504">    }</span>
+
+    /**
+     * Registro del refresh token: obligatorio (propaga la excepción). A diferencia
+     * del access token, la corrección del siguiente /api/v1/auth/refresh DEPENDE de que
+     * esta fila exista (ver refreshToken(): busca por jti). Antes ambos registros
+     * fallaban en silencio (catch genérico que solo logueaba), lo que dejaba al
+     * usuario con un refresh token que el sistema rechazaría como &quot;revocado o
+     * expirado&quot; en el siguiente intento, sin ninguna pista del motivo real.
+     */
+    private void recordSessionRequired(User usuario, String jti, long expirationMs) {
+<span class="fc" id="L515">        recordSession(usuario, jti, expirationMs);</span>
+<span class="fc" id="L516">    }</span>
+
+    private void recordSession(User usuario, String jti, long expirationMs) {
+<span class="fc" id="L519">        String ip = getCurrentIp();</span>
+<span class="fc" id="L520">        UserSession sesion = UserSession.builder()</span>
+<span class="fc" id="L521">                .usuario(usuario)</span>
+<span class="fc" id="L522">                .jti(jti)</span>
+<span class="fc" id="L523">                .direccionIp(ip)</span>
+<span class="fc" id="L524">                .fechaExpiracion(LocalDateTime.now().plus(Duration.ofMillis(expirationMs)))</span>
+<span class="fc" id="L525">                .build();</span>
+<span class="fc" id="L526">        sesionUsuarioRepository.save(sesion);</span>
+<span class="fc" id="L527">    }</span>
+
+    private String hashSha256(String input) {
+        try {
+<span class="fc" id="L531">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L532">            byte[] encodedhash = digest.digest(input.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L533">            return HexFormat.of().formatHex(encodedhash);</span>
+<span class="nc" id="L534">        } catch (Exception e) {</span>
+<span class="nc" id="L535">            throw new RuntimeException(&quot;Error al generar hash SHA-256&quot;, e);</span>
+        }
+    }
+
+    /** Deserializa el JSONB devuelto por fn_resolver_estado_login (REQ-F-002). */
+    private JsonNode parseLoginState(String estadoLoginJson) {
+<span class="fc" id="L541">        return parseJson(estadoLoginJson, &quot;Error al interpretar el estado de login&quot;);</span>
+    }
+
+    /** Deserializa el JSONB devuelto por una rutina de db/procs/, con un mensaje de error especifico del llamante. */
+    private JsonNode parseJson(String json, String mensajeError) {
+        try {
+<span class="fc" id="L547">            return objectMapper.readTree(json);</span>
+<span class="nc" id="L548">        } catch (Exception e) {</span>
+<span class="nc" id="L549">            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, mensajeError);</span>
+        }
+    }
+
+    private List&lt;String&gt; extractRoles(JsonNode estado) {
+<span class="fc" id="L554">        List&lt;String&gt; roles = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L555">        estado.get(&quot;roles&quot;).forEach(nodo -&gt; roles.add(nodo.asText()));</span>
+<span class="fc" id="L556">        return roles;</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

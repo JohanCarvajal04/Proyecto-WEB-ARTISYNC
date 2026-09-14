@@ -6,6 +6,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+Cierre de la evaluación del examen final sobre el commit `a92629cd` (calificación docente 5,92/10,
+9 puntos de rúbrica por debajo de "Completo"), en la rama `examen-final-100`.
+
+### Security
+- Cookie de sesión (`AuthController.escribirCookie`) unificada a `SameSite=Strict`, acorde al
+  ADR-002; `AuthControllerTest` verifica `Secure`, `HttpOnly`, `SameSite`, `Path` y `Max-Age`.
+
+### Changed
+- Refactor completo de nombres de código a inglés (E1): ~78 tipos/métodos adicionales renombrados
+  de español a inglés en todo `src/main/java` (verbos como `extraer`, `construir`, `resolver`,
+  `mapear`, `autorizar`, `sanitizar`, etc.), sobre el refactor de paquetes ya cerrado antes.
+  Estimación final: ~0 % de métodos declarados con palabra en español (antes ~5.2 %). 1446 pruebas
+  en verde tras el rename.
+- Javadoc completado en prácticamente el 100 % de los ~670 métodos públicos del backend
+  (`controller/**`, `service/**/impl`, `repository/**`, `security/**`, `exception/**`, etc.);
+  `mvn javadoc:javadoc` (doclint) termina en `BUILD SUCCESS`.
+- `docs/basedatos/CATALOGO-SP.md` documenta el mecanismo de invocación exacto de las 28
+  rutinas (3 `@Procedure`, 0 `@NamedStoredProcedureQuery`, 23 `@Query(nativeQuery = true)`, 2
+  `JdbcTemplate` directo) y la causa raíz, confirmada por TRES revisiones técnicas independientes
+  (reproducción end-to-end, inspección de bytecode de Hibernate 7.4.1, y reintento contra
+  Hibernate 7.4.5 con el mismo resultado) por la que Hibernate 7.4.x impide migrar las 23/2
+  restantes sin romper el login o la purga en producción.
+- Diagramas E3 (`docs/diagramas/Entidad_Relacion.*`, `Secuencia_Login_JWT.*`,
+  `C4_Nivel3_Componentes_Backend.md`, `diagrama-clases.md`, `C4_Nivel1_Contexto.md`) traducidos
+  íntegramente a inglés y verificados contra los nombres reales de entidades/métodos post-E1; los
+  dos PNG embebidos en el informe (ER y secuencia de login) regenerados desde la fuente actualizada.
+- Cobertura JaCoCo por paquete: 0 de 48 paquetes con código ejecutable por debajo del 70 % de
+  líneas y ramas; global 92,88 % líneas / 81,93 % ramas, 1446 pruebas (incluye
+  `AzureStorageIntegrationTest` contra el emulador Azurite).
+- Tabla comparativa de trabajos relacionados con 8 filas y DOI verificado por fila; diagrama
+  PRISMA 2020 con los 7 nodos y el caption traducidos a inglés.
+- Rutas de citación del listado del procedimiento almacenado (Capítulo 7) actualizadas a los
+  nombres de archivo/clase reales tras el refactor E1.
+- Aclaración de composición del equipo (3 integrantes oficiales del PFC + 1 colaboradora de BD)
+  alineada entre `README.md`, `CONTRIBUTORS.md`, `CITATION.cff` y la portada del informe.
+- Resumen y abstract del informe final verificados en rango 200–250 palabras cada uno.
+
+### Known limitations
+- P6 (procedimientos almacenados vía mecanismo uniforme) queda documentado como excepción
+  arquitectónica, no cerrado: migrar las 23 rutinas restantes a
+  `@Procedure`/`@NamedStoredProcedureQuery` reproduce de forma consistente
+  `ERROR: syntax error at or near "=>"` contra Hibernate 7.4.1 y 7.4.5 + PostgreSQL (ver
+  `docs/basedatos/CATALOGO-SP.md` §14).
+- P8: la cookie `secure=true` está confirmada en código (default y forzada en `render.yaml` de
+  producción), pero no se capturó evidencia `Set-Cookie` en vivo contra el backend desplegado en
+  Render en esta ronda.
 
 ## [v1.1.0] - 2026-09-01
 Versión posterior al cierre académico de la Entrega Final (etiqueta `v1.0.0`, archivada

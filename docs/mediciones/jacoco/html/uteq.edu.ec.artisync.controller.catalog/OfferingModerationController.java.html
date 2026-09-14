@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OfferingModerationController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.catalog</a> &gt; <span class="el_source">OfferingModerationController.java</span></div><h1>OfferingModerationController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.catalog;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.response.catalog.OfferingResponse;
+import uteq.edu.ec.artisync.dto.response.catalog.OfferingSummaryResponse;
+import uteq.edu.ec.artisync.service.catalog.IOfferingCatalogService;
+
+/**
+ * SERVICIO_MODERAR estaba definido en las migraciones desde hace tiempo pero
+ * no lo usaba ningún endpoint: un admin/moderador no tenía forma de corregir
+ * la subcategoría de un servicio ajeno salvo pasando por el mismo formulario
+ * del creador. Este controlador es esa pantalla de moderación.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/admin/servicios&quot;)
+@RequiredArgsConstructor
+public class OfferingModerationController {
+
+    private final IOfferingCatalogService servicioCatalogoServicio;
+
+    /**
+     * Lista los servicios para su revisión en el panel de moderación, con búsqueda de texto y paginación.
+     *
+     * @param texto texto de búsqueda opcional para filtrar servicios
+     * @param page número de página solicitada (base 0)
+     * @param size tamaño de la página
+     * @return página con los servicios resumidos disponibles para moderación
+     */
+    @GetMapping
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_MODERAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;Page&lt;OfferingSummaryResponse&gt;&gt; listForModeration(
+            @RequestParam(required = false) String texto,
+            @RequestParam(defaultValue = &quot;0&quot;) int page,
+            @RequestParam(defaultValue = &quot;20&quot;) int size) {
+<span class="fc" id="L39">        return ResponseEntity.ok(servicioCatalogoServicio.listForModeration(texto, page, size));</span>
+    }
+
+    /**
+     * Quita una subcategoría de un servicio ajeno como acción de moderación.
+     *
+     * @param idServicio identificador del servicio
+     * @param idSubcategoria identificador de la subcategoría a quitar
+     * @return el servicio actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el servicio quedaría sin subcategorías tras la operación
+     */
+    @DeleteMapping(&quot;/{idServicio}/subcategorias/{idSubcategoria}&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_MODERAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;OfferingResponse&gt; removeSubcategory(
+            @PathVariable Long idServicio,
+            @PathVariable Long idSubcategoria) {
+<span class="fc" id="L56">        return ResponseEntity.ok(servicioCatalogoServicio.removeSubcategory(idServicio, idSubcategoria));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -164,7 +164,7 @@ La base de datos \texttt{artisyncbd} está compuesta por \textbf{37 tablas} orga
 % ==============================================================================
 \section{Identificación de Usuarios del Sistema}
 
-A partir del análisis de los módulos funcionales, los endpoints del backend y los permisos definidos en la tabla \texttt{permisos} de la base de datos, se identifican los siguientes tipos de usuarios que interactúan con ArtiSync:
+A partir del análisis de los módulos funcionales, los endpoints del backend y los permisos definidos en la tabla \texttt{permisos} de la base de datos, se identifican los siguientes tipos de usuarios que interactúan con ArtiSync (Tabla~\ref{tab:usuarios}):
 
 \begin{table}[H]
 \centering
@@ -210,6 +210,8 @@ Siguiendo el modelo RBAC (\textit{Role-Based Access Control}) y el principio de 
 
 \subsection{Roles de Grupo (NOLOGIN)}
 
+La Tabla~\ref{tab:roles_grupo} enumera los roles de grupo definidos para ArtiSync, con la justificación de cada uno según el principio de mínimo privilegio.
+
 \begin{table}[H]
 \centering
 \caption{Roles de grupo definidos para ArtiSync}
@@ -237,6 +239,8 @@ Siguiendo el modelo RBAC (\textit{Role-Based Access Control}) y el principio de 
 \end{table}
 
 \subsection{Usuarios de Login}
+
+La Tabla~\ref{tab:usuarios_login} muestra los usuarios de login definidos, el rol de grupo que heredan y el contexto en el que se utilizan.
 
 \begin{table}[H]
 \centering
@@ -302,7 +306,7 @@ Los privilegios sobre objetos determinan qué operaciones DML/DDL puede realizar
 
 \subsection{Rol: \texttt{rol\_app\_backend}}
 
-Este es el rol más amplio a nivel de objetos, ya que el ORM (Hibernate) necesita acceso DML completo.
+Este es el rol más amplio a nivel de objetos, ya que el ORM (Hibernate) necesita acceso DML completo, como detalla la Tabla~\ref{tab:priv_app}.
 
 \begin{table}[H]
 \centering
@@ -326,7 +330,7 @@ Este es el rol más amplio a nivel de objetos, ya que el ORM (Hibernate) necesit
 
 \subsection{Rol: \texttt{rol\_administrador}}
 
-Hereda todos los privilegios de \texttt{rol\_app\_backend} y añade capacidades DDL.
+Hereda todos los privilegios de \texttt{rol\_app\_backend} y añade capacidades DDL, según la Tabla~\ref{tab:priv_admin}.
 
 \begin{table}[H]
 \centering
@@ -346,6 +350,8 @@ Hereda todos los privilegios de \texttt{rol\_app\_backend} y añade capacidades 
 \end{table}
 
 \subsection{Rol: \texttt{rol\_moderador}}
+
+La Tabla~\ref{tab:priv_moderador} detalla los privilegios de \texttt{rol\_moderador}, limitados a las tablas de moderación y verificación.
 
 \begin{table}[H]
 \centering
@@ -371,6 +377,8 @@ Hereda todos los privilegios de \texttt{rol\_app\_backend} y añade capacidades 
 
 \subsection{Rol: \texttt{rol\_soporte}}
 
+La Tabla~\ref{tab:priv_soporte} detalla el acceso de solo lectura de \texttt{rol\_soporte} a las tablas necesarias para atender incidencias.
+
 \begin{table}[H]
 \centering
 \caption{Privilegios sobre objetos — \texttt{rol\_soporte}}
@@ -387,6 +395,8 @@ Hereda todos los privilegios de \texttt{rol\_app\_backend} y añade capacidades 
 
 \subsection{Rol: \texttt{rol\_auditor\_fin}}
 
+La Tabla~\ref{tab:priv_auditor} resume el acceso de solo lectura de \texttt{rol\_auditor\_fin} a las tablas financieras.
+
 \begin{table}[H]
 \centering
 \caption{Privilegios sobre objetos — \texttt{rol\_auditor\_fin}}
@@ -402,6 +412,8 @@ Hereda todos los privilegios de \texttt{rol\_app\_backend} y añade capacidades 
 \end{table}
 
 \subsection{Rol: \texttt{rol\_solo\_lectura}}
+
+La Tabla~\ref{tab:priv_readonly} muestra el privilegio \texttt{SELECT} que \texttt{rol\_solo\_lectura} recibe sobre todo el esquema.
 
 \begin{table}[H]
 \centering
@@ -502,6 +514,8 @@ A continuación se presenta el código SQL completo para la creación de roles, 
 
 \subsection{Paso 1: Creación de Roles de Grupo}
 
+El Listing~\ref{lst:roles_grupo} implementa en SQL los siete roles de grupo descritos en las secciones anteriores.
+
 \begin{lstlisting}[caption={Creación de roles de grupo (NOLOGIN)}, label={lst:roles_grupo}]
 -- ============================================================
 -- PASO 1: CREACION DE ROLES DE GRUPO (NOLOGIN)
@@ -601,6 +615,8 @@ COMMENT ON ROLE rol_solo_lectura IS
 \end{lstlisting}
 
 \subsection{Paso 2: Creación de Usuarios de Login}
+
+El Listing~\ref{lst:usuarios_login} crea los usuarios de login y les asigna el rol de grupo correspondiente, siguiendo la Tabla~\ref{tab:usuarios_login}.
 
 \begin{lstlisting}[caption={Creación de usuarios de login}, label={lst:usuarios_login}]
 -- ============================================================
@@ -993,7 +1009,7 @@ WHERE table_schema = 'public'
 % ==============================================================================
 \section{Relación entre Roles de BD y Roles de Aplicación}
 
-Es importante distinguir entre los \textbf{roles de base de datos} (definidos en las secciones anteriores) y los \textbf{roles de aplicación} almacenados en la tabla \texttt{roles} y gestionados por Spring Security a nivel de la lógica de negocio.
+Es importante distinguir entre los \textbf{roles de base de datos} (definidos en las secciones anteriores) y los \textbf{roles de aplicación} almacenados en la tabla \texttt{roles} y gestionados por Spring Security a nivel de la lógica de negocio. La Tabla~\ref{tab:mapeo_roles} presenta la correspondencia entre ambos niveles.
 
 \begin{table}[H]
 \centering
@@ -1026,7 +1042,7 @@ Los roles de aplicación (\texttt{ADMIN}, \texttt{CREADOR}, \texttt{CLIENTE}, \t
 % ==============================================================================
 \section{Permisos Granulares de la Aplicación}
 
-La tabla \texttt{permisos} almacena los permisos finos que se asignan a los roles de aplicación a través de la tabla \texttt{rol\_permisos}. Estos permisos complementan el control a nivel de base de datos con un control a nivel de lógica de negocio.
+La tabla \texttt{permisos} almacena los permisos finos que se asignan a los roles de aplicación a través de la tabla \texttt{rol\_permisos}. Estos permisos complementan el control a nivel de base de datos con un control a nivel de lógica de negocio, como resume la Tabla~\ref{tab:permisos_app}.
 
 \begin{table}[H]
 \centering

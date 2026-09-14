@@ -11,14 +11,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import uteq.edu.ec.artisync.dto.peticion.legal.ContractReportFilter;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractReportRow;
+import uteq.edu.ec.artisync.dto.request.legal.ContractReportFilter;
+import uteq.edu.ec.artisync.dto.response.legal.ContractReportRow;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContractRepository;
-import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
-import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
-import uteq.edu.ec.artisync.service.shared.reporte.IExportService;
-import uteq.edu.ec.artisync.service.shared.reporte.ReportModel;
+import uteq.edu.ec.artisync.service.shared.report.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.report.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.report.IExportService;
+import uteq.edu.ec.artisync.service.shared.report.ReportModel;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 import java.math.BigDecimal;
@@ -55,7 +55,7 @@ class ContractReportServiceImplTest {
     void listar_delegaYMapea() {
         ContractReportRow fila = filaDe(1L, new BigDecimal("100.00"));
         Page<ContractReportRow> pagina = new PageImpl<>(List.of(fila));
-        given(contratoRepository.buscarParaReporte(any(), any(), any(), any(), any(Pageable.class)))
+        given(contratoRepository.findForReport(any(), any(), any(), any(), any(Pageable.class)))
                 .willReturn(pagina);
 
         PagedResponse<ContractReportRow> resultado = reporteContratoServicio.list(new ContractReportFilter(), 0, 20);
@@ -68,7 +68,7 @@ class ContractReportServiceImplTest {
     void exportar_excedeTope_lanzaExcepcion() {
         Page<ContractReportRow> paginaEnorme = new PageImpl<>(
                 List.of(filaDe(1L, BigDecimal.TEN)), PageRequest.of(0, ReportFormat.CSV.topeFilas()), 50_001);
-        given(contratoRepository.buscarParaReporte(any(), any(), any(), any(), any(Pageable.class)))
+        given(contratoRepository.findForReport(any(), any(), any(), any(), any(Pageable.class)))
                 .willReturn(paginaEnorme);
 
         assertThatThrownBy(() -> reporteContratoServicio.export(new ContractReportFilter(), ReportFormat.CSV, "admin@artisync.dev"))
@@ -83,7 +83,7 @@ class ContractReportServiceImplTest {
         ContractReportRow fila1 = filaDe(1L, new BigDecimal("100.00"));
         ContractReportRow fila2 = filaDe(2L, null);
         Page<ContractReportRow> pagina = new PageImpl<>(List.of(fila1, fila2));
-        given(contratoRepository.buscarParaReporte(any(), any(), any(), any(), any(Pageable.class)))
+        given(contratoRepository.findForReport(any(), any(), any(), any(), any(Pageable.class)))
                 .willReturn(pagina);
         GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "text/csv", "contratos.csv");
         given(servicioExportacion.export(any(ReportModel.class), eq(ReportFormat.CSV))).willReturn(esperado);
@@ -113,7 +113,7 @@ class ContractReportServiceImplTest {
     @DisplayName("export reporta 'No' cuando soloFirmados es false y omite los filtros no informados")
     void exportar_soloFirmadosFalse_yFiltrosVacios() {
         Page<ContractReportRow> pagina = new PageImpl<>(List.of(filaDe(1L, BigDecimal.ONE)));
-        given(contratoRepository.buscarParaReporte(any(), any(), any(), any(), any(Pageable.class)))
+        given(contratoRepository.findForReport(any(), any(), any(), any(), any(Pageable.class)))
                 .willReturn(pagina);
         given(servicioExportacion.export(any(ReportModel.class), eq(ReportFormat.CSV)))
                 .willReturn(new GeneratedDocument(new byte[]{1}, "text/csv", "contratos.csv"));
@@ -134,7 +134,7 @@ class ContractReportServiceImplTest {
         ContractReportRow fila1 = filaDe(1L, new BigDecimal("50.00"));
         Page<ContractReportRow> paginaParte = new PageImpl<>(
                 List.of(fila1), PageRequest.of(0, 5000), 80_000);
-        given(contratoRepository.buscarParaReporte(any(), any(), any(), any(), any(Pageable.class)))
+        given(contratoRepository.findForReport(any(), any(), any(), any(), any(Pageable.class)))
                 .willReturn(paginaParte);
         GeneratedDocument esperado = new GeneratedDocument(new byte[]{1, 2}, "application/pdf", "contratos_parte_1.pdf");
         given(servicioExportacion.export(any(ReportModel.class), eq(ReportFormat.PDF))).willReturn(esperado);

@@ -15,17 +15,17 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpStatusCodeException;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
-import uteq.edu.ec.artisync.dto.respuesta.legal.PaymentResponse;
+import uteq.edu.ec.artisync.dto.response.legal.PaymentResponse;
 import uteq.edu.ec.artisync.entity.legal.Contract;
 import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
 import uteq.edu.ec.artisync.entity.legal.PaymentTransaction;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
-import uteq.edu.ec.artisync.entity.pedido.Order;
+import uteq.edu.ec.artisync.entity.order.Order;
 import uteq.edu.ec.artisync.repository.legal.ContractRepository;
 import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
+import uteq.edu.ec.artisync.service.communication.NotificationService;
 import uteq.edu.ec.artisync.service.legal.IPaymentService;
 import uteq.edu.ec.artisync.service.legal.IRevisionTicketPaymentService;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
@@ -126,7 +126,7 @@ public class PaymentServiceImpl implements IPaymentService {
             // un GET posterior para leer el approvalUrl.
             JsonNode orden = createOrderInPayPal(idPedido, montoFinal);
             String orderId = orden.path("id").asText();
-            String approvalUrl = extraerApprovalUrl(orden);
+            String approvalUrl = extractApprovalUrl(orden);
 
             // Reutiliza la fila pendiente en lugar de acumular una por clic.
             EscrowPayment pago = existente.orElseGet(() -> EscrowPayment.builder().contrato(contrato).build());
@@ -185,7 +185,7 @@ public class PaymentServiceImpl implements IPaymentService {
         return payPalClient.callPayPal("/v2/checkout/orders", HttpMethod.POST, raiz);
     }
 
-    private String extraerApprovalUrl(JsonNode orden) {
+    private String extractApprovalUrl(JsonNode orden) {
         for (JsonNode enlace : orden.path("links")) {
             if ("approve".equals(enlace.path("rel").asText())) {
                 return enlace.path("href").asText();
@@ -282,7 +282,7 @@ public class PaymentServiceImpl implements IPaymentService {
             return;
         }
 
-        if (EVENTO_ORDEN_APROBADA.equals(tipoEvento) && !capturarOrden(orderId)) {
+        if (EVENTO_ORDEN_APROBADA.equals(tipoEvento) && !captureOrder(orderId)) {
             log.error("No se pudo capturar la orden {}; los fondos siguen pendientes", orderId);
             return;
         }
@@ -351,7 +351,7 @@ public class PaymentServiceImpl implements IPaymentService {
      * <p>Una orden ya capturada se trata como éxito: es el caso normal cuando
      * PayPal reintenta la notificación después de que la primera sí capturara.
      */
-    private boolean capturarOrden(String orderId) {
+    private boolean captureOrder(String orderId) {
         try {
             JsonNode respuesta = payPalClient.callPayPal("/v2/checkout/orders/" + orderId + "/capture",
                     HttpMethod.POST, objectMapper.createObjectNode());

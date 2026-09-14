@@ -47,7 +47,7 @@ public class SecurityPurgeScheduler {
      */
     @Scheduled(cron = "0 30 3 * * *")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void purgarDatosSeguridad() {
+    public void purgeSecurityData() {
         log.info("[SecurityPurgeScheduler] Iniciando purga de sesiones expiradas, tokens de recuperación muertos y códigos de respaldo 2FA consumidos (lote={})", TAMANO_LOTE);
         try {
             jdbcTemplate.update("CALL sp_purgar_datos_seguridad(?)", TAMANO_LOTE);

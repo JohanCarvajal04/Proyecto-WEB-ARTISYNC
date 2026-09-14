@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BackupScheduleServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.backup.impl</a> &gt; <span class="el_source">BackupScheduleServiceImpl.java</span></div><h1>BackupScheduleServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.backup.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.support.CronExpression;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.dto.request.backup.UpdateScheduleRequest;
+import uteq.edu.ec.artisync.dto.request.backup.CreateScheduleRequest;
+import uteq.edu.ec.artisync.dto.response.backup.ScheduleResponse;
+import uteq.edu.ec.artisync.entity.backup.BackupSchedule;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.repository.backup.BackupScheduleRepository;
+import uteq.edu.ec.artisync.service.backup.IBackupScheduleService;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class BackupScheduleServiceImpl implements IBackupScheduleService {
+
+    private final BackupScheduleRepository programacionRepository;
+
+    @Auditable(accion = &quot;RESPALDO_PROGRAMACION_CREAR&quot;, modulo = AuditModule.SISTEMA,
+            entidad = &quot;respaldo_programaciones&quot;, idEntidad = &quot;#resultado.idProgramacion&quot;,
+            detalle = &quot;{nombre: #peticion.nombre, tipoRespaldo: #peticion.tipoRespaldo}&quot;)
+    @Override
+    @Transactional
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @param creadoPor parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public ScheduleResponse create(CreateScheduleRequest peticion, String creadoPor) {
+<span class="fc" id="L41">        LocalDateTime proximaEjecucion = calculateNextExecution(peticion.getExpresionCron());</span>
+<span class="fc" id="L42">        LocalDateTime ahora = LocalDateTime.now();</span>
+
+<span class="fc" id="L44">        BackupSchedule programacion = BackupSchedule.builder()</span>
+<span class="fc" id="L45">                .nombre(peticion.getNombre())</span>
+<span class="fc" id="L46">                .tipoRespaldo(peticion.getTipoRespaldo())</span>
+<span class="fc" id="L47">                .expresionCron(peticion.getExpresionCron())</span>
+<span class="fc" id="L48">                .retencionDias(peticion.getRetencionDias())</span>
+<span class="fc" id="L49">                .activo(true)</span>
+<span class="fc" id="L50">                .proximaEjecucion(proximaEjecucion)</span>
+<span class="fc" id="L51">                .creadoPor(creadoPor)</span>
+<span class="fc" id="L52">                .fechaCreacion(ahora)</span>
+<span class="fc" id="L53">                .actualizadoEn(ahora)</span>
+<span class="fc" id="L54">                .build();</span>
+
+<span class="fc" id="L56">        return toResponse(programacionRepository.save(programacion));</span>
+    }
+
+    @Auditable(accion = &quot;RESPALDO_PROGRAMACION_ACTUALIZAR&quot;, modulo = AuditModule.SISTEMA,
+            entidad = &quot;respaldo_programaciones&quot;, idEntidad = &quot;#idProgramacion&quot;,
+            detalle = &quot;{nombre: #peticion.nombre, tipoRespaldo: #peticion.tipoRespaldo}&quot;)
+    @Override
+    @Transactional
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param idProgramacion identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public ScheduleResponse update(Long idProgramacion, UpdateScheduleRequest peticion) {
+<span class="fc" id="L73">        BackupSchedule programacion = getOrFail(idProgramacion);</span>
+
+<span class="fc" id="L75">        programacion.setNombre(peticion.getNombre());</span>
+<span class="fc" id="L76">        programacion.setTipoRespaldo(peticion.getTipoRespaldo());</span>
+<span class="fc" id="L77">        programacion.setExpresionCron(peticion.getExpresionCron());</span>
+<span class="fc" id="L78">        programacion.setRetencionDias(peticion.getRetencionDias());</span>
+<span class="fc" id="L79">        programacion.setProximaEjecucion(calculateNextExecution(peticion.getExpresionCron()));</span>
+<span class="fc" id="L80">        programacion.setActualizadoEn(LocalDateTime.now());</span>
+
+<span class="fc" id="L82">        return toResponse(programacionRepository.save(programacion));</span>
+    }
+
+    @Auditable(accion = &quot;RESPALDO_PROGRAMACION_CAMBIAR_ESTADO&quot;, modulo = AuditModule.SISTEMA,
+            entidad = &quot;respaldo_programaciones&quot;, idEntidad = &quot;#idProgramacion&quot;, detalle = &quot;{activo: #activo}&quot;)
+    @Override
+    @Transactional
+    /**
+     * Aplica una transicion de estado especifica sobre el ciclo de vida del recurso.
+     *
+     * @param idProgramacion identificador unico que referencia de manera univoca al registro
+     * @param activo parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public ScheduleResponse changeStatus(Long idProgramacion, boolean activo) {
+<span class="fc" id="L98">        BackupSchedule programacion = getOrFail(idProgramacion);</span>
+<span class="fc" id="L99">        programacion.setActivo(activo);</span>
+<span class="fc" id="L100">        programacion.setActualizadoEn(LocalDateTime.now());</span>
+<span class="fc" id="L101">        return toResponse(programacionRepository.save(programacion));</span>
+    }
+
+    @Auditable(accion = &quot;RESPALDO_PROGRAMACION_ELIMINAR&quot;, modulo = AuditModule.SISTEMA,
+            entidad = &quot;respaldo_programaciones&quot;, idEntidad = &quot;#idProgramacion&quot;)
+    @Override
+    @Transactional
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param idProgramacion identificador unico que referencia de manera univoca al registro
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public void delete(Long idProgramacion) {
+<span class="fc" id="L115">        BackupSchedule programacion = getOrFail(idProgramacion);</span>
+<span class="fc" id="L116">        programacionRepository.delete(programacion);</span>
+<span class="fc" id="L117">    }</span>
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public List&lt;ScheduleResponse&gt; list() {
+<span class="fc" id="L128">        return programacionRepository.findAll().stream().map(this::toResponse).toList();</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idProgramacion identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public ScheduleResponse getById(Long idProgramacion) {
+<span class="fc" id="L141">        return toResponse(getOrFail(idProgramacion));</span>
+    }
+
+    private LocalDateTime calculateNextExecution(String expresionCron) {
+        try {
+<span class="fc" id="L146">            LocalDateTime siguiente = CronExpression.parse(expresionCron).next(LocalDateTime.now());</span>
+<span class="fc bfc" id="L147" title="All 2 branches covered.">            if (siguiente == null) {</span>
+<span class="fc" id="L148">                throw new BusinessRuleException(&quot;La expresión cron no produce ninguna ejecución futura.&quot;);</span>
+            }
+<span class="fc" id="L150">            return siguiente;</span>
+<span class="fc" id="L151">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L152">            throw new BusinessRuleException(&quot;Expresión cron inválida: &quot; + e.getMessage());</span>
+        }
+    }
+
+    private BackupSchedule getOrFail(Long idProgramacion) {
+<span class="fc" id="L157">        return programacionRepository.findById(idProgramacion)</span>
+<span class="fc" id="L158">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Programación de respaldo no encontrada con ID: &quot; + idProgramacion));</span>
+    }
+
+    private ScheduleResponse toResponse(BackupSchedule programacion) {
+<span class="fc" id="L162">        return ScheduleResponse.builder()</span>
+<span class="fc" id="L163">                .idProgramacion(programacion.getIdProgramacion())</span>
+<span class="fc" id="L164">                .nombre(programacion.getNombre())</span>
+<span class="fc" id="L165">                .tipoRespaldo(programacion.getTipoRespaldo())</span>
+<span class="fc" id="L166">                .expresionCron(programacion.getExpresionCron())</span>
+<span class="fc" id="L167">                .retencionDias(programacion.getRetencionDias())</span>
+<span class="fc" id="L168">                .activo(programacion.getActivo())</span>
+<span class="fc" id="L169">                .proximaEjecucion(programacion.getProximaEjecucion())</span>
+<span class="fc" id="L170">                .ultimaEjecucion(programacion.getUltimaEjecucion())</span>
+<span class="fc" id="L171">                .creadoPor(programacion.getCreadoPor())</span>
+<span class="fc" id="L172">                .fechaCreacion(programacion.getFechaCreacion())</span>
+<span class="fc" id="L173">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,487 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RaffleServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.social.impl</a> &gt; <span class="el_source">RaffleServiceImpl.java</span></div><h1>RaffleServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.social.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.dto.request.social.UpdateRaffleRequest;
+import uteq.edu.ec.artisync.dto.request.social.CreateRaffleRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.social.WinnerResponse;
+import uteq.edu.ec.artisync.dto.response.social.ParticipantResponse;
+import uteq.edu.ec.artisync.dto.response.social.PrizeResponse;
+import uteq.edu.ec.artisync.dto.response.social.RaffleResponse;
+import uteq.edu.ec.artisync.entity.social.RaffleParticipant;
+import uteq.edu.ec.artisync.entity.social.RafflePrize;
+import uteq.edu.ec.artisync.entity.social.Raffle;
+import uteq.edu.ec.artisync.entity.security.User;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.repository.communication.FollowerRepository;
+import uteq.edu.ec.artisync.repository.profile.CreatorProfileRepository;
+import uteq.edu.ec.artisync.repository.security.UserRepository;
+import uteq.edu.ec.artisync.repository.social.RaffleParticipantRepository;
+import uteq.edu.ec.artisync.repository.social.RaffleRepository;
+import uteq.edu.ec.artisync.service.social.RaffleService;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * Implementación del servicio de sorteos.
+ * RF-23: CRUD, participación con validaciones y selección de ganadores.
+ */
+<span class="fc" id="L44">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class RaffleServiceImpl implements RaffleService {
+
+    private final RaffleRepository sorteoRepository;
+    private final RaffleParticipantRepository participanteSorteoRepository;
+    private final CreatorProfileRepository perfilCreadorRepository;
+    private final UserRepository usuarioRepository;
+    private final FollowerRepository seguidorRepository;
+
+    // =========================================================================
+    // CRUD de Sorteos (CREADOR)
+    // =========================================================================
+
+    /**
+     * Crea un sorteo para el perfil de creador del usuario, con sus premios.
+     *
+     * @param idUsuario identificador del creador dueño del sorteo
+     * @param peticion título, fechas, cantidad de ganadores y premios del sorteo
+     * @return el sorteo creado, en estado {@code Activo}
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene perfil de creador
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la fecha de cierre es anterior a la
+     *         de inicio, o si la cantidad de premios no coincide con la cantidad de ganadores
+     */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;SORTEO_CREAR&quot;, modulo = AuditModule.SOCIAL,
+            entidad = &quot;sorteos&quot;, idEntidad = &quot;#resultado.idSorteo&quot;,
+            detalle = &quot;{tituloSorteo: #peticion.tituloSorteo, cantidadGanadores: #peticion.cantidadGanadores}&quot;)
+    public RaffleResponse createRaffle(Long idUsuario, CreateRaffleRequest peticion) {
+<span class="fc" id="L75">        var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)</span>
+<span class="fc" id="L76">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;No tienes un perfil de creador activo&quot;));
+
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        if (peticion.getFechaCierre().isBefore(peticion.getFechaInicio())) {</span>
+<span class="fc" id="L80">            throw new BusinessRuleException(</span>
+                    &quot;La fecha de cierre debe ser posterior a la fecha de inicio&quot;);
+        }
+
+<span class="fc" id="L84">        validatePrizeCount(peticion.getPremios().size(), peticion.getCantidadGanadores());</span>
+
+<span class="fc" id="L86">        Raffle sorteo = Raffle.builder()</span>
+<span class="fc" id="L87">                .perfilCreador(perfil)</span>
+<span class="fc" id="L88">                .tituloSorteo(peticion.getTituloSorteo())</span>
+<span class="fc" id="L89">                .cantidadGanadores(peticion.getCantidadGanadores())</span>
+<span class="fc" id="L90">                .fechaInicio(peticion.getFechaInicio())</span>
+<span class="fc" id="L91">                .fechaCierre(peticion.getFechaCierre())</span>
+<span class="fc" id="L92">                .requiereSeguidor(peticion.isRequiereSeguidor())</span>
+<span class="fc" id="L93">                .estadoSorteo(&quot;Activo&quot;)</span>
+<span class="fc" id="L94">                .build();</span>
+<span class="fc" id="L95">        sorteo.setPremios(buildPrizes(sorteo, peticion.getPremios()));</span>
+
+<span class="fc" id="L97">        sorteo = sorteoRepository.save(sorteo);</span>
+<span class="fc" id="L98">        log.info(&quot;Raffle '{}' creado por usuario {}&quot;, sorteo.getTituloSorteo(), idUsuario);</span>
+<span class="fc" id="L99">        return mapToResponse(sorteo, null, 0L, false);</span>
+    }
+
+    /** REQ-F-023: la cantidad de ganadores debe coincidir exactamente con la cantidad de premios definidos. */
+    private void validatePrizeCount(int cantidadPremios, int cantidadGanadores) {
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (cantidadPremios != cantidadGanadores) {</span>
+<span class="fc" id="L105">            throw new BusinessRuleException(</span>
+                    &quot;La cantidad de ganadores (&quot; + cantidadGanadores
+                            + &quot;) debe coincidir con la cantidad de premios definidos (&quot; + cantidadPremios + &quot;)&quot;);
+        }
+<span class="fc" id="L109">    }</span>
+
+    private List&lt;RafflePrize&gt; buildPrizes(Raffle sorteo, List&lt;String&gt; descripciones) {
+<span class="fc" id="L112">        List&lt;RafflePrize&gt; premios = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        for (int i = 0; i &lt; descripciones.size(); i++) {</span>
+<span class="fc" id="L114">            premios.add(RafflePrize.builder()</span>
+<span class="fc" id="L115">                    .sorteo(sorteo)</span>
+<span class="fc" id="L116">                    .descripcionPremio(descripciones.get(i))</span>
+<span class="fc" id="L117">                    .orden(i + 1)</span>
+<span class="fc" id="L118">                    .build());</span>
+        }
+<span class="fc" id="L120">        return premios;</span>
+    }
+
+    /**
+     * @param idSorteo identificador del sorteo
+     * @param idUsuarioActual identificador de quien consulta, para saber si ya participa; {@code null} si es anónimo
+     * @return el sorteo, con sus ganadores si ya finalizó
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public RaffleResponse getRaffle(Long idSorteo, Long idUsuarioActual) {
+<span class="fc" id="L132">        Raffle sorteo = findRaffleOrThrow(idSorteo);</span>
+<span class="fc" id="L133">        long total = participanteSorteoRepository.findBySorteoIdSorteo(idSorteo).size();</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        boolean yoParticipo = idUsuarioActual != null &amp;&amp;</span>
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">                participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(idSorteo, idUsuarioActual);</span>
+
+<span class="fc" id="L137">        List&lt;WinnerResponse&gt; ganadores = getWinnersIfFinished(sorteo);</span>
+<span class="fc" id="L138">        return mapToResponse(sorteo, ganadores, total, yoParticipo);</span>
+    }
+
+    /**
+     * Solo hay ganadores despues del cierre del sorteo. Se usa tanto en el detalle
+     * como en los listados, para que las tarjetas de la lista muestren el premio
+     * de cada quien sin depender de abrir el detalle del sorteo.
+     */
+    private List&lt;WinnerResponse&gt; getWinnersIfFinished(Raffle sorteo) {
+<span class="fc bfc" id="L147" title="All 2 branches covered.">        if (!&quot;Finalizado&quot;.equals(sorteo.getEstadoSorteo())) {</span>
+<span class="fc" id="L148">            return null;</span>
+        }
+<span class="fc" id="L150">        return participanteSorteoRepository</span>
+<span class="fc" id="L151">                .findBySorteoIdSorteoAndEsGanadorTrue(sorteo.getIdSorteo())</span>
+<span class="fc" id="L152">                .stream().map(this::mapToWinnerResponse).collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Actualiza un sorteo propio. Si ya tiene participantes inscritos, la
+     * cantidad de ganadores, los premios y la fecha de cierre quedan congelados.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param idUsuario identificador del creador dueño del sorteo
+     * @param peticion campos a actualizar; los {@code null} no se modifican
+     * @return el sorteo ya actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe o el
+     *         usuario no tiene perfil de creador
+     * @throws org.springframework.web.server.ResponseStatusException 403 si el usuario no es dueño del sorteo
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si se intenta cambiar cantidad de
+     *         ganadores, premios o fecha de cierre con participantes ya inscritos, o si la nueva fecha
+     *         de cierre es anterior a la de inicio
+     */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;SORTEO_ACTUALIZAR&quot;, modulo = AuditModule.SOCIAL,
+            entidad = &quot;sorteos&quot;, idEntidad = &quot;#idSorteo&quot;)
+    public RaffleResponse updateRaffle(Long idSorteo, Long idUsuario, UpdateRaffleRequest peticion) {
+<span class="fc" id="L175">        Raffle sorteo = verifyOwner(idSorteo, idUsuario);</span>
+<span class="fc" id="L176">        boolean tieneParticipantes = participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo);</span>
+
+<span class="fc bfc" id="L178" title="All 2 branches covered.">        if (tieneParticipantes) {</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">            if (peticion.getCantidadGanadores() != null &amp;&amp;</span>
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">                    !peticion.getCantidadGanadores().equals(sorteo.getCantidadGanadores())) {</span>
+<span class="fc" id="L181">                throw new BusinessRuleException(</span>
+                        &quot;No se puede modificar este campo una vez iniciadas las inscripciones&quot;);
+            }
+<span class="fc bfc" id="L184" title="All 2 branches covered.">            if (peticion.getPremios() != null) {</span>
+<span class="fc" id="L185">                throw new BusinessRuleException(</span>
+                        &quot;No se puede modificar este campo una vez iniciadas las inscripciones&quot;);
+            }
+<span class="pc bpc" id="L188" title="1 of 2 branches missed.">            if (peticion.getFechaCierre() != null &amp;&amp;</span>
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">                    !peticion.getFechaCierre().equals(sorteo.getFechaCierre())) {</span>
+<span class="fc" id="L190">                throw new BusinessRuleException(</span>
+                        &quot;No se puede modificar la fecha de cierre una vez iniciadas las inscripciones&quot;);
+            }
+        }
+
+        // fechaInicio no es editable por este DTO, así que solo se valida contra
+        // ella (nunca se recalcula): sin este chequeo, una fechaCierre nueva
+        // anterior a la fechaInicio original dejaba el sorteo en un estado
+        // imposible — joinRaffle() rechaza tanto &quot;aún no ha comenzado&quot; como
+        // &quot;el periodo de inscripción ha finalizado&quot; para cualquier instante.
+<span class="fc bfc" id="L200" title="All 4 branches covered.">        if (peticion.getFechaCierre() != null &amp;&amp; peticion.getFechaCierre().isBefore(sorteo.getFechaInicio())) {</span>
+<span class="fc" id="L201">            throw new BusinessRuleException(</span>
+                    &quot;La fecha de cierre debe ser posterior a la fecha de inicio del sorteo&quot;);
+        }
+
+<span class="fc bfc" id="L205" title="All 2 branches covered.">        if (peticion.getTituloSorteo() != null) sorteo.setTituloSorteo(peticion.getTituloSorteo());</span>
+<span class="pc bpc" id="L206" title="1 of 4 branches missed.">        if (!tieneParticipantes &amp;&amp; peticion.getCantidadGanadores() != null)</span>
+<span class="fc" id="L207">            sorteo.setCantidadGanadores(peticion.getCantidadGanadores());</span>
+<span class="pc bpc" id="L208" title="1 of 4 branches missed.">        if (!tieneParticipantes &amp;&amp; peticion.getFechaCierre() != null)</span>
+<span class="fc" id="L209">            sorteo.setFechaCierre(peticion.getFechaCierre());</span>
+<span class="pc bpc" id="L210" title="1 of 4 branches missed.">        if (!tieneParticipantes &amp;&amp; peticion.getPremios() != null) {</span>
+<span class="nc" id="L211">            validatePrizeCount(peticion.getPremios().size(), sorteo.getCantidadGanadores());</span>
+<span class="nc" id="L212">            sorteo.getPremios().clear();</span>
+<span class="nc" id="L213">            sorteo.getPremios().addAll(buildPrizes(sorteo, peticion.getPremios()));</span>
+        }
+
+<span class="fc" id="L216">        sorteo = sorteoRepository.save(sorteo);</span>
+<span class="fc" id="L217">        long total = participanteSorteoRepository.findBySorteoIdSorteo(idSorteo).size();</span>
+<span class="fc" id="L218">        return mapToResponse(sorteo, null, total, false);</span>
+    }
+
+    /**
+     * Elimina un sorteo propio, siempre que no tenga participantes inscritos.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param idUsuario identificador del creador dueño del sorteo
+     * @return mensaje de confirmación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe o el
+     *         usuario no tiene perfil de creador
+     * @throws org.springframework.web.server.ResponseStatusException 403 si el usuario no es dueño del sorteo
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya tiene participantes inscritos
+     */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;SORTEO_ELIMINAR&quot;, modulo = AuditModule.SOCIAL,
+            entidad = &quot;sorteos&quot;, idEntidad = &quot;#idSorteo&quot;)
+    public MessageResponse deleteRaffle(Long idSorteo, Long idUsuario) {
+<span class="fc" id="L237">        Raffle sorteo = verifyOwner(idSorteo, idUsuario);</span>
+<span class="fc bfc" id="L238" title="All 2 branches covered.">        if (participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo)) {</span>
+<span class="fc" id="L239">            throw new BusinessRuleException(</span>
+                    &quot;No se puede eliminar un sorteo con participantes inscritos&quot;);
+        }
+<span class="fc" id="L242">        sorteoRepository.delete(sorteo);</span>
+<span class="fc" id="L243">        log.info(&quot;Raffle {} eliminado por usuario {}&quot;, idSorteo, idUsuario);</span>
+<span class="fc" id="L244">        return new MessageResponse(&quot;Raffle eliminado correctamente&quot;);</span>
+    }
+
+    /**
+     * @param idPerfilCreador identificador del perfil de creador
+     * @param idUsuarioActual identificador de quien consulta, para saber en cuáles ya participa; {@code null} si es anónimo
+     * @return los sorteos de ese creador
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RaffleResponse&gt; listRafflesByCreator(Long idPerfilCreador, Long idUsuarioActual) {
+<span class="fc" id="L255">        return sorteoRepository.findByPerfilCreadorIdPerfil(idPerfilCreador)</span>
+<span class="fc" id="L256">                .stream()</span>
+<span class="fc" id="L257">                .map(s -&gt; {</span>
+<span class="fc" id="L258">                    long total = participanteSorteoRepository.findBySorteoIdSorteo(s.getIdSorteo()).size();</span>
+<span class="fc bfc" id="L259" title="All 2 branches covered.">                    boolean yoParticipo = idUsuarioActual != null &amp;&amp;</span>
+<span class="pc bpc" id="L260" title="1 of 2 branches missed.">                            participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(</span>
+<span class="fc" id="L261">                                    s.getIdSorteo(), idUsuarioActual);</span>
+<span class="fc" id="L262">                    return mapToResponse(s, getWinnersIfFinished(s), total, yoParticipo);</span>
+                })
+<span class="fc" id="L264">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * @param idUsuarioActual identificador de quien consulta, para saber en cuáles ya participa; {@code null} si es anónimo
+     * @return los sorteos actualmente en estado {@code Activo}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RaffleResponse&gt; listActiveRaffles(Long idUsuarioActual) {
+<span class="fc" id="L274">        return sorteoRepository.findByEstadoSorteo(&quot;Activo&quot;)</span>
+<span class="fc" id="L275">                .stream()</span>
+<span class="fc" id="L276">                .map(s -&gt; {</span>
+<span class="fc" id="L277">                    long total = participanteSorteoRepository.findBySorteoIdSorteo(s.getIdSorteo()).size();</span>
+<span class="fc bfc" id="L278" title="All 2 branches covered.">                    boolean yoParticipo = idUsuarioActual != null &amp;&amp;</span>
+<span class="pc bpc" id="L279" title="1 of 2 branches missed.">                            participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(</span>
+<span class="fc" id="L280">                                    s.getIdSorteo(), idUsuarioActual);</span>
+<span class="fc" id="L281">                    return mapToResponse(s, getWinnersIfFinished(s), total, yoParticipo);</span>
+                })
+<span class="fc" id="L283">                .collect(Collectors.toList());</span>
+    }
+
+    // =========================================================================
+    // Participación
+    // =========================================================================
+
+    /**
+     * Inscribe a un usuario en un sorteo activo, validando fechas, que no
+     * esté ya inscrito y, si el sorteo lo requiere, que siga al creador.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param idUsuario identificador del usuario que se inscribe
+     * @return la participación creada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el usuario ya está inscrito
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo no está activo, si aún
+     *         no comenzó, si el periodo de inscripción ya cerró, o si requiere seguir al creador y no lo sigue
+     */
+    @Override
+    @Transactional
+    public ParticipantResponse joinRaffle(Long idSorteo, Long idUsuario) {
+<span class="fc" id="L305">        Raffle sorteo = findRaffleOrThrow(idSorteo);</span>
+
+        // Validar estado
+<span class="fc bfc" id="L308" title="All 2 branches covered.">        if (!&quot;Activo&quot;.equals(sorteo.getEstadoSorteo())) {</span>
+<span class="fc" id="L309">            throw new BusinessRuleException(&quot;El sorteo no está activo&quot;);</span>
+        }
+
+        // Validar rango de fechas
+<span class="fc" id="L313">        LocalDateTime ahora = LocalDateTime.now();</span>
+<span class="fc bfc" id="L314" title="All 2 branches covered.">        if (ahora.isBefore(sorteo.getFechaInicio())) {</span>
+<span class="fc" id="L315">            throw new BusinessRuleException(&quot;El sorteo aún no ha comenzado&quot;);</span>
+        }
+<span class="fc bfc" id="L317" title="All 2 branches covered.">        if (ahora.isAfter(sorteo.getFechaCierre())) {</span>
+<span class="fc" id="L318">            throw new BusinessRuleException(&quot;El periodo de inscripción ha finalizado&quot;);</span>
+        }
+
+        // Validar inscripción duplicada
+<span class="fc bfc" id="L322" title="All 2 branches covered.">        if (participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(idSorteo, idUsuario)) {</span>
+<span class="fc" id="L323">            throw new DuplicateResourceException(&quot;Ya estás inscrito en este sorteo&quot;);</span>
+        }
+
+        // Validar requisito de seguidor
+<span class="fc bfc" id="L327" title="All 2 branches covered.">        if (Boolean.TRUE.equals(sorteo.getRequiereSeguidor())) {</span>
+<span class="fc" id="L328">            boolean esSeguidor = seguidorRepository.existsByUsuarioSeguidorIdUsuarioAndPerfilCreadorIdPerfil(</span>
+<span class="fc" id="L329">                    idUsuario, sorteo.getPerfilCreador().getIdPerfil());</span>
+<span class="fc bfc" id="L330" title="All 2 branches covered.">            if (!esSeguidor) {</span>
+<span class="fc" id="L331">                throw new BusinessRuleException(</span>
+                        &quot;Este sorteo requiere que sigas al creador para poder joinRaffle&quot;);
+            }
+        }
+
+<span class="fc" id="L336">        User usuario = usuarioRepository.getReferenceById(idUsuario);</span>
+<span class="fc" id="L337">        RaffleParticipant participante = RaffleParticipant.builder()</span>
+<span class="fc" id="L338">                .sorteo(sorteo)</span>
+<span class="fc" id="L339">                .usuario(usuario)</span>
+<span class="fc" id="L340">                .esGanador(false)</span>
+<span class="fc" id="L341">                .build();</span>
+<span class="fc" id="L342">        participante = participanteSorteoRepository.save(participante);</span>
+<span class="fc" id="L343">        log.info(&quot;User {} inscrito en sorteo {}&quot;, idUsuario, idSorteo);</span>
+<span class="fc" id="L344">        return mapToParticipantResponse(participante);</span>
+    }
+
+    /**
+     * Cancela la inscripción de un usuario en un sorteo aún activo.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param idUsuario identificador del usuario que cancela su inscripción
+     * @return mensaje de confirmación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe, o si el
+     *         usuario no está inscrito
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo ya finalizó
+     */
+    @Override
+    @Transactional
+    public MessageResponse cancelParticipation(Long idSorteo, Long idUsuario) {
+<span class="fc" id="L360">        Raffle sorteo = findRaffleOrThrow(idSorteo);</span>
+<span class="fc bfc" id="L361" title="All 2 branches covered.">        if (!&quot;Activo&quot;.equals(sorteo.getEstadoSorteo())) {</span>
+<span class="fc" id="L362">            throw new BusinessRuleException(&quot;No puedes cancelar la inscripción en un sorteo que ya ha finalizado&quot;);</span>
+        }
+<span class="fc" id="L364">        RaffleParticipant participante = participanteSorteoRepository</span>
+<span class="fc" id="L365">                .findBySorteoIdSorteo(idSorteo)</span>
+<span class="fc" id="L366">                .stream()</span>
+<span class="fc" id="L367">                .filter(p -&gt; p.getUsuario().getIdUsuario().equals(idUsuario))</span>
+<span class="fc" id="L368">                .findFirst()</span>
+<span class="fc" id="L369">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;No estás inscrito en este sorteo&quot;));
+<span class="fc" id="L371">        participanteSorteoRepository.delete(participante);</span>
+<span class="fc" id="L372">        return new MessageResponse(&quot;Inscripción cancelada correctamente&quot;);</span>
+    }
+
+    /**
+     * @param idSorteo identificador del sorteo
+     * @return los participantes inscritos en ese sorteo
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;ParticipantResponse&gt; listParticipants(Long idSorteo) {
+<span class="fc" id="L383">        findRaffleOrThrow(idSorteo); // Valida que existe</span>
+<span class="fc" id="L384">        return participanteSorteoRepository.findBySorteoIdSorteo(idSorteo)</span>
+<span class="fc" id="L385">                .stream().map(this::mapToParticipantResponse).collect(Collectors.toList());</span>
+    }
+
+    /**
+     * @param idSorteo identificador del sorteo
+     * @return los ganadores del sorteo, disponibles solo tras su cierre
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     * @throws org.springframework.web.server.ResponseStatusException 409 si el sorteo aún no finalizó
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;WinnerResponse&gt; listWinners(Long idSorteo) {
+<span class="fc" id="L397">        Raffle sorteo = findRaffleOrThrow(idSorteo);</span>
+<span class="fc bfc" id="L398" title="All 2 branches covered.">        if (!&quot;Finalizado&quot;.equals(sorteo.getEstadoSorteo())) {</span>
+<span class="fc" id="L399">            throw new ResponseStatusException(HttpStatus.CONFLICT,</span>
+                    &quot;Los ganadores solo están disponibles después del cierre del sorteo&quot;);
+        }
+<span class="fc" id="L402">        return participanteSorteoRepository.findBySorteoIdSorteoAndEsGanadorTrue(idSorteo)</span>
+<span class="fc" id="L403">                .stream().map(this::mapToWinnerResponse).collect(Collectors.toList());</span>
+    }
+
+    // =========================================================================
+    // Helpers privados
+    // =========================================================================
+
+    private Raffle findRaffleOrThrow(Long idSorteo) {
+<span class="fc" id="L411">        return sorteoRepository.findById(idSorteo)</span>
+<span class="fc" id="L412">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Raffle no encontrado: &quot; + idSorteo));</span>
+    }
+
+    private Raffle verifyOwner(Long idSorteo, Long idUsuario) {
+<span class="fc" id="L416">        Raffle sorteo = findRaffleOrThrow(idSorteo);</span>
+<span class="fc" id="L417">        var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)</span>
+<span class="fc" id="L418">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;No tienes perfil de creador&quot;));</span>
+<span class="fc bfc" id="L419" title="All 2 branches covered.">        if (!sorteo.getPerfilCreador().getIdPerfil().equals(perfil.getIdPerfil())) {</span>
+<span class="fc" id="L420">            throw new ResponseStatusException(HttpStatus.FORBIDDEN,</span>
+                    &quot;No tienes permiso para modificar este sorteo&quot;);
+        }
+<span class="fc" id="L423">        return sorteo;</span>
+    }
+
+    private RaffleResponse mapToResponse(Raffle sorteo, List&lt;WinnerResponse&gt; ganadores,
+                                          long total, boolean yoParticipo) {
+<span class="fc" id="L428">        return RaffleResponse.builder()</span>
+<span class="fc" id="L429">                .idSorteo(sorteo.getIdSorteo())</span>
+<span class="fc" id="L430">                .tituloSorteo(sorteo.getTituloSorteo())</span>
+<span class="fc" id="L431">                .cantidadGanadores(sorteo.getCantidadGanadores())</span>
+<span class="fc" id="L432">                .fechaInicio(sorteo.getFechaInicio())</span>
+<span class="fc" id="L433">                .fechaCierre(sorteo.getFechaCierre())</span>
+<span class="fc" id="L434">                .estadoSorteo(sorteo.getEstadoSorteo())</span>
+<span class="fc" id="L435">                .requiereSeguidor(sorteo.getRequiereSeguidor())</span>
+<span class="fc" id="L436">                .idPerfilCreador(sorteo.getPerfilCreador().getIdPerfil())</span>
+<span class="fc" id="L437">                .nombreCreador(sorteo.getPerfilCreador().getUsuario().getNombres()</span>
+<span class="fc" id="L438">                        + &quot; &quot; + sorteo.getPerfilCreador().getUsuario().getApellidos())</span>
+<span class="fc" id="L439">                .totalParticipantes(total)</span>
+<span class="fc" id="L440">                .yoParticipo(yoParticipo)</span>
+<span class="fc" id="L441">                .ganadores(ganadores)</span>
+<span class="fc" id="L442">                .premios(mapToPrizesResponse(sorteo, ganadores))</span>
+<span class="fc" id="L443">                .build();</span>
+    }
+
+    /** Cruza cada premio del sorteo con su ganador (si ya hubo sorteo y ese premio fue asignado). */
+    private List&lt;PrizeResponse&gt; mapToPrizesResponse(Raffle sorteo, List&lt;WinnerResponse&gt; ganadores) {
+<span class="fc" id="L448">        Map&lt;Long, WinnerResponse&gt; ganadorPorPremio = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L449" title="All 2 branches covered.">        if (ganadores != null) {</span>
+<span class="fc bfc" id="L450" title="All 2 branches covered.">            for (WinnerResponse g : ganadores) {</span>
+<span class="fc bfc" id="L451" title="All 2 branches covered.">                if (g.getIdPremio() != null) {</span>
+<span class="fc" id="L452">                    ganadorPorPremio.put(g.getIdPremio(), g);</span>
+                }
+<span class="fc" id="L454">            }</span>
+        }
+<span class="fc" id="L456">        return sorteo.getPremios().stream()</span>
+<span class="fc" id="L457">                .map(p -&gt; PrizeResponse.builder()</span>
+<span class="fc" id="L458">                        .idPremio(p.getIdPremio())</span>
+<span class="fc" id="L459">                        .descripcionPremio(p.getDescripcionPremio())</span>
+<span class="fc" id="L460">                        .orden(p.getOrden())</span>
+<span class="fc" id="L461">                        .ganador(ganadorPorPremio.get(p.getIdPremio()))</span>
+<span class="fc" id="L462">                        .build())</span>
+<span class="fc" id="L463">                .collect(Collectors.toList());</span>
+    }
+
+    private ParticipantResponse mapToParticipantResponse(RaffleParticipant p) {
+<span class="fc" id="L467">        return ParticipantResponse.builder()</span>
+<span class="fc" id="L468">                .idParticipacion(p.getIdParticipacion())</span>
+<span class="fc" id="L469">                .idUsuario(p.getUsuario().getIdUsuario())</span>
+<span class="fc" id="L470">                .nombreUsuario(p.getUsuario().getNombres() + &quot; &quot; + p.getUsuario().getApellidos())</span>
+<span class="fc" id="L471">                .fechaInscripcion(p.getFechaInscripcion())</span>
+<span class="fc" id="L472">                .esGanador(p.getEsGanador())</span>
+<span class="fc" id="L473">                .build();</span>
+    }
+
+    private WinnerResponse mapToWinnerResponse(RaffleParticipant p) {
+<span class="fc" id="L477">        return WinnerResponse.builder()</span>
+<span class="fc" id="L478">                .idParticipacion(p.getIdParticipacion())</span>
+<span class="fc" id="L479">                .idUsuario(p.getUsuario().getIdUsuario())</span>
+<span class="fc" id="L480">                .nombreUsuario(p.getUsuario().getNombres() + &quot; &quot; + p.getUsuario().getApellidos())</span>
+<span class="fc" id="L481">                .fechaNotificacionPremio(p.getFechaNotificacionPremio())</span>
+<span class="fc bfc" id="L482" title="All 2 branches covered.">                .idPremio(p.getPremio() != null ? p.getPremio().getIdPremio() : null)</span>
+<span class="fc bfc" id="L483" title="All 2 branches covered.">                .descripcionPremio(p.getPremio() != null ? p.getPremio().getDescripcionPremio() : null)</span>
+<span class="fc" id="L484">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

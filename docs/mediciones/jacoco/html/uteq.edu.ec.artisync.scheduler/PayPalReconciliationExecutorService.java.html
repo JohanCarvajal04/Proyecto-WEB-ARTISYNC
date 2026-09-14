@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PayPalReconciliationExecutorService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.scheduler</a> &gt; <span class="el_source">PayPalReconciliationExecutorService.java</span></div><h1>PayPalReconciliationExecutorService.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.scheduler;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpMethod;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpStatusCodeException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
+import uteq.edu.ec.artisync.entity.legal.PaymentTransaction;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
+import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
+import uteq.edu.ec.artisync.service.communication.NotificationService;
+import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
+
+/**
+ * Extraído de PayPalReconciliationScheduler para que REQUIRES_NEW funcione de
+ * verdad (mismo motivo documentado en RaffleExecutorService: this.metodo()
+ * dentro de la misma clase se salta el proxy de Spring AOP).
+ *
+ * No reutiliza los métodos privados de PaymentServiceImpl (capturarOrden,
+ * firmaVerificada, etc.): se mantiene deliberadamente autocontenido para no
+ * arriesgar la lógica de idempotencia del webhook, ya verificada (REQ-NF-014),
+ * a costa de duplicar ~15 líneas de captura.
+ */
+<span class="fc" id="L32">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class PayPalReconciliationExecutorService {
+
+    private static final String FONDOS_PENDIENTE = &quot;Pendiente&quot;;
+    private static final String FONDOS_RETENIDO = &quot;Retenido&quot;;
+
+    private final EscrowPaymentRepository pagoGarantiaRepository;
+    private final PaymentTransactionRepository transaccionPagoRepository;
+    private final NotificationService notificacionService;
+    private final PayPalClient payPalClient;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    /**
+     * Consulta el estado real de una orden de PayPal en {@code Pendiente} y la
+     * reconcilia: confirma el pago si ya está {@code COMPLETED}, captura y
+     * confirma si está {@code APPROVED}, o deja constancia en el log si sigue
+     * pendiente o fue {@code VOIDED}. Relee el pago con lock antes de actuar
+     * por si el webhook ya lo confirmó mientras tanto.
+     *
+     * @param idPago identificador del pago de garantía a reconciliar
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Auditable(accion = &quot;PAGO_RECONCILIAR&quot;, modulo = AuditModule.FINANZAS,
+            correoActor = &quot;'sistema:paypal'&quot;,
+            entidad = &quot;pagos_garantia&quot;, idEntidad = &quot;#idPago&quot;)
+    public void reconcile(Long idPago) {
+        // Relectura con lock: si el webhook confirmó el pago entre que el
+        // scheduler lo leyó y esta transacción arrancó, gana el webhook y aquí
+        // no hay nada que hacer.
+<span class="fc" id="L64">        EscrowPayment pago = pagoGarantiaRepository.findByIdParaActualizar(idPago).orElse(null);</span>
+<span class="pc bpc" id="L65" title="1 of 4 branches missed.">        if (pago == null || !FONDOS_PENDIENTE.equalsIgnoreCase(pago.getEstadoFondos())) {</span>
+<span class="fc" id="L66">            return;</span>
+        }
+
+        JsonNode orden;
+        try {
+<span class="fc" id="L71">            orden = payPalClient.callPayPal(</span>
+<span class="fc" id="L72">                    &quot;/v2/checkout/orders/&quot; + pago.getIdOrdenPaypal(), HttpMethod.GET, null);</span>
+<span class="nc" id="L73">        } catch (Exception e) {</span>
+<span class="nc" id="L74">            log.error(&quot;[PayPalReconciliationExecutorService] Error consultando la orden {} en PayPal: {}&quot;,</span>
+<span class="nc" id="L75">                    pago.getIdOrdenPaypal(), e.getMessage());</span>
+<span class="nc" id="L76">            return;</span>
+<span class="fc" id="L77">        }</span>
+
+<span class="fc" id="L79">        String estado = orden.path(&quot;status&quot;).asText();</span>
+<span class="fc bfc" id="L80" title="All 4 branches covered.">        switch (estado) {</span>
+<span class="fc" id="L81">            case &quot;COMPLETED&quot; -&gt; confirmPayment(pago, &quot;reconciliación: la orden ya estaba COMPLETED en PayPal&quot;);</span>
+<span class="fc" id="L82">            case &quot;APPROVED&quot; -&gt; captureAndConfirm(pago);</span>
+<span class="fc" id="L83">            case &quot;VOIDED&quot; -&gt; log.warn(</span>
+                    &quot;[PayPalReconciliationExecutorService] Orden {} (pago {}) VOIDED en PayPal; sigue Pendiente, &quot;
+                            + &quot;el cliente deberá iniciar un nuevo intento de pago&quot;,
+<span class="fc" id="L86">                    pago.getIdOrdenPaypal(), pago.getIdPago());</span>
+<span class="fc" id="L87">            default -&gt; log.info(</span>
+                    &quot;[PayPalReconciliationExecutorService] Orden {} (pago {}) sigue en estado {} en PayPal; &quot;
+                            + &quot;se reintenta en el próximo ciclo&quot;,
+<span class="fc" id="L90">                    pago.getIdOrdenPaypal(), pago.getIdPago(), estado);</span>
+        }
+<span class="fc" id="L92">    }</span>
+
+    private void captureAndConfirm(EscrowPayment pago) {
+        try {
+<span class="fc" id="L96">            JsonNode respuesta = payPalClient.callPayPal(</span>
+<span class="fc" id="L97">                    &quot;/v2/checkout/orders/&quot; + pago.getIdOrdenPaypal() + &quot;/capture&quot;,</span>
+<span class="fc" id="L98">                    HttpMethod.POST, objectMapper.createObjectNode());</span>
+<span class="fc" id="L99">            String estadoCaptura = respuesta.path(&quot;status&quot;).asText();</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">            if (&quot;COMPLETED&quot;.equals(estadoCaptura)) {</span>
+<span class="fc" id="L101">                confirmPayment(pago, &quot;reconciliación: orden APPROVED capturada de forma proactiva&quot;);</span>
+            } else {
+<span class="nc" id="L103">                log.error(&quot;[PayPalReconciliationExecutorService] Captura de la orden {} devolvió estado {}&quot;,</span>
+<span class="nc" id="L104">                        pago.getIdOrdenPaypal(), estadoCaptura);</span>
+            }
+<span class="fc" id="L106">        } catch (HttpStatusCodeException e) {</span>
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">            if (e.getResponseBodyAsString().contains(&quot;ORDER_ALREADY_CAPTURED&quot;)) {</span>
+<span class="fc" id="L108">                confirmPayment(pago, &quot;reconciliación: la orden ya estaba capturada&quot;);</span>
+<span class="fc" id="L109">                return;</span>
+            }
+<span class="nc" id="L111">            log.error(&quot;[PayPalReconciliationExecutorService] Error capturando la orden {}: {}&quot;,</span>
+<span class="nc" id="L112">                    pago.getIdOrdenPaypal(), e.getResponseBodyAsString());</span>
+<span class="nc" id="L113">        } catch (Exception e) {</span>
+<span class="nc" id="L114">            log.error(&quot;[PayPalReconciliationExecutorService] Error capturando la orden {}&quot;,</span>
+<span class="nc" id="L115">                    pago.getIdOrdenPaypal(), e);</span>
+<span class="pc" id="L116">        }</span>
+<span class="fc" id="L117">    }</span>
+
+    private void confirmPayment(EscrowPayment pago, String motivo) {
+<span class="fc" id="L120">        pago.setEstadoFondos(FONDOS_RETENIDO);</span>
+<span class="fc" id="L121">        pagoGarantiaRepository.save(pago);</span>
+
+<span class="fc" id="L123">        transaccionPagoRepository.save(PaymentTransaction.builder()</span>
+<span class="fc" id="L124">                .pago(pago)</span>
+<span class="fc" id="L125">                .tipoTransaccion(&quot;Ingreso&quot;)</span>
+<span class="fc" id="L126">                .monto(pago.getMontoRetenido())</span>
+<span class="fc" id="L127">                .build());</span>
+
+<span class="fc" id="L129">        log.info(&quot;[PayPalReconciliationExecutorService] Pago {} confirmado por {}. Fondos retenidos: ${}&quot;,</span>
+<span class="fc" id="L130">                pago.getIdPago(), motivo, pago.getMontoRetenido());</span>
+
+<span class="fc" id="L132">        Order pedido = pago.getContrato().getPedido();</span>
+<span class="fc" id="L133">        String mensaje = &quot;El pago de tu pedido \&quot;&quot; + pedido.getServicio().getTituloServicio()</span>
+                + &quot;\&quot; fue confirmado. Los fondos quedan en garantía hasta la aprobación de la entrega.&quot;;
+<span class="fc" id="L135">        notificacionService.notify(pedido.getUsuarioCliente(), &quot;PAGO_CONFIRMADO&quot;, mensaje);</span>
+<span class="fc" id="L136">        notificacionService.notify(pedido.getServicio().getPerfil().getUsuario(), &quot;PAGO_CONFIRMADO&quot;,</span>
+<span class="fc" id="L137">                &quot;Se confirmó el pago de garantía para el pedido \&quot;&quot; + pedido.getServicio().getTituloServicio() + &quot;\&quot;.&quot;);</span>
+<span class="fc" id="L138">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

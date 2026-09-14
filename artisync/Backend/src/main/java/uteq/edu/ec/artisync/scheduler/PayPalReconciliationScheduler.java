@@ -39,7 +39,7 @@ public class PayPalReconciliationScheduler {
      * REQUIRES_NEW) para que el fallo de uno no revierta a los demás.
      */
     @Scheduled(fixedRateString = "${paypal.reconciliacion.intervalo-ms:900000}") // 15 min
-    public void reconciliarPagosPendientes() {
+    public void reconcilePendingPayments() {
         LocalDateTime limite = LocalDateTime.now().minusMinutes(umbralMinutos);
         List<EscrowPayment> pendientes = pagoGarantiaRepository
                 .findByEstadoFondosAndFechaActualizacionBefore("Pendiente", limite);
@@ -53,7 +53,7 @@ public class PayPalReconciliationScheduler {
 
         for (EscrowPayment pago : pendientes) {
             try {
-                reconciliacionPayPalEjecutorServicio.reconciliar(pago.getIdPago());
+                reconciliacionPayPalEjecutorServicio.reconcile(pago.getIdPago());
             } catch (Exception e) {
                 log.error("[PayPalReconciliationScheduler] Error reconciliando pago {}: {}",
                         pago.getIdPago(), e.getMessage(), e);

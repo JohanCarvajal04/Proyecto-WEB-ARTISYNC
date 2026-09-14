@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.entity.social;
 
-import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
+import uteq.edu.ec.artisync.entity.profile.CreatorProfile;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

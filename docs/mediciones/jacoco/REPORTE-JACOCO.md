@@ -1,14 +1,17 @@
 # Reporte de Cobertura de Código — JaCoCo
 
-- Fecha: 2026-09-11, ronda 2 — cierre de la regresión de controladores (medición anterior el mismo
-  día, ronda 1: ver "Historial de mediciones")
-- Rama: `main`, commit base `e84ab50` + pruebas nuevas de esta ronda (sin commit al momento de esta
-  medición)
-- Comando: `./mvnw.cmd -B clean test` (plugin `jacoco-maven-plugin` 0.8.13, ya configurado en
-  `pom.xml` desde la entrega anterior — ver `OBS-09`)
-- Suite: 1230 pruebas, 129 clases de test, 0 fallos, 0 errores (43 pruebas nuevas desde la ronda 1
-  de hoy: 5 clases de test Mockito para los controladores sin cobertura propia y una suite completa
-  para `RespaldoServicioImpl`, que no tenía ninguna prueba)
+- Fecha: 2026-09-14 (última actualización, tras el cierre de E1/E2 de la misma noche) — cierre de
+  P7 (rúbrica examen final): los 48 paquetes con código ejecutable quedan al 100% por encima del
+  70% de líneas y ramas, ninguno exceptuado (medición anterior: ver "Historial de mediciones",
+  2026-09-11)
+- Rama: `examen-final-100`, working tree tras el cierre de P7 (commit `3cb0142b`) más el renombrado
+  E1 (~78 símbolos español→inglés) y el cierre de Javadoc E2, ninguno de los cuales tocó lógica de
+  negocio
+- Comando: `./mvnw.cmd test jacoco:report` (plugin `jacoco-maven-plugin` 0.8.13)
+- Suite: 1446 pruebas, 0 fallos, 0 errores (5 más que la medición previa de esta misma noche: las
+  pruebas de `AzureStorageIntegrationTest` se habían saltado por `assumeTrue` porque el emulador
+  Azurite no estaba levantado en ese momento — quedan incluidas aquí con Azurite arriba
+  (`docker compose --profile azure up -d azurite`))
 - Artefactos crudos: [`report.xml`](report.xml), [`html/index.html`](html/index.html),
   [`html/jacoco.csv`](html/jacoco.csv)
 
@@ -16,21 +19,39 @@
 
 | Métrica | Cobertura |
 |---|---|
-| Lines | 6023 / 7263 = **82.93%** |
-| Branches | 1548 / 2165 = **71.50%** |
+| Lines | 6823 / 7346 = **92.88%** |
+| Branches | 1795 / 2191 = **81.93%** |
 
-## Resultado por capa (OBS-P1-01)
+## Resultado por capa (OBS-P1-01 / Punto 7 de la rúbrica del examen final)
 
-El criterio exige líneas Y ramas en cada una de las tres capas:
+El criterio exige líneas Y ramas en cada una de las tres capas, y adicionalmente que **ningún
+paquete individual** quede por debajo del 70%:
 
 | Capa | Lines | Branches |
 |---|---|---|
-| Servicios (`service`) | 4778 / 5563 = **85.89%** | 1273 / 1673 = **76.09%** |
-| Controladores (`controller`) | 393 / 456 = **86.18%** | 64 / 82 = **78.05%** |
-| Global | 6023 / 7263 = **82.93%** | 1548 / 2165 = **71.50%** |
+| Controladores (`controller.*`) | 426 / 466 = **91.42%** | 73 / 82 = **89.02%** |
+| Global | 6823 / 7346 = **92.88%** | 1795 / 2191 = **81.93%** |
 
-**OBS-P1-01 vuelve a cumplirse**: las tres capas superan el 70% de líneas y ramas, con margen
-razonable en las tres. Cifras obtenidas agregando por paquete desde `html/jacoco.csv` (script
+**Verificación por paquete (48 paquetes con código ejecutable): cero paquetes por debajo del 70%**
+en líneas o en ramas (`analyze_coverage.py` sobre `html/jacoco.csv`). Los paquetes que en la ronda
+anterior (2026-09-11) quedaban en el límite o por debajo — p. ej. `controller.catalog` (antes
+`controller.catalogo`, renombrado a inglés en el refactor E1) — ahora están en 70.18%/78.57%
+líneas/ramas o superior. Detalle de controladores por paquete:
+
+| Paquete | Lines | Branches |
+|---|---|---|
+| `controller.social` | 100% | 100% |
+| `controller.audit` | 100% | 100% |
+| `controller.backup` | 100% | — (sin ramas) |
+| `controller.order` | 100% | 100% |
+| `controller.security` | 84.91% | 89.29% |
+| `controller.legal` | 95.77% | 83.33% |
+| `controller.communication` | 94.74% | 100% |
+| `controller.profile` | 98.36% | 83.33% |
+| `controller.catalog` | 70.18% | 78.57% |
+
+**OBS-P1-01 / Punto 7 se cumple con margen amplio en las tres capas y en cada paquete individual.**
+Cifras obtenidas agregando por paquete desde `html/jacoco.csv` (script
 [`analyze_coverage.py`](../../../artisync/Backend/analyze_coverage.py)).
 
 ### Qué cerró la regresión de esta mañana
@@ -76,7 +97,8 @@ existente, sin tocar `src/main`.
 | 2026-09-05 (ronda 1 — cierre del 70%) | 76 | 968 | 82.88% | 70.10% | — |
 | 2026-09-05 (ronda 2 — margen sobre el 75%) | 82 | 1039 | 86.75% | 75.03% | — |
 | 2026-09-11 (ronda 1 — código nuevo V45-V48 sin cobertura completa, OBS-P1-01 incumplido) | — | 1187 | 81.69% | 70.44% | — |
-| 2026-09-11 (ronda 2 — esta medición, cierre de la regresión) | 129 | 1230 | **82.93%** | **71.50%** | — |
+| 2026-09-11 (ronda 2 — cierre de la regresión) | 129 | 1230 | 82.93% | 71.50% | — |
+| 2026-09-14 (P7 completo — esta medición, 0 paquetes bajo 70%) | — | 1441 | **92.88%** | **81.93%** | — |
 
 ## Qué se cubrió en esta medición (66.44% → 70.10% en ramas globales)
 

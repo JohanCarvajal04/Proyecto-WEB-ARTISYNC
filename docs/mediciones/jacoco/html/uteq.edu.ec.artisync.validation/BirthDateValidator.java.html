@@ -6,44 +6,56 @@ import jakarta.validation.ConstraintValidatorContext;
 import java.time.LocalDate;
 import java.time.Period;
 
-<span class="fc" id="L9">public class BirthDateValidator implements ConstraintValidator&lt;ValidBirthDate, LocalDate&gt; {</span>
+/** Valida el rango de {@link LocalDate} anotado con {@link ValidBirthDate}. */
+<span class="fc" id="L10">public class BirthDateValidator implements ConstraintValidator&lt;ValidBirthDate, LocalDate&gt; {</span>
 
     private int minAge;
     private int maxAgeYears;
 
+    /**
+     * Lee los límites configurados en la anotación {@link ValidBirthDate}.
+     * @param constraintAnnotation instancia de la anotación sobre el campo validado
+     */
     @Override
     public void initialize(ValidBirthDate constraintAnnotation) {
-<span class="fc" id="L16">        this.minAge = constraintAnnotation.minAge();</span>
-<span class="fc" id="L17">        this.maxAgeYears = constraintAnnotation.maxAgeYears();</span>
-<span class="fc" id="L18">    }</span>
+<span class="fc" id="L21">        this.minAge = constraintAnnotation.minAge();</span>
+<span class="fc" id="L22">        this.maxAgeYears = constraintAnnotation.maxAgeYears();</span>
+<span class="fc" id="L23">    }</span>
 
+    /**
+     * Verifica que la fecha no sea futura, no exceda la antigüedad máxima
+     * configurada y, si aplica, cumpla la edad mínima requerida.
+     * @param value fecha de nacimiento a validar, {@code null} se considera válido
+     * @param context contexto de validación, usado para personalizar el mensaje de error
+     * @return {@code true} si la fecha cumple todas las restricciones configuradas
+     */
     @Override
     public boolean isValid(LocalDate value, ConstraintValidatorContext context) {
-<span class="fc bfc" id="L22" title="All 2 branches covered.">        if (value == null) {</span>
-<span class="fc" id="L23">            return true;</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L35">            return true;</span>
         }
 
-<span class="fc" id="L26">        LocalDate today = LocalDate.now();</span>
+<span class="fc" id="L38">        LocalDate today = LocalDate.now();</span>
 
-<span class="fc bfc" id="L28" title="All 2 branches covered.">        if (value.isAfter(today)) {</span>
-<span class="fc" id="L29">            return fail(context, &quot;La fecha de nacimiento no puede ser una fecha futura&quot;);</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">        if (value.isAfter(today)) {</span>
+<span class="fc" id="L41">            return fail(context, &quot;La fecha de nacimiento no puede ser una fecha futura&quot;);</span>
         }
 
-<span class="fc bfc" id="L32" title="All 2 branches covered.">        if (value.isBefore(today.minusYears(maxAgeYears))) {</span>
-<span class="fc" id="L33">            return fail(context, &quot;La fecha de nacimiento no es válida&quot;);</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        if (value.isBefore(today.minusYears(maxAgeYears))) {</span>
+<span class="fc" id="L45">            return fail(context, &quot;La fecha de nacimiento no es válida&quot;);</span>
         }
 
-<span class="fc bfc" id="L36" title="All 4 branches covered.">        if (minAge &gt; 0 &amp;&amp; Period.between(value, today).getYears() &lt; minAge) {</span>
-<span class="fc" id="L37">            return fail(context, &quot;Debes tener al menos &quot; + minAge + &quot; años&quot;);</span>
+<span class="fc bfc" id="L48" title="All 4 branches covered.">        if (minAge &gt; 0 &amp;&amp; Period.between(value, today).getYears() &lt; minAge) {</span>
+<span class="fc" id="L49">            return fail(context, &quot;Debes tener al menos &quot; + minAge + &quot; años&quot;);</span>
         }
 
-<span class="fc" id="L40">        return true;</span>
+<span class="fc" id="L52">        return true;</span>
     }
 
     private boolean fail(ConstraintValidatorContext context, String message) {
-<span class="fc" id="L44">        context.disableDefaultConstraintViolation();</span>
-<span class="fc" id="L45">        context.buildConstraintViolationWithTemplate(message).addConstraintViolation();</span>
-<span class="fc" id="L46">        return false;</span>
+<span class="fc" id="L56">        context.disableDefaultConstraintViolation();</span>
+<span class="fc" id="L57">        context.buildConstraintViolationWithTemplate(message).addConstraintViolation();</span>
+<span class="fc" id="L58">        return false;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

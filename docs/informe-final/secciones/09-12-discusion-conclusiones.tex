@@ -10,13 +10,14 @@ usabilidad, cobertura y calidad web declarados?} Parcialmente. De los
 cinco bloques evaluados (Capítulo~\ref{cap:evaluacion-resultados}), cuatro
 cumplen sus umbrales por completo (rendimiento, seguridad
 manual+automatizada, calidad web en ambos perfiles, y cobertura de
-código --- líneas 82.93\,\% y ramas 71.50\,\% $\geq$70\,\%, tanto en el
-agregado global como en cada una de las tres capas exigidas por
-OBS-P1-01). El bloque de cobertura no llegó limpio a esta cifra: el mismo
-día de la medición de cierre, una ronda anterior había detectado que la
-capa de Controladores caía a 67.07\,\% de ramas tras incorporar
-funcionalidad nueva sin pruebas equivalentes, y se cerró horas después
---- una regresión real, declarada y resuelta el mismo día, no ocultada
+código --- líneas 92.88\,\% y ramas 81.93\,\% $\geq$70\,\%, sin excepción
+en ninguno de los 48 paquetes con código ejecutable, tanto en el
+agregado global como en cada una de las capas exigidas por
+OBS-P1-01). El bloque de cobertura no llegó limpio a esta cifra: el
+2026-09-11, una ronda anterior había detectado que la capa de
+Controladores caía a 67.07\,\% de ramas tras incorporar funcionalidad
+nueva sin pruebas equivalentes, y se cerró horas después --- una
+regresión real, declarada y resuelta el mismo día, no ocultada
 (Capítulo~\ref{cap:evaluacion-resultados}~\S8.6). El bloque de usabilidad
 \textbf{no alcanza} el umbral declarado (SUS medio 61.25 frente al umbral
 del proyecto de $>$68, IC~95\,\% [49.49, 73.01]) --- una respuesta honesta
@@ -39,8 +40,13 @@ Capítulo~\ref{cap:diseno-arquitectura}, ADR-006) y la sexta,
 mecanismo de invocación
 (\texttt{@Query(nativeQuery=true)} parametrizado en vez de
 \texttt{@Procedure}/\texttt{@NamedStoredProcedureQuery} estrictos,
-Capítulo~\ref{cap:implementacion}~\S7.4) que el equipo debe resolver antes
-del cierre.
+Capítulo~\ref{cap:implementacion}~\S7.4). Dos revisiones técnicas
+independientes (2026-09-05 y 2026-09-14, esta última con reproducción
+contra Postgres real e inspección del bytecode de Hibernate~7.4.1)
+confirmaron que esta nuance es una restricción estructural de la
+combinación exacta Hibernate~7.4.1 + Spring Data JPA + PostgreSQL --- no
+un pendiente por falta de esfuerzo --- por lo que se documenta como
+excepción arquitectónica aceptada (ADR-006), no como trabajo abierto.
 
 \textbf{RQ3 --- ¿Produce el proceso de ingeniería de requisitos aplicado
 un corpus verificable y trazable?} Sí, con una brecha de conformidad
@@ -187,23 +193,11 @@ backend, no una caché de aplicación potencialmente ya poblada.
   \item \textbf{Activar \texttt{jacoco:check} en \texttt{pom.xml}} para
     que el build falle bajo el umbral de 70\,\% en vez de solo
     reportarlo --- el umbral por líneas y ramas, tanto global como por
-    capa, ya se supera (82.93\,\%/71.50\,\% global; ver
-    \S\ref{cap:evaluacion-resultados}), pero nada en el pipeline impide
-    hoy que una regresión futura pase desapercibida hasta la siguiente
-    lectura manual del reporte, como ocurrió brevemente el mismo
-    2026-09-11 con la capa de Controladores.
-  \item \textbf{Ejecutar una revisión de literatura reducida} (2--3 bases
-    de datos, 10--15 términos clave) para completar el
-    Capítulo~\ref{cap:trabajos-relacionados} con la tabla comparativa de
-    $\geq$8 filas que la guía exige y que este documento declaró
-    honestamente como pendiente.
-  \item \textbf{Resolver la nuance de conformidad de invocación de
-    procedimientos} (Capítulo~\ref{cap:implementacion}~\S7.4): decidir
-    entre reescribir las 7 funciones nuevas como \texttt{PROCEDURE} para
-    usar \texttt{@Procedure} en sentido estricto, adoptar
-    \texttt{@NamedStoredProcedureQuery}, o documentar formalmente por qué
-    \texttt{@Query(nativeQuery=true)} parametrizado satisface el
-    requisito.
+    cada uno de los 48 paquetes con código ejecutable, ya se supera
+    (92.88\,\%/81.93\,\% global; ver \S\ref{cap:evaluacion-resultados}),
+    pero nada en el pipeline impide hoy que una regresión futura pase
+    desapercibida hasta la siguiente lectura manual del reporte, como
+    ocurrió brevemente el 2026-09-11 con la capa de Controladores.
 \end{enumerate}
 
 \chapter{Conclusiones}

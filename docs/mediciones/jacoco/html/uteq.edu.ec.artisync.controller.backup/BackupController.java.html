@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BackupController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.backup</a> &gt; <span class="el_source">BackupController.java</span></div><h1>BackupController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.backup;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.request.backup.BackupFilter;
+import uteq.edu.ec.artisync.dto.request.backup.UpdateScheduleRequest;
+import uteq.edu.ec.artisync.dto.request.backup.ChangeScheduleStatusRequest;
+import uteq.edu.ec.artisync.dto.request.backup.CreateScheduleRequest;
+import uteq.edu.ec.artisync.dto.request.backup.CreateBackupRequest;
+import uteq.edu.ec.artisync.dto.response.backup.ScheduleResponse;
+import uteq.edu.ec.artisync.dto.response.backup.BackupResponse;
+import uteq.edu.ec.artisync.service.backup.BackupFile;
+import uteq.edu.ec.artisync.service.backup.IBackupScheduleService;
+import uteq.edu.ec.artisync.service.backup.IBackupService;
+import uteq.edu.ec.artisync.util.PagedResponse;
+
+import java.util.List;
+
+/**
+ * Respaldos de base de datos (REQ-NF-024): disparo manual/programado,
+ * FULL/INCREMENTAL, listado, descarga y eliminación, gestionados localmente.
+ * Sin restauración: es deliberadamente un procedimiento manual documentado en
+ * docs/despliegue/BACKUP.md, no una acción de la UI.
+ */
+@Tag(name = &quot;Respaldos&quot;, description = &quot;Respaldos de base de datos: creación, programación y gestión (REQ-NF-024)&quot;)
+@RestController
+@RequestMapping(&quot;/api/v1/admin/respaldos&quot;)
+@RequiredArgsConstructor
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+public class BackupController {
+
+    private final IBackupService respaldoServicio;
+    private final IBackupScheduleService programacionServicio;
+
+    /**
+     * Dispara la creación de un nuevo respaldo de base de datos bajo demanda.
+     * @param peticion datos de la solicitud, incluyendo el tipo de respaldo (FULL o INCREMENTAL)
+     * @param authentication usuario administrador que solicita el respaldo
+     * @return el registro del respaldo solicitado con estado inicial de procesamiento
+     */
+    @Operation(summary = &quot;Dispara un respaldo FULL o INCREMENTAL bajo demanda&quot;)
+    @PostMapping
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;BackupResponse&gt; create(
+            @Valid @RequestBody CreateBackupRequest peticion, Authentication authentication) {
+<span class="fc" id="L59">        BackupResponse respuesta = respaldoServicio.requestBackup(peticion.getTipoRespaldo(), authentication.getName());</span>
+<span class="fc" id="L60">        return ResponseEntity.status(HttpStatus.ACCEPTED).body(respuesta);</span>
+    }
+
+    /**
+     * Lista los respaldos de base de datos generados, permitiendo filtros y paginación.
+     * @param filtro criterios opcionales para buscar respaldos específicos
+     * @param pageable configuración de la paginación
+     * @return listado paginado de los respaldos que coinciden con el filtro
+     */
+    @Operation(summary = &quot;Listado paginado y filtrado de respaldos&quot;)
+    @GetMapping
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_VER') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;PagedResponse&lt;BackupResponse&gt;&gt; list(BackupFilter filtro, Pageable pageable) {
+<span class="fc" id="L73">        return ResponseEntity.ok(respaldoServicio.list(filtro, pageable));</span>
+    }
+
+    /**
+     * Obtiene el detalle completo de un respaldo específico registrado en el sistema.
+     * @param idRespaldo identificador único del respaldo
+     * @return detalle del respaldo solicitado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el respaldo indicado no existe
+     */
+    @Operation(summary = &quot;Detalle de un respaldo&quot;)
+    @GetMapping(&quot;/{idRespaldo}&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_VER') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;BackupResponse&gt; getById(@PathVariable Long idRespaldo) {
+<span class="fc" id="L86">        return ResponseEntity.ok(respaldoServicio.getById(idRespaldo));</span>
+    }
+
+    /**
+     * Descarga físicamente el archivo del respaldo generado desde el sistema de almacenamiento.
+     * @param idRespaldo identificador único del respaldo a download
+     * @return el archivo comprimido del respaldo como un stream de octetos
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el archivo físico no existe en disco
+     */
+    @Operation(summary = &quot;Descarga el archivo generado de un respaldo&quot;)
+    @GetMapping(&quot;/{idRespaldo}/descargar&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_DESCARGAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;Resource&gt; download(@PathVariable Long idRespaldo) {
+<span class="fc" id="L99">        BackupFile archivo = respaldoServicio.download(idRespaldo);</span>
+<span class="fc" id="L100">        return ResponseEntity.ok()</span>
+<span class="fc" id="L101">                .contentType(MediaType.APPLICATION_OCTET_STREAM)</span>
+<span class="fc" id="L102">                .header(HttpHeaders.CONTENT_DISPOSITION,</span>
+<span class="fc" id="L103">                        ContentDisposition.attachment().filename(archivo.nombreArchivo()).build().toString())</span>
+<span class="fc" id="L104">                .contentLength(archivo.tamanoBytes())</span>
+<span class="fc" id="L105">                .body(archivo.recurso());</span>
+    }
+
+    /**
+     * Elimina el registro y el archivo físico de un respaldo del sistema.
+     * @param idRespaldo identificador del respaldo a eliminar
+     * @return respuesta sin contenido confirmando la eliminación exitosa
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si es un respaldo FULL y existen respaldos INCREMENTALES que dependen de él
+     */
+    @Operation(summary = &quot;Elimina un respaldo guardado (rechaza si aún tiene incrementales que dependen de él)&quot;)
+    @DeleteMapping(&quot;/{idRespaldo}&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_ELIMINAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;Void&gt; delete(@PathVariable Long idRespaldo) {
+<span class="fc" id="L118">        respaldoServicio.delete(idRespaldo);</span>
+<span class="fc" id="L119">        return ResponseEntity.noContent().build();</span>
+    }
+
+    /**
+     * Configura una nueva tarea programada (CRON) para la ejecución automática de respaldos.
+     * @param peticion configuración de la frecuencia (CRON) y el tipo de respaldo a programar
+     * @param authentication usuario administrador que crea la programación
+     * @return el detalle de la programación recién creada
+     */
+    @Operation(summary = &quot;Crea una programación recurrente de respaldos&quot;)
+    @PostMapping(&quot;/programaciones&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_PROGRAMAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;ScheduleResponse&gt; createSchedule(
+            @Valid @RequestBody CreateScheduleRequest peticion, Authentication authentication) {
+<span class="fc" id="L133">        ScheduleResponse respuesta = programacionServicio.create(peticion, authentication.getName());</span>
+<span class="fc" id="L134">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+    }
+
+    /**
+     * Obtiene el listado de todas las tareas automáticas de respaldo configuradas.
+     * @return lista completa de programaciones existentes
+     */
+    @Operation(summary = &quot;Lista las programaciones de respaldo existentes&quot;)
+    @GetMapping(&quot;/programaciones&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_VER') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;ScheduleResponse&gt;&gt; listSchedules() {
+<span class="fc" id="L145">        return ResponseEntity.ok(programacionServicio.list());</span>
+    }
+
+    /**
+     * Obtiene los detalles de una programación de respaldo específica.
+     * @param idProgramacion identificador de la programación a consultar
+     * @return detalles de la programación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la programación indicada no existe
+     */
+    @Operation(summary = &quot;Detalle de una programación de respaldo&quot;)
+    @GetMapping(&quot;/programaciones/{idProgramacion}&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_VER') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;ScheduleResponse&gt; getSchedule(@PathVariable Long idProgramacion) {
+<span class="fc" id="L158">        return ResponseEntity.ok(programacionServicio.getById(idProgramacion));</span>
+    }
+
+    /**
+     * Modifica la configuración (ej. expresión CRON) de una tarea programada de respaldo.
+     * @param idProgramacion identificador de la programación a modificar
+     * @param peticion nuevos parámetros de configuración para la programación
+     * @return la programación actualizada con los nuevos valores
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la programación no existe
+     */
+    @Operation(summary = &quot;Actualiza una programación de respaldo existente&quot;)
+    @PutMapping(&quot;/programaciones/{idProgramacion}&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_PROGRAMAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;ScheduleResponse&gt; updateSchedule(
+            @PathVariable Long idProgramacion, @Valid @RequestBody UpdateScheduleRequest peticion) {
+<span class="fc" id="L173">        return ResponseEntity.ok(programacionServicio.update(idProgramacion, peticion));</span>
+    }
+
+    /**
+     * Habilita o deshabilita la ejecución automática de una programación sin eliminarla.
+     * @param idProgramacion identificador de la programación a alternar
+     * @param peticion estado deseado (activo/inactivo) para la programación
+     * @return la programación actualizada con su nuevo estado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la programación no existe
+     */
+    @Operation(summary = &quot;Activa o desactiva una programación de respaldo&quot;)
+    @PatchMapping(&quot;/programaciones/{idProgramacion}/estado&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_PROGRAMAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;ScheduleResponse&gt; changeScheduleStatus(
+            @PathVariable Long idProgramacion, @Valid @RequestBody ChangeScheduleStatusRequest peticion) {
+<span class="fc" id="L188">        return ResponseEntity.ok(programacionServicio.changeStatus(idProgramacion, peticion.getActivo()));</span>
+    }
+
+    /**
+     * Elimina definitivamente una tarea programada de respaldos automáticos.
+     * @param idProgramacion identificador de la programación a borrar
+     * @return respuesta sin contenido confirmando la eliminación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la programación indicada no existe
+     */
+    @Operation(summary = &quot;Elimina una programación de respaldo&quot;)
+    @DeleteMapping(&quot;/programaciones/{idProgramacion}&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_PROGRAMAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;Void&gt; deleteSchedule(@PathVariable Long idProgramacion) {
+<span class="fc" id="L201">        programacionServicio.delete(idProgramacion);</span>
+<span class="fc" id="L202">        return ResponseEntity.noContent().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

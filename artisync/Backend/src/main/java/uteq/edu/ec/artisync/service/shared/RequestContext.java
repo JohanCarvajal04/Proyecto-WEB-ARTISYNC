@@ -24,20 +24,24 @@ public final class RequestContext {
      * @param metodoHttp método HTTP de la petición (GET, POST, ...)
      * @param rutaSolicitud ruta solicitada
      */
-    public record Datos(String direccionIp, String agenteUsuario, String metodoHttp, String rutaSolicitud) {
+    public record Data(String direccionIp, String agenteUsuario, String metodoHttp, String rutaSolicitud) {
     }
 
-    private static final Datos VACIO = new Datos(null, null, null, null);
+    private static final Data VACIO = new Data(null, null, null, null);
 
-    public static Datos actual() {
+    /**
+     * Captura los metadatos HTTP de la petición en curso.
+     * @return los metadatos de la petición actual, o {@link #VACIO} si no hay una petición HTTP en el hilo actual
+     */
+    public static Data current() {
         ServletRequestAttributes attributes =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
             return VACIO;
         }
         HttpServletRequest request = attributes.getRequest();
-        return new Datos(
-                ClientIpResolver.resolver(request),
+        return new Data(
+                ClientIpResolver.resolve(request),
                 request.getHeader("User-Agent"),
                 request.getMethod(),
                 request.getRequestURI()

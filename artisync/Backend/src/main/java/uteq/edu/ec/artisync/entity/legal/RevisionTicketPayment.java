@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
+import uteq.edu.ec.artisync.entity.order.RevisionTicket;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

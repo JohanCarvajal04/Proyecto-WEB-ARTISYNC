@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BackupExecutorService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.scheduler</a> &gt; <span class="el_source">BackupExecutorService.java</span></div><h1>BackupExecutorService.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.scheduler;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.support.CronExpression;
+import org.springframework.stereotype.Component;
+import uteq.edu.ec.artisync.entity.backup.BackupStatus;
+import uteq.edu.ec.artisync.entity.backup.BackupOrigin;
+import uteq.edu.ec.artisync.entity.backup.Backup;
+import uteq.edu.ec.artisync.entity.backup.BackupSchedule;
+import uteq.edu.ec.artisync.entity.backup.BackupType;
+import uteq.edu.ec.artisync.repository.backup.BackupScheduleRepository;
+import uteq.edu.ec.artisync.repository.backup.BackupRepository;
+
+import java.time.LocalDateTime;
+
+/**
+ * Orquesta el inicio de un respaldo: crea la fila EN_PROGRESO y dispara el
+ * trabajo async. Lo invocan tanto BackupScheduler (programado)
+ * como BackupServiceImpl (disparo manual del admin).
+ */
+@Component
+@RequiredArgsConstructor
+public class BackupExecutorService {
+
+    private final BackupRepository respaldoRepository;
+    private final BackupScheduleRepository programacionRepository;
+    private final AsyncBackupJobService trabajoAsincronoServicio;
+
+    /** Disparo manual (admin autenticado, sin programación asociada). */
+    public Backup startManual(BackupType tipo, String correoSolicitante) {
+<span class="fc" id="L31">        Backup respaldo = createBackup(tipo, BackupOrigin.MANUAL, null, correoSolicitante);</span>
+<span class="fc" id="L32">        trabajoAsincronoServicio.execute(respaldo.getIdRespaldo());</span>
+<span class="fc" id="L33">        return respaldo;</span>
+    }
+
+    /** Disparo desde BackupScheduler. */
+    public void startFromSchedule(BackupSchedule programacion) {
+<span class="fc" id="L38">        Backup respaldo = createBackup(</span>
+<span class="fc" id="L39">                programacion.getTipoRespaldo(), BackupOrigin.PROGRAMADO, programacion, &quot;sistema:scheduler&quot;);</span>
+
+        // proxima_ejecucion se recalcula YA, no al terminar: si el respaldo
+        // tarda más de 60s no debe volver a dispararse en el siguiente tick
+        // del poller.
+<span class="fc" id="L44">        LocalDateTime ahora = LocalDateTime.now();</span>
+<span class="fc" id="L45">        programacion.setProximaEjecucion(CronExpression.parse(programacion.getExpresionCron()).next(ahora));</span>
+<span class="fc" id="L46">        programacion.setUltimaEjecucion(ahora);</span>
+<span class="fc" id="L47">        programacion.setActualizadoEn(ahora);</span>
+<span class="fc" id="L48">        programacionRepository.save(programacion);</span>
+
+<span class="fc" id="L50">        trabajoAsincronoServicio.execute(respaldo.getIdRespaldo());</span>
+<span class="fc" id="L51">    }</span>
+
+    private Backup createBackup(BackupType tipo, BackupOrigin origen,
+                                    BackupSchedule programacion, String correoSolicitante) {
+<span class="fc" id="L55">        Backup.BackupBuilder builder = Backup.builder()</span>
+<span class="fc" id="L56">                .tipoRespaldo(tipo)</span>
+<span class="fc" id="L57">                .origen(origen)</span>
+<span class="fc" id="L58">                .programacion(programacion)</span>
+<span class="fc" id="L59">                .correoSolicitante(correoSolicitante)</span>
+<span class="fc" id="L60">                .fechaInicio(LocalDateTime.now());</span>
+
+<span class="fc bfc" id="L62" title="All 2 branches covered.">        if (tipo == BackupType.INCREMENTAL) {</span>
+<span class="fc" id="L63">            Backup baseFull = respaldoRepository</span>
+<span class="fc" id="L64">                    .findTopByTipoRespaldoAndEstadoRespaldoOrderByFechaInicioDesc(BackupType.FULL, BackupStatus.COMPLETADO)</span>
+<span class="fc" id="L65">                    .orElseThrow(() -&gt; new IllegalStateException(</span>
+                            &quot;No existe ningún respaldo FULL completado del que partir un INCREMENTAL&quot;));
+
+            // Corte = fecha del último respaldo de LA CADENA de ese FULL (el
+            // incremental completado más reciente si existe, si no el FULL
+            // mismo) -- no siempre &quot;desde el FULL&quot;. Mantiene cada incremental
+            // pequeño, el significado estándar de &quot;incremental&quot;. Consecuencia:
+            // restaurar a un punto en el tiempo requiere el FULL + TODA la
+            // cadena de incrementales en orden (ver docs/despliegue/BACKUP.md).
+<span class="fc" id="L74">            LocalDateTime corte = respaldoRepository</span>
+<span class="fc" id="L75">                    .findTopByIdRespaldoFullBaseOrderByFechaInicioDesc(baseFull.getIdRespaldo())</span>
+<span class="fc" id="L76">                    .map(Backup::getFechaInicio)</span>
+<span class="fc" id="L77">                    .orElse(baseFull.getFechaInicio());</span>
+
+<span class="fc" id="L79">            builder.idRespaldoFullBase(baseFull.getIdRespaldo()).fechaDesdeIncremental(corte);</span>
+        }
+
+<span class="fc" id="L82">        return respaldoRepository.save(builder.build());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

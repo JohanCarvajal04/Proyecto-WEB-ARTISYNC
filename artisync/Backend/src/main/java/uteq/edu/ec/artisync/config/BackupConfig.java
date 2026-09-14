@@ -116,7 +116,7 @@ public class BackupConfig {
 
     /**
      * Executor dedicado a las ejecuciones {@code @Async} de respaldo
-     * ({@link uteq.edu.ec.artisync.scheduler.AsyncBackupJobService#ejecutar}),
+     * ({@link uteq.edu.ec.artisync.scheduler.AsyncBackupJobService#execute}),
      * acotado a 1 hilo para que dos volcados nunca compitan por I/O de disco
      * ni carga de BD al mismo tiempo (a diferencia del executor ilimitado por
      * defecto que usa el resto de {@code @Async} del proyecto).

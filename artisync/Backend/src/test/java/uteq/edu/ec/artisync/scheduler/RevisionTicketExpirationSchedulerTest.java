@@ -7,8 +7,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
-import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
-import uteq.edu.ec.artisync.repository.pedido.RevisionTicketRepository;
+import uteq.edu.ec.artisync.entity.order.RevisionTicket;
+import uteq.edu.ec.artisync.repository.order.RevisionTicketRepository;
 
 import java.util.List;
 
@@ -35,16 +35,16 @@ class RevisionTicketExpirationSchedulerTest {
         RevisionTicket vencido = RevisionTicket.builder().idTicket(1L).estadoTicket("Abierto").build();
         when(ticketRevisionRepository.findVencidosSinPagoConfirmado(any())).thenReturn(List.of(vencido));
 
-        scheduler.expirarTicketsSinPagar();
+        scheduler.expireUnpaidTickets();
 
-        verify(ticketRevisionExpiracionServicio).expirarTicket(1L);
+        verify(ticketRevisionExpiracionServicio).expireTicket(1L);
     }
 
     @Test
     void expirarTicketsSinPagar_sinTicketsVencidos_noHaceNada() {
         when(ticketRevisionRepository.findVencidosSinPagoConfirmado(any())).thenReturn(List.of());
 
-        scheduler.expirarTicketsSinPagar();
+        scheduler.expireUnpaidTickets();
 
         verifyNoInteractions(ticketRevisionExpiracionServicio);
     }
@@ -54,11 +54,11 @@ class RevisionTicketExpirationSchedulerTest {
         RevisionTicket a = RevisionTicket.builder().idTicket(1L).estadoTicket("Abierto").build();
         RevisionTicket b = RevisionTicket.builder().idTicket(2L).estadoTicket("Abierto").build();
         when(ticketRevisionRepository.findVencidosSinPagoConfirmado(any())).thenReturn(List.of(a, b));
-        doThrow(new RuntimeException("fallo simulado")).when(ticketRevisionExpiracionServicio).expirarTicket(1L);
+        doThrow(new RuntimeException("fallo simulado")).when(ticketRevisionExpiracionServicio).expireTicket(1L);
 
-        scheduler.expirarTicketsSinPagar();
+        scheduler.expireUnpaidTickets();
 
-        verify(ticketRevisionExpiracionServicio).expirarTicket(1L);
-        verify(ticketRevisionExpiracionServicio).expirarTicket(2L);
+        verify(ticketRevisionExpiracionServicio).expireTicket(1L);
+        verify(ticketRevisionExpiracionServicio).expireTicket(2L);
     }
 }

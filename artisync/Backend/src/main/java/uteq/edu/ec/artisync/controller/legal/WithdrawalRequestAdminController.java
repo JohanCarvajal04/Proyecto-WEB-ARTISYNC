@@ -8,9 +8,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import uteq.edu.ec.artisync.dto.peticion.legal.WithdrawalRequestFilter;
-import uteq.edu.ec.artisync.dto.peticion.legal.WithdrawalDecisionRequest;
-import uteq.edu.ec.artisync.dto.respuesta.legal.WithdrawalRequestResponse;
+import uteq.edu.ec.artisync.dto.request.legal.WithdrawalRequestFilter;
+import uteq.edu.ec.artisync.dto.request.legal.WithdrawalDecisionRequest;
+import uteq.edu.ec.artisync.dto.response.legal.WithdrawalRequestResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IWithdrawalRequestService;
 

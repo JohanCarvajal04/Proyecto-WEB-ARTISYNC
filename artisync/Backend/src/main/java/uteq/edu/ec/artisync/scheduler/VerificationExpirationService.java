@@ -4,9 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.entity.perfil.AiCertificate;
-import uteq.edu.ec.artisync.repository.perfil.AiCertificateRepository;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
+import uteq.edu.ec.artisync.entity.profile.AiCertificate;
+import uteq.edu.ec.artisync.repository.profile.AiCertificateRepository;
+import uteq.edu.ec.artisync.service.shared.storage.DocumentStorage;
 
 /**
  * Extraído de VerificationScheduler para que REQUIRES_NEW funcione de
@@ -30,8 +30,8 @@ public class VerificationExpirationService {
      * @param certificado certificado cuyo documento ya venció
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void expirarCertificado(AiCertificate certificado) {
-        almacenamiento.eliminar(certificado.getUrlDocumentoS3());
+    public void expireCertificate(AiCertificate certificado) {
+        almacenamiento.delete(certificado.getUrlDocumentoS3());
         certificado.setDocumentoEliminado(true);
         certificadoIaRepository.save(certificado);
     }

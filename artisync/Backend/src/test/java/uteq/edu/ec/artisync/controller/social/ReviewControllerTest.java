@@ -7,8 +7,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import uteq.edu.ec.artisync.dto.peticion.social.CreateReviewRequest;
-import uteq.edu.ec.artisync.dto.respuesta.social.ReviewResponse;
+import uteq.edu.ec.artisync.dto.request.social.CreateReviewRequest;
+import uteq.edu.ec.artisync.dto.response.social.ReviewResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.social.ReviewService;
 

@@ -7,11 +7,11 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
-import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.entity.order.RevisionTicket;
 import uteq.edu.ec.artisync.repository.legal.RevisionTicketPaymentRepository;
-import uteq.edu.ec.artisync.repository.pedido.RevisionTicketRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
+import uteq.edu.ec.artisync.repository.order.RevisionTicketRepository;
+import uteq.edu.ec.artisync.service.communication.NotificationService;
 
 /**
  * Extraído de RevisionTicketExpirationScheduler para que REQUIRES_NEW funcione
@@ -43,7 +43,7 @@ public class RevisionTicketExpirationService {
     @Auditable(accion = "TICKET_EXPIRAR", modulo = AuditModule.PEDIDOS,
             correoActor = "'sistema:scheduler'",
             entidad = "tickets_revision", idEntidad = "#idTicket")
-    public void expirarTicket(Long idTicket) {
+    public void expireTicket(Long idTicket) {
         // Relectura con lock: si el creador ya resolvió el ticket, o el
         // webhook de PayPal ya confirmó el pago, entre que el scheduler lo
         // leyó y esta transacción arrancó, no hay nada que hacer.

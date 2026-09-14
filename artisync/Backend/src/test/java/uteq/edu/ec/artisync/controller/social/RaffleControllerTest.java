@@ -7,12 +7,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest;
-import uteq.edu.ec.artisync.dto.peticion.social.CreateRaffleRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.dto.respuesta.social.WinnerResponse;
-import uteq.edu.ec.artisync.dto.respuesta.social.ParticipantResponse;
-import uteq.edu.ec.artisync.dto.respuesta.social.RaffleResponse;
+import uteq.edu.ec.artisync.dto.request.social.UpdateRaffleRequest;
+import uteq.edu.ec.artisync.dto.request.social.CreateRaffleRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.social.WinnerResponse;
+import uteq.edu.ec.artisync.dto.response.social.ParticipantResponse;
+import uteq.edu.ec.artisync.dto.response.social.RaffleResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.social.RaffleService;
 
@@ -86,10 +86,10 @@ class RaffleControllerTest {
     @Test
     void eliminarSorteo_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        RespuestaMensaje respuesta = new RespuestaMensaje("Ok");
+        MessageResponse respuesta = new MessageResponse("Ok");
         when(sorteoService.deleteRaffle(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<RespuestaMensaje> res = controlador.deleteRaffle(10L, user);
+        ResponseEntity<MessageResponse> res = controlador.deleteRaffle(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -150,10 +150,10 @@ class RaffleControllerTest {
     @Test
     void cancelarParticipacion_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        RespuestaMensaje respuesta = new RespuestaMensaje("Ok");
+        MessageResponse respuesta = new MessageResponse("Ok");
         when(sorteoService.cancelParticipation(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<RespuestaMensaje> res = controlador.cancelParticipation(10L, user);
+        ResponseEntity<MessageResponse> res = controlador.cancelParticipation(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }

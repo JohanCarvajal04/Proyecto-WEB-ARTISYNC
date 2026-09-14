@@ -16,7 +16,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.entity.legal.ChatRoom;
-import uteq.edu.ec.artisync.entity.pedido.Order;
+import uteq.edu.ec.artisync.entity.order.Order;
 import uteq.edu.ec.artisync.repository.legal.ChatRoomRepository;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.security.CustomUserDetailsService;
@@ -68,7 +68,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
     private static final String PREFIJO_USER = "/user/";
 
     @FunctionalInterface
-    private interface AutorizadorTopico {
+    private interface TopicAuthorizer {
         void autorizar(StompHeaderAccessor accessor, String destino);
     }
 
@@ -79,10 +79,10 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
      * que autorizacion existe para cada prefijo — para sumar un nuevo
      * {@code /topic/*} o {@code /queue/*} en el futuro, se agrega su entrada
      * aqui; cualquier prefijo no registrado se rechaza por defecto en
-     * {@link #autorizarSuscripcion} (fail-closed).
+     * {@link #authorizeSubscription} (fail-closed).
      */
-    private final Map<String, AutorizadorTopico> autorizadoresPorPrefijo =
-            Map.of(PREFIJO_TOPIC_SALA, this::autorizarSala);
+    private final Map<String, TopicAuthorizer> autorizadoresPorPrefijo =
+            Map.of(PREFIJO_TOPIC_SALA, this::authorizeRoom);
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
@@ -111,7 +111,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
             autenticarConexion(accessor);
         } else if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
-            autorizarSuscripcion(accessor);
+            authorizeSubscription(accessor);
         }
 
         return message;
@@ -127,8 +127,8 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
         String token = authHeader.substring(7);
         try {
-            Claims claims = jwtService.extraerTodosLosClaims(token);
-            String username = jwtService.extraerUsername(token);
+            Claims claims = jwtService.extractAllClaims(token);
+            String username = jwtService.extractUsername(token);
             Date expiration = claims.getExpiration();
 
             if (username == null || !expiration.after(new Date())) {
@@ -151,7 +151,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         }
     }
 
-    private void autorizarSuscripcion(StompHeaderAccessor accessor) {
+    private void authorizeSubscription(StompHeaderAccessor accessor) {
         String destino = accessor.getDestination();
         if (destino == null) {
             log.warn("SUBSCRIBE rechazado: sin destino");
@@ -162,7 +162,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
             return;
         }
 
-        AutorizadorTopico autorizador = autorizadoresPorPrefijo.entrySet().stream()
+        TopicAuthorizer autorizador = autorizadoresPorPrefijo.entrySet().stream()
                 .filter(entrada -> destino.startsWith(entrada.getKey()))
                 .map(Map.Entry::getValue)
                 .findFirst()
@@ -176,14 +176,14 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         autorizador.autorizar(accessor, destino);
     }
 
-    private void autorizarSala(StompHeaderAccessor accessor, String destino) {
+    private void authorizeRoom(StompHeaderAccessor accessor, String destino) {
         Long idUsuario = userIdFrom(accessor);
         if (idUsuario == null) {
             log.warn("SUBSCRIBE rechazado a {}: sesión sin Principal autenticado", destino);
             throw new MessagingException("No autenticado");
         }
 
-        Long idSala = parsearIdSala(destino);
+        Long idSala = parseRoomId(destino);
         if (idSala == null) {
             log.warn("SUBSCRIBE rechazado: destino de sala con formato inválido ({})", destino);
             throw new MessagingException("Destino de suscripción inválido");
@@ -215,7 +215,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         return principal.getIdUsuario();
     }
 
-    private Long parsearIdSala(String destino) {
+    private Long parseRoomId(String destino) {
         try {
             return Long.valueOf(destino.substring(PREFIJO_TOPIC_SALA.length()));
         } catch (NumberFormatException e) {

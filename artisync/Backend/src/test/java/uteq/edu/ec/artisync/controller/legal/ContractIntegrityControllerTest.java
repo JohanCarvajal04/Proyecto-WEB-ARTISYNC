@@ -15,7 +15,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import uteq.edu.ec.artisync.dto.respuesta.legal.IntegrityVerificationResponse;
+import uteq.edu.ec.artisync.dto.response.legal.IntegrityVerificationResponse;
 import uteq.edu.ec.artisync.service.legal.IContractService;
 
 import java.util.Arrays;

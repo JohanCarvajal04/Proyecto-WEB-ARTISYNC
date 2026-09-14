@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GlobalExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.exception</a> &gt; <span class="el_source">GlobalExceptionHandler.java</span></div><h1>GlobalExceptionHandler.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.exception;
+
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Componente transversal de infraestructura: Controlador de asesoramiento (ControllerAdvice).
+ * 
+ * Propósito: Centralizar y capturar las excepciones lanzadas desde cualquier capa de la aplicacion para estandarizarlas bajo el formato ProblemDetails (RFC 7807).
+ * 
+ * Flujo interno: Intercepta excepciones (via @ExceptionHandler) y devuelve un payload JSON coherente con el codigo HTTP apropiado (400, 401, 404, 500), evitando la filtracion de stacktraces.
+ */
+<span class="fc" id="L29">@Slf4j</span>
+@RestControllerAdvice
+<span class="fc" id="L31">public class GlobalExceptionHandler {</span>
+
+    private static final String BASE_TIPO = &quot;https://artisync.dev/errors/&quot;;
+
+    /**
+     * Errores de validación de {@code @Valid} en el cuerpo de la petición: agrega
+     * el detalle por campo (nombre → mensaje) en {@code fieldErrors}.
+     *
+     * @param ex excepción con los errores de binding/validación
+     * @param peticion petición que falló la validación
+     * @return 400 con el detalle de validación y los campos afectados en {@code fieldErrors}
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionesValidacion(
+            MethodArgumentNotValidException ex, HttpServletRequest peticion) {
+
+<span class="fc" id="L47">        Map&lt;String, String&gt; erroresCampos = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        for (FieldError error : ex.getBindingResult().getFieldErrors()) {</span>
+<span class="fc" id="L49">            erroresCampos.put(error.getField(), error.getDefaultMessage());</span>
+<span class="fc" id="L50">        }</span>
+
+<span class="fc" id="L52">        ProblemDetail pd = buildProblemDetail(</span>
+                HttpStatus.BAD_REQUEST,
+                &quot;validacion&quot;,
+                &quot;Error de validación en los datos de entrada&quot;,
+<span class="fc" id="L56">                peticion.getRequestURI()</span>
+        );
+<span class="fc" id="L58">        pd.setProperty(&quot;fieldErrors&quot;, erroresCampos);</span>
+
+<span class="fc" id="L60">        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);</span>
+    }
+
+    /**
+     * @param ex excepción de dominio; su mensaje pasa tal cual como detalle
+     * @param peticion petición cuyo recurso solicitado no existe
+     * @return 404 con el mensaje de la excepción como detalle
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionRecursoNoEncontrado(
+            ResourceNotFoundException ex, HttpServletRequest peticion) {
+
+<span class="fc" id="L72">        ProblemDetail pd = buildProblemDetail(</span>
+<span class="fc" id="L73">                HttpStatus.NOT_FOUND, &quot;recurso-no-encontrado&quot;, ex.getMessage(), peticion.getRequestURI());</span>
+<span class="fc" id="L74">        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);</span>
+    }
+
+    /**
+     * Ruta sin controlador ni recurso estático asociado (lanzada por Spring MVC,
+     * no por código de dominio).
+     *
+     * @param ex excepción de Spring MVC ante una ruta inexistente
+     * @param peticion petición a una ruta que no resuelve a ningún handler
+     * @return 404 genérico, sin exponer detalle interno de enrutamiento
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; manejarNoResourceFoundException(
+            NoResourceFoundException ex, HttpServletRequest peticion) {
+
+<span class="fc" id="L89">        ProblemDetail pd = buildProblemDetail(</span>
+<span class="fc" id="L90">                HttpStatus.NOT_FOUND, &quot;ruta-no-encontrada&quot;, &quot;Recurso no encontrado o ruta inexistente&quot;, peticion.getRequestURI());</span>
+<span class="fc" id="L91">        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);</span>
+    }
+
+    /**
+     * @param ex excepción de dominio ante una violación de unicidad (correo, nombre, etc.)
+     * @param peticion petición que intentó crear el recurso duplicado
+     * @return 409 con el mensaje de la excepción como detalle
+     */
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionRecursoDuplicado(
+            DuplicateResourceException ex, HttpServletRequest peticion) {
+
+<span class="fc" id="L103">        ProblemDetail pd = buildProblemDetail(</span>
+<span class="fc" id="L104">                HttpStatus.CONFLICT, &quot;recurso-duplicado&quot;, ex.getMessage(), peticion.getRequestURI());</span>
+<span class="fc" id="L105">        return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);</span>
+    }
+
+    /**
+     * @param ex excepción de dominio ante el incumplimiento de una regla de negocio
+     * @param peticion petición que incumplió la regla
+     * @return 422 con el mensaje de la excepción como detalle
+     */
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionReglaNegocio(
+            BusinessRuleException ex, HttpServletRequest peticion) {
+
+<span class="fc" id="L117">        ProblemDetail pd = buildProblemDetail(</span>
+<span class="fc" id="L118">                HttpStatus.UNPROCESSABLE_ENTITY, &quot;regla-de-negocio&quot;, ex.getMessage(), peticion.getRequestURI());</span>
+<span class="fc" id="L119">        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);</span>
+    }
+
+    /**
+     * @param ex excepción ante un fallo o indisponibilidad del proveedor de IA externo
+     * @param peticion petición que dependía del servicio de IA
+     * @return 503 con el mensaje de la excepción como detalle; el fallo se registra
+     *         además como warning (no error), por ser un fallo esperado de un tercero
+     */
+    @ExceptionHandler(AiServiceUnavailableException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; handleAiServiceUnavailableException(
+            AiServiceUnavailableException ex, HttpServletRequest peticion) {
+
+<span class="fc" id="L132">        log.warn(&quot;Offering de IA no disponible en {}: {}&quot;, peticion.getRequestURI(), ex.getMessage());</span>
+<span class="fc" id="L133">        ProblemDetail pd = buildProblemDetail(</span>
+<span class="fc" id="L134">                HttpStatus.SERVICE_UNAVAILABLE, &quot;ia-no-disponible&quot;, ex.getMessage(), peticion.getRequestURI());</span>
+<span class="fc" id="L135">        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(pd);</span>
+    }
+
+    /**
+     * Captura genérica para código que lanza {@link ResponseStatusException}
+     * directamente (en vez de una excepción de dominio propia), preservando el
+     * código de estado y motivo que ese código ya decidió.
+     *
+     * @param ex excepción con el estado HTTP y motivo ya resueltos
+     * @param peticion petición rechazada
+     * @return el mismo estado HTTP de {@code ex}, con {@code ex.getReason()} como
+     *         detalle (o {@code ex.getMessage()} si no hay motivo explícito)
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; manejarResponseStatusException(
+            ResponseStatusException ex, HttpServletRequest peticion) {
+
+<span class="fc" id="L152">        HttpStatus estado = HttpStatus.valueOf(ex.getStatusCode().value());</span>
+<span class="fc" id="L153">        ProblemDetail pd = buildProblemDetail(</span>
+                estado, &quot;peticion-rechazada&quot;,
+<span class="fc bfc" id="L155" title="All 2 branches covered.">                ex.getReason() != null ? ex.getReason() : ex.getMessage(),</span>
+<span class="fc" id="L156">                peticion.getRequestURI());</span>
+<span class="fc" id="L157">        return ResponseEntity.status(estado).body(pd);</span>
+    }
+
+    /**
+     * @param ex excepción ante el agotamiento de una cuota operativa (p. ej. IA);
+     *           su {@code retryAfterSegundos} se refleja en la cabecera {@code Retry-After}
+     * @param peticion petición que superó la cuota
+     * @return 429 con el mensaje de la excepción como detalle y cabecera {@code Retry-After}
+     */
+    @ExceptionHandler(QuotaExceededException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionCuotaExcedida(
+            QuotaExceededException ex, HttpServletRequest peticion) {
+
+<span class="fc" id="L170">        log.warn(&quot;Cuota de intentos por cuenta excedida en {}: {}&quot;, peticion.getRequestURI(), ex.getMessage());</span>
+<span class="fc" id="L171">        ProblemDetail pd = buildProblemDetail(</span>
+<span class="fc" id="L172">                HttpStatus.TOO_MANY_REQUESTS, &quot;cuota-excedida&quot;, ex.getMessage(), peticion.getRequestURI());</span>
+<span class="fc" id="L173">        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)</span>
+<span class="fc" id="L174">                .header(&quot;Retry-After&quot;, String.valueOf(ex.getRetryAfterSegundos()))</span>
+<span class="fc" id="L175">                .body(pd);</span>
+    }
+
+    /**
+     * Lanzada por Spring Security cuando {@code @PreAuthorize} rechaza al usuario
+     * ya autenticado (a diferencia de {@link #manejarExcepcionAutenticacion}, que
+     * cubre al usuario sin autenticar).
+     *
+     * @param ex excepción de autorización de Spring Security
+     * @param peticion petición rechazada por falta de permisos
+     * @return 403 con un mensaje genérico (no se expone qué permiso exacto faltaba)
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity&lt;ProblemDetail&gt; manejarAccessDeniedException(
+            AccessDeniedException ex, HttpServletRequest peticion) {
+
+<span class="fc" id="L191">        ProblemDetail pd = buildProblemDetail(</span>
+                HttpStatus.FORBIDDEN, &quot;acceso-denegado&quot;,
+<span class="fc" id="L193">                &quot;No tienes permisos suficientes para realizar esta acción&quot;, peticion.getRequestURI());</span>
+<span class="fc" id="L194">        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(pd);</span>
+    }
+
+    /**
+     * Cubre tanto fallos de autenticación de Spring Security como excepciones
+     * crudas de la librería JWT que se escapen fuera de {@code JwtAuthenticationFilter}
+     * (que normalmente ya las captura y responde antes de llegar aquí).
+     *
+     * @param ex la excepción de autenticación o JWT capturada
+     * @param peticion petición sin credenciales válidas
+     * @return 401 con un mensaje genérico (nunca el detalle interno de {@code ex})
+     */
+    @ExceptionHandler({AuthenticationException.class, JwtException.class})
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionAutenticacion(
+            Exception ex, HttpServletRequest peticion) {
+<span class="fc" id="L209">        log.warn(&quot;Error de autenticación/JWT en {}: {}&quot;, peticion.getRequestURI(), ex.getMessage());</span>
+<span class="fc" id="L210">        ProblemDetail pd = buildProblemDetail(</span>
+                HttpStatus.UNAUTHORIZED, &quot;autenticacion&quot;,
+<span class="fc" id="L212">                &quot;Credenciales inválidas o token expirado/malformado&quot;, peticion.getRequestURI());</span>
+<span class="fc" id="L213">        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(pd);</span>
+    }
+
+    /**
+     * Red de seguridad para código que valida con excepciones estándar de Java
+     * en vez de una excepción de dominio propia.
+     *
+     * @param ex la excepción de argumento o estado inválido
+     * @param peticion petición con datos de entrada inválidos
+     * @return 400 con el mensaje de la excepción como detalle
+     */
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionesPeticionIncorrecta(
+            RuntimeException ex, HttpServletRequest peticion) {
+
+<span class="fc" id="L228">        ProblemDetail pd = buildProblemDetail(</span>
+<span class="fc" id="L229">                HttpStatus.BAD_REQUEST, &quot;peticion-invalida&quot;, ex.getMessage(), peticion.getRequestURI());</span>
+<span class="fc" id="L230">        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);</span>
+    }
+
+    /**
+     * Último recurso: cualquier excepción no cubierta por los handlers
+     * anteriores. Registra el stacktrace completo como error (a diferencia del
+     * resto, que solo hacen warning o nada) y nunca expone {@code ex.getMessage()}
+     * al cliente, para no filtrar detalles internos.
+     *
+     * @param ex la excepción no controlada
+     * @param peticion petición durante la que ocurrió el error
+     * @return 500 con un mensaje genérico
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionGeneral(
+            Exception ex, HttpServletRequest peticion) {
+<span class="fc" id="L246">        log.error(&quot;Error interno no controlado en {}: &quot;, peticion.getRequestURI(), ex);</span>
+<span class="fc" id="L247">        ProblemDetail pd = buildProblemDetail(</span>
+                HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-interno&quot;,
+<span class="fc" id="L249">                &quot;Ha ocurrido un error interno en el servidor&quot;, peticion.getRequestURI());</span>
+<span class="fc" id="L250">        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(pd);</span>
+    }
+
+    private ProblemDetail buildProblemDetail(HttpStatus estado, String tipoSlug, String detalle, String instancia) {
+<span class="fc" id="L254">        ProblemDetail pd = ProblemDetail.forStatusAndDetail(estado, detalle);</span>
+<span class="fc" id="L255">        pd.setType(URI.create(BASE_TIPO + tipoSlug));</span>
+<span class="fc" id="L256">        pd.setTitle(estado.getReasonPhrase());</span>
+<span class="fc" id="L257">        pd.setInstance(URI.create(instancia));</span>
+<span class="fc" id="L258">        return pd;</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

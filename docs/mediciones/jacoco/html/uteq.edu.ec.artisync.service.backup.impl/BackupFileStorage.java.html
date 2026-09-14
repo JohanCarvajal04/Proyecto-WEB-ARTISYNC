@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BackupFileStorage.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.backup.impl</a> &gt; <span class="el_source">BackupFileStorage.java</span></div><h1>BackupFileStorage.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.backup.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import uteq.edu.ec.artisync.config.BackupProperties;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+/**
+ * Almacenamiento local de archivos de respaldo. A propósito sin abstracción
+ * de proveedor (a diferencia de DocumentStorage, que sí tiene
+ * local/Azure): el alcance pedido es solo local por ahora. Este componente es
+ * el punto de extensión natural si más adelante se quiere almacenamiento en
+ * la nube, pero esa interfaz no se construye ahora sin necesidad real.
+ */
+@Component
+@RequiredArgsConstructor
+public class BackupFileStorage {
+
+    private final BackupProperties respaldoProperties;
+
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param nombreArchivo objeto binario multipart representando el documento o medio fisico
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public Path resolveDestinationPath(String nombreArchivo) throws IOException {
+<span class="fc" id="L32">        Path base = Path.of(respaldoProperties.getRutaBase());</span>
+<span class="fc" id="L33">        Files.createDirectories(base);</span>
+<span class="fc" id="L34">        return base.resolve(nombreArchivo);</span>
+    }
+
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param ruta parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public void delete(Path ruta) throws IOException {
+<span class="fc" id="L44">        Files.deleteIfExists(ruta);</span>
+<span class="fc" id="L45">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

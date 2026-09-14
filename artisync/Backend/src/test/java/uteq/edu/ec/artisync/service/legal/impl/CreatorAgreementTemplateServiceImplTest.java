@@ -7,13 +7,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uteq.edu.ec.artisync.dto.peticion.legal.UpdateOwnAgreementTemplateRequest;
-import uteq.edu.ec.artisync.dto.peticion.legal.CreateOwnAgreementTemplateRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractTemplateResponse;
-import uteq.edu.ec.artisync.entity.pedido.ContractTemplate;
+import uteq.edu.ec.artisync.dto.request.legal.UpdateOwnAgreementTemplateRequest;
+import uteq.edu.ec.artisync.dto.request.legal.CreateOwnAgreementTemplateRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.legal.ContractTemplateResponse;
+import uteq.edu.ec.artisync.entity.order.ContractTemplate;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
-import uteq.edu.ec.artisync.repository.pedido.ContractTemplateRepository;
+import uteq.edu.ec.artisync.repository.order.ContractTemplateRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -118,7 +118,7 @@ class CreatorAgreementTemplateServiceImplTest {
         given(plantillaContratoRepository.findByIdPlantillaAndIdCreador(10L, ID_CREADOR))
                 .willReturn(Optional.of(plantillaPropia));
 
-        RespuestaMensaje respuesta = servicio.deactivate(ID_CREADOR, 10L);
+        MessageResponse respuesta = servicio.deactivate(ID_CREADOR, 10L);
 
         assertThat(respuesta.getMessage()).contains("desactivada");
         assertThat(plantillaPropia.getActiva()).isFalse();

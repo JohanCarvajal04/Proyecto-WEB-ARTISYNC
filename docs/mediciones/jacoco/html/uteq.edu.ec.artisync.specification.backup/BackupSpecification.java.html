@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BackupSpecification.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.specification.backup</a> &gt; <span class="el_source">BackupSpecification.java</span></div><h1>BackupSpecification.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.specification.backup;
+
+import org.springframework.data.jpa.domain.Specification;
+import uteq.edu.ec.artisync.dto.request.backup.BackupFilter;
+import uteq.edu.ec.artisync.entity.backup.Backup;
+
+/** Filtros dinámicos de búsqueda del historial de respaldos. */
+public final class BackupSpecification {
+
+    private BackupSpecification() {
+    }
+
+    /**
+     * Arma la {@link Specification} de {@link Backup} combinando (AND) solo
+     * los campos no nulos de {@code filtro}.
+     *
+     * @param filtro tipo, estado, origen y rango de fechas a filtrar; cualquier
+     *               campo {@code null} no restringe ese criterio
+     * @return la especificación combinada, lista para {@code findAll(spec, pageable)}
+     */
+    public static Specification&lt;Backup&gt; conFiltro(BackupFilter filtro) {
+<span class="fc" id="L22">        return (root, query, cb) -&gt; {</span>
+<span class="fc" id="L23">            var predicados = cb.conjunction();</span>
+
+<span class="fc bfc" id="L25" title="All 2 branches covered.">            if (filtro.getTipoRespaldo() != null) {</span>
+<span class="fc" id="L26">                predicados = cb.and(predicados, cb.equal(root.get(&quot;tipoRespaldo&quot;), filtro.getTipoRespaldo()));</span>
+            }
+<span class="fc bfc" id="L28" title="All 2 branches covered.">            if (filtro.getEstadoRespaldo() != null) {</span>
+<span class="fc" id="L29">                predicados = cb.and(predicados, cb.equal(root.get(&quot;estadoRespaldo&quot;), filtro.getEstadoRespaldo()));</span>
+            }
+<span class="fc bfc" id="L31" title="All 2 branches covered.">            if (filtro.getOrigen() != null) {</span>
+<span class="fc" id="L32">                predicados = cb.and(predicados, cb.equal(root.get(&quot;origen&quot;), filtro.getOrigen()));</span>
+            }
+<span class="fc bfc" id="L34" title="All 2 branches covered.">            if (filtro.getDesde() != null) {</span>
+<span class="fc" id="L35">                predicados = cb.and(predicados, cb.greaterThanOrEqualTo(root.get(&quot;fechaInicio&quot;), filtro.getDesde()));</span>
+            }
+<span class="fc bfc" id="L37" title="All 2 branches covered.">            if (filtro.getHasta() != null) {</span>
+<span class="fc" id="L38">                predicados = cb.and(predicados, cb.lessThanOrEqualTo(root.get(&quot;fechaInicio&quot;), filtro.getHasta()));</span>
+            }
+<span class="fc" id="L40">            return predicados;</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

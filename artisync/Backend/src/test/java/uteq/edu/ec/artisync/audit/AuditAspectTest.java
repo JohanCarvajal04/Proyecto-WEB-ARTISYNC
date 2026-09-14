@@ -12,7 +12,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
-import uteq.edu.ec.artisync.service.auditoria.IAuditService;
+import uteq.edu.ec.artisync.service.audit.IAuditService;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -47,7 +47,7 @@ class AuditAspectTest {
     @AfterEach
     void limpiarContexto() {
         SecurityContextHolder.clearContext();
-        AuditContext.limpiar();
+        AuditContext.clear();
     }
 
     @Test
@@ -57,7 +57,7 @@ class AuditAspectTest {
         ProceedingJoinPoint pjp = pjpQueDevuelve("metodoExito", new Class<?>[]{Long.class, String.class},
                 new Object[]{5L, "hola"}, "resultado-del-negocio");
 
-        Object resultado = aspecto.auditar(pjp, auditable);
+        Object resultado = aspecto.audit(pjp, auditable);
 
         assertThat(resultado).isEqualTo("resultado-del-negocio");
 
@@ -81,7 +81,7 @@ class AuditAspectTest {
         ProceedingJoinPoint pjp = pjpQueLanza("metodoExito", new Class<?>[]{Long.class, String.class},
                 new Object[]{9L, "x"}, excepcion);
 
-        assertThatThrownBy(() -> aspecto.auditar(pjp, auditable))
+        assertThatThrownBy(() -> aspecto.audit(pjp, auditable))
                 .isSameAs(excepcion);
 
         ArgumentCaptor<AuditEventData> captor = ArgumentCaptor.forClass(AuditEventData.class);
@@ -98,7 +98,7 @@ class AuditAspectTest {
         ProceedingJoinPoint pjp = pjpQueLanza("metodoExito", new Class<?>[]{Long.class, String.class},
                 new Object[]{1L, "x"}, excepcion);
 
-        assertThatThrownBy(() -> aspecto.auditar(pjp, auditable))
+        assertThatThrownBy(() -> aspecto.audit(pjp, auditable))
                 .isSameAs(excepcion);
 
         ArgumentCaptor<AuditEventData> captor = ArgumentCaptor.forClass(AuditEventData.class);
@@ -115,7 +115,7 @@ class AuditAspectTest {
         doThrow(new RuntimeException("la base de auditoría no responde"))
                 .when(auditoriaServicio).record(any());
 
-        Object resultado = aspecto.auditar(pjp, auditable);
+        Object resultado = aspecto.audit(pjp, auditable);
 
         assertThat(resultado).isEqualTo("resultado-intacto");
     }
@@ -126,7 +126,7 @@ class AuditAspectTest {
         Auditable auditable = anotacionDe("metodoConSpelInvalido");
         ProceedingJoinPoint pjp = pjpQueDevuelve("metodoConSpelInvalido", new Class<?>[]{}, new Object[]{}, "x");
 
-        Object resultado = aspecto.auditar(pjp, auditable);
+        Object resultado = aspecto.audit(pjp, auditable);
 
         assertThat(resultado).isEqualTo("x");
         ArgumentCaptor<AuditEventData> captor = ArgumentCaptor.forClass(AuditEventData.class);
@@ -138,11 +138,11 @@ class AuditAspectTest {
     @DisplayName("AuditContext se limpia siempre, incluso cuando el método anotado lanza una excepción")
     void contextoAuditoria_SeLimpiaTrasExcepcion() throws Throwable {
         Auditable auditable = anotacionDe("metodoExito");
-        AuditContext.aportar("antes", Map.of("estado", "ACTIVO"));
+        AuditContext.put("antes", Map.of("estado", "ACTIVO"));
         ProceedingJoinPoint pjp = pjpQueLanza("metodoExito", new Class<?>[]{Long.class, String.class},
                 new Object[]{3L, "z"}, new RuntimeException("boom"));
 
-        assertThatThrownBy(() -> aspecto.auditar(pjp, auditable)).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> aspecto.audit(pjp, auditable)).isInstanceOf(RuntimeException.class);
 
         assertThat(AuditContext.drenar()).isEmpty();
     }

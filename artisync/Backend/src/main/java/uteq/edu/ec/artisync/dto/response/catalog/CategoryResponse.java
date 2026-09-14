@@ -1,0 +1,27 @@
+package uteq.edu.ec.artisync.dto.response.catalog;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+/** Respuesta con los datos de una categoría del catálogo. */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CategoryResponse {
+
+    private Long idCategoria;
+    private String nombreCategoria;
+    private Boolean estadoActiva;
+
+    /** null = la creó un admin/moderador. */
+    private Long idUsuarioCreador;
+    private String nombreCreador;
+    private Boolean revisado;
+
+    private LocalDateTime actualizadoEn;
+}

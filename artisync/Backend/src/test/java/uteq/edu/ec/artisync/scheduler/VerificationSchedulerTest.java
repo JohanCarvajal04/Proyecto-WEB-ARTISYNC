@@ -5,8 +5,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uteq.edu.ec.artisync.entity.perfil.AiCertificate;
-import uteq.edu.ec.artisync.repository.perfil.AiCertificateRepository;
+import uteq.edu.ec.artisync.entity.profile.AiCertificate;
+import uteq.edu.ec.artisync.repository.profile.AiCertificateRepository;
 
 import java.util.List;
 
@@ -30,9 +30,9 @@ class VerificationSchedulerTest {
         when(certificadoIaRepository.findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore(eq("PENDIENTE"), any()))
                 .thenReturn(List.of(vencida));
 
-        scheduler.expirarPendientesAntiguas();
+        scheduler.expireOldPending();
 
-        verify(verificacionExpiracionServicio).expirarCertificado(vencida);
+        verify(verificacionExpiracionServicio).expireCertificate(vencida);
     }
 
     @Test
@@ -40,7 +40,7 @@ class VerificationSchedulerTest {
         when(certificadoIaRepository.findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore(eq("PENDIENTE"), any()))
                 .thenReturn(List.of());
 
-        scheduler.expirarPendientesAntiguas();
+        scheduler.expireOldPending();
 
         verifyNoInteractions(verificacionExpiracionServicio);
     }
@@ -51,14 +51,14 @@ class VerificationSchedulerTest {
         AiCertificate b = AiCertificate.builder().idCertificado(2L).urlDocumentoS3("b.jpg").build();
         when(certificadoIaRepository.findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore(eq("PENDIENTE"), any()))
                 .thenReturn(List.of(a, b));
-        doThrow(new RuntimeException("fallo simulado")).when(verificacionExpiracionServicio).expirarCertificado(a);
+        doThrow(new RuntimeException("fallo simulado")).when(verificacionExpiracionServicio).expireCertificate(a);
 
-        scheduler.expirarPendientesAntiguas();
+        scheduler.expireOldPending();
 
         // El fallo en 'a' no debe impedir que 'b' se procese: cada uno vive
         // en su propia transacción (REQUIRES_NEW), así que un error aislado
         // no debe abortar el resto del lote.
-        verify(verificacionExpiracionServicio).expirarCertificado(a);
-        verify(verificacionExpiracionServicio).expirarCertificado(b);
+        verify(verificacionExpiracionServicio).expireCertificate(a);
+        verify(verificacionExpiracionServicio).expireCertificate(b);
     }
 }

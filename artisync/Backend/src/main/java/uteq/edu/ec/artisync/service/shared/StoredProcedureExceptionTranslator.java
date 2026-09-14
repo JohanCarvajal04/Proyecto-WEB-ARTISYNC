@@ -22,7 +22,14 @@ public final class StoredProcedureExceptionTranslator {
     private StoredProcedureExceptionTranslator() {
     }
 
-    public static ResponseStatusException traducir(RuntimeException origen, HttpStatus porDefecto) {
+    /**
+     * Traduce la excepción de una rutina PL/pgSQL a una {@link ResponseStatusException} equivalente.
+     * @param origen excepción capturada al invocar la rutina
+     * @param porDefecto estado HTTP a usar si el {@code SQLSTATE} no tiene un mapeo específico
+     * @return la excepción HTTP equivalente, con el mensaje de negocio de la rutina
+     * @throws RuntimeException el {@code origen} original, sin traducir, si no envuelve una {@link SQLException}
+     */
+    public static ResponseStatusException translate(RuntimeException origen, HttpStatus porDefecto) {
         SQLException sql = findSQLException(origen);
         if (sql == null) {
             throw origen;

@@ -12,6 +12,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
 public class BusinessRuleException extends RuntimeException {
+    /**
+     * Crea la excepción con el mensaje que describe la regla de negocio incumplida.
+     *
+     * @param mensaje descripción de la regla de negocio violada
+     */
     public BusinessRuleException(String mensaje) {
         super(mensaje);
     }

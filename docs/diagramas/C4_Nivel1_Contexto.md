@@ -156,32 +156,32 @@ Para facilitar la visualización inmediata directamente en GitHub, GitLab o visu
 
 ```mermaid
 flowchart TB
-    subgraph Actores["👤 Usuarios del Sistema"]
-        C["👨‍💻 Cliente / Buscador de Talento<br>(Explora y contrata talento creatívo)"]
-        A["🎨 Artista / Creador de Contenido<br>(Ofrece servicios y sube entregables)"]
-        ADM["🛡️ Administrador del Sistema<br>(Modera y gestiona disputas legales)"]
+    subgraph Actors["👤 System Users"]
+        C["👨‍💻 Client / Talent Seeker<br>(Explores and hires creative talent)"]
+        A["🎨 Artist / Content Creator<br>(Offers services and uploads deliverables)"]
+        ADM["🛡️ System Administrator<br>(Moderates and manages legal disputes)"]
     end
 
-    subgraph Core["🎯 Sistema Principal (Caja Negra)"]
-        SYS["🏢 PLATAFORMA ARTISYNC (PFC)<br>=========================<br>Gestión de Portafolios, Catálogos,<br>Pedidos por Hitos, Pagos en Garantía,<br>Seguridad JWT 2FA y Comunidad"]
+    subgraph Core["🎯 Main System (Black Box)"]
+        SYS["🏢 ARTISYNC PLATFORM (PFC)<br>=========================<br>Portfolio, Catalog, Milestone-based<br>Order, Escrow Payment,<br>JWT 2FA Security, and Community Management"]
     end
 
-    subgraph Externos["🌐 Sistemas y Servicios Externos"]
-        SMTP["📧 Servicio Correo Transaccional<br>(SMTP TLS - Envío 2FA y Alertas)"]
-        PAY["💳 Pasarela de Pagos PayPal<br>(Orders API v2 & Webhooks Escrow)"]
-        CLOUD["☁️ Almacenamiento Cloud / CDN<br>(Archivos de Portafolio y Entregables)"]
+    subgraph External["🌐 External Systems and Services"]
+        SMTP["📧 Transactional Email Service<br>(SMTP TLS - 2FA and Alert Delivery)"]
+        PAY["💳 PayPal Payment Gateway<br>(Orders API v2 & Escrow Webhooks)"]
+        CLOUD["☁️ Cloud Storage / CDN<br>(Portfolio and Deliverable Files)"]
     end
 
-    %% Relaciones de Entrada
-    C -- "HTTPS / JSON<br>Solicita pedidos, paga garantía, aprueba hitos" --> SYS
-    A -- "HTTPS / JSON<br>Publica portafolio, cotiza, sube entregables" --> SYS
-    ADM -- "HTTPS / JSON<br>Gestiona roles, modera catálogo y tickets" --> SYS
+    %% Inbound Relationships
+    C -- "HTTPS / JSON<br>Requests orders, pays escrow, approves milestones" --> SYS
+    A -- "HTTPS / JSON<br>Publishes portfolio, quotes, uploads deliverables" --> SYS
+    ADM -- "HTTPS / JSON<br>Manages roles, moderates catalog and tickets" --> SYS
 
-    %% Relaciones de Salida
-    SYS -- "SMTP / TLS 587<br>Envío de correos de seguridad y avisos" --> SMTP
-    SYS -- "HTTPS / REST JSON<br>Crea órdenes de cobro y retención Escrow" --> PAY
-    PAY -- "HTTPS Webhooks<br>Notificación de pagos y liberación de fondos" --> SYS
-    SYS -- "HTTPS / REST<br>Sube y descarga archivos multimedia pesados" --> CLOUD
+    %% Outbound Relationships
+    SYS -- "SMTP / TLS 587<br>Sends security emails and notices" --> SMTP
+    SYS -- "HTTPS / REST JSON<br>Creates charge orders and Escrow retention" --> PAY
+    PAY -- "HTTPS Webhooks<br>Notifies payments and fund release" --> SYS
+    SYS -- "HTTPS / REST<br>Uploads and downloads heavy multimedia files" --> CLOUD
 
     style SYS fill:#1168bd,stroke:#08427b,stroke-width:4px,color:#fff
     style C fill:#08427b,stroke:#052b52,stroke-width:2px,color:#fff

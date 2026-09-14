@@ -7,10 +7,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import uteq.edu.ec.artisync.dto.peticion.legal.UpdateOwnAgreementTemplateRequest;
-import uteq.edu.ec.artisync.dto.peticion.legal.CreateOwnAgreementTemplateRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractTemplateResponse;
+import uteq.edu.ec.artisync.dto.request.legal.UpdateOwnAgreementTemplateRequest;
+import uteq.edu.ec.artisync.dto.request.legal.CreateOwnAgreementTemplateRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.legal.ContractTemplateResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.ICreatorAgreementTemplateService;
 
@@ -76,11 +76,11 @@ class CreatorAgreementTemplateControllerTest {
     void desactivar_DebeRetornarMensajeDeConfirmacion() {
         CustomUserDetails usuario = creador(1L);
         when(plantillaAcuerdoCreadorServicio.deactivate(1L, 2L))
-                .thenReturn(new RespuestaMensaje("Plantilla desactivada"));
+                .thenReturn(new MessageResponse("Plantilla desactivada"));
 
-        ResponseEntity<RespuestaMensaje> result = controlador.deactivate(2L, usuario);
+        ResponseEntity<MessageResponse> result = controlador.deactivate(2L, usuario);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(result.getBody().getMensaje()).isEqualTo("Plantilla desactivada");
+        assertThat(result.getBody().getMessage()).isEqualTo("Plantilla desactivada");
     }
 }

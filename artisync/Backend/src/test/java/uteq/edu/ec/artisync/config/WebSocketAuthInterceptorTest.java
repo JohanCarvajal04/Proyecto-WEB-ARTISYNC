@@ -16,11 +16,11 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
-import uteq.edu.ec.artisync.entity.catalogo.Offering;
+import uteq.edu.ec.artisync.entity.catalog.Offering;
 import uteq.edu.ec.artisync.entity.legal.ChatRoom;
-import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
-import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.entity.profile.CreatorProfile;
+import uteq.edu.ec.artisync.entity.security.User;
 import uteq.edu.ec.artisync.repository.legal.ChatRoomRepository;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.security.CustomUserDetailsService;
@@ -84,8 +84,8 @@ class WebSocketAuthInterceptorTest {
     @Test
     @DisplayName("rechaza el CONNECT con un token expirado")
     void rechazaTokenExpirado() {
-        given(jwtService.extraerTodosLosClaims("expirado")).willReturn(claims);
-        given(jwtService.extraerUsername("expirado")).willReturn("user@test.com");
+        given(jwtService.extractAllClaims("expirado")).willReturn(claims);
+        given(jwtService.extractUsername("expirado")).willReturn("user@test.com");
         given(claims.getExpiration()).willReturn(new Date(System.currentTimeMillis() - 60_000));
 
         Message<byte[]> connect = connectConHeader("Bearer expirado");
@@ -97,7 +97,7 @@ class WebSocketAuthInterceptorTest {
     @Test
     @DisplayName("rechaza el CONNECT cuando el JWT no se puede parsear")
     void rechazaTokenInvalido() {
-        given(jwtService.extraerTodosLosClaims("basura")).willThrow(new RuntimeException("malformado"));
+        given(jwtService.extractAllClaims("basura")).willThrow(new RuntimeException("malformado"));
 
         Message<byte[]> connect = connectConHeader("Bearer basura");
 
@@ -110,8 +110,8 @@ class WebSocketAuthInterceptorTest {
     void aceptaTokenValido() {
         UserDetails userDetails = new CustomUserDetails(
                 ID_CLIENTE, "user@test.com", "n/a", true, true, true, true, Collections.emptyList());
-        given(jwtService.extraerTodosLosClaims("valido")).willReturn(claims);
-        given(jwtService.extraerUsername("valido")).willReturn("user@test.com");
+        given(jwtService.extractAllClaims("valido")).willReturn(claims);
+        given(jwtService.extractUsername("valido")).willReturn("user@test.com");
         given(claims.getExpiration()).willReturn(new Date(System.currentTimeMillis() + 60_000));
         given(userDetailsService.loadUserByUsername("user@test.com")).willReturn(userDetails);
 

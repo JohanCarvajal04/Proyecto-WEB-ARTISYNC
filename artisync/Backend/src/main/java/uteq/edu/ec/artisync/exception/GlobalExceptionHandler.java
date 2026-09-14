@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
             erroresCampos.put(error.getField(), error.getDefaultMessage());
         }
 
-        ProblemDetail pd = construirProblemDetail(
+        ProblemDetail pd = buildProblemDetail(
                 HttpStatus.BAD_REQUEST,
                 "validacion",
                 "Error de validación en los datos de entrada",
@@ -69,7 +69,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> manejarExcepcionRecursoNoEncontrado(
             ResourceNotFoundException ex, HttpServletRequest peticion) {
 
-        ProblemDetail pd = construirProblemDetail(
+        ProblemDetail pd = buildProblemDetail(
                 HttpStatus.NOT_FOUND, "recurso-no-encontrado", ex.getMessage(), peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
     }
@@ -86,7 +86,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> manejarNoResourceFoundException(
             NoResourceFoundException ex, HttpServletRequest peticion) {
 
-        ProblemDetail pd = construirProblemDetail(
+        ProblemDetail pd = buildProblemDetail(
                 HttpStatus.NOT_FOUND, "ruta-no-encontrada", "Recurso no encontrado o ruta inexistente", peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
     }
@@ -100,7 +100,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> manejarExcepcionRecursoDuplicado(
             DuplicateResourceException ex, HttpServletRequest peticion) {
 
-        ProblemDetail pd = construirProblemDetail(
+        ProblemDetail pd = buildProblemDetail(
                 HttpStatus.CONFLICT, "recurso-duplicado", ex.getMessage(), peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
     }
@@ -114,7 +114,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> manejarExcepcionReglaNegocio(
             BusinessRuleException ex, HttpServletRequest peticion) {
 
-        ProblemDetail pd = construirProblemDetail(
+        ProblemDetail pd = buildProblemDetail(
                 HttpStatus.UNPROCESSABLE_ENTITY, "regla-de-negocio", ex.getMessage(), peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);
     }
@@ -126,11 +126,11 @@ public class GlobalExceptionHandler {
      *         además como warning (no error), por ser un fallo esperado de un tercero
      */
     @ExceptionHandler(AiServiceUnavailableException.class)
-    public ResponseEntity<ProblemDetail> manejarExcepcionServicioIaNoDisponible(
+    public ResponseEntity<ProblemDetail> handleAiServiceUnavailableException(
             AiServiceUnavailableException ex, HttpServletRequest peticion) {
 
         log.warn("Offering de IA no disponible en {}: {}", peticion.getRequestURI(), ex.getMessage());
-        ProblemDetail pd = construirProblemDetail(
+        ProblemDetail pd = buildProblemDetail(
                 HttpStatus.SERVICE_UNAVAILABLE, "ia-no-disponible", ex.getMessage(), peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(pd);
     }
@@ -150,7 +150,7 @@ public class GlobalExceptionHandler {
             ResponseStatusException ex, HttpServletRequest peticion) {
 
         HttpStatus estado = HttpStatus.valueOf(ex.getStatusCode().value());
-        ProblemDetail pd = construirProblemDetail(
+        ProblemDetail pd = buildProblemDetail(
                 estado, "peticion-rechazada",
                 ex.getReason() != null ? ex.getReason() : ex.getMessage(),
                 peticion.getRequestURI());
@@ -168,7 +168,7 @@ public class GlobalExceptionHandler {
             QuotaExceededException ex, HttpServletRequest peticion) {
 
         log.warn("Cuota de intentos por cuenta excedida en {}: {}", peticion.getRequestURI(), ex.getMessage());
-        ProblemDetail pd = construirProblemDetail(
+        ProblemDetail pd = buildProblemDetail(
                 HttpStatus.TOO_MANY_REQUESTS, "cuota-excedida", ex.getMessage(), peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header("Retry-After", String.valueOf(ex.getRetryAfterSegundos()))
@@ -188,7 +188,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> manejarAccessDeniedException(
             AccessDeniedException ex, HttpServletRequest peticion) {
 
-        ProblemDetail pd = construirProblemDetail(
+        ProblemDetail pd = buildProblemDetail(
                 HttpStatus.FORBIDDEN, "acceso-denegado",
                 "No tienes permisos suficientes para realizar esta acción", peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(pd);
@@ -207,7 +207,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> manejarExcepcionAutenticacion(
             Exception ex, HttpServletRequest peticion) {
         log.warn("Error de autenticación/JWT en {}: {}", peticion.getRequestURI(), ex.getMessage());
-        ProblemDetail pd = construirProblemDetail(
+        ProblemDetail pd = buildProblemDetail(
                 HttpStatus.UNAUTHORIZED, "autenticacion",
                 "Credenciales inválidas o token expirado/malformado", peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(pd);
@@ -225,7 +225,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> manejarExcepcionesPeticionIncorrecta(
             RuntimeException ex, HttpServletRequest peticion) {
 
-        ProblemDetail pd = construirProblemDetail(
+        ProblemDetail pd = buildProblemDetail(
                 HttpStatus.BAD_REQUEST, "peticion-invalida", ex.getMessage(), peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
     }
@@ -244,13 +244,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> manejarExcepcionGeneral(
             Exception ex, HttpServletRequest peticion) {
         log.error("Error interno no controlado en {}: ", peticion.getRequestURI(), ex);
-        ProblemDetail pd = construirProblemDetail(
+        ProblemDetail pd = buildProblemDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR, "error-interno",
                 "Ha ocurrido un error interno en el servidor", peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(pd);
     }
 
-    private ProblemDetail construirProblemDetail(HttpStatus estado, String tipoSlug, String detalle, String instancia) {
+    private ProblemDetail buildProblemDetail(HttpStatus estado, String tipoSlug, String detalle, String instancia) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(estado, detalle);
         pd.setType(URI.create(BASE_TIPO + tipoSlug));
         pd.setTitle(estado.getReasonPhrase());

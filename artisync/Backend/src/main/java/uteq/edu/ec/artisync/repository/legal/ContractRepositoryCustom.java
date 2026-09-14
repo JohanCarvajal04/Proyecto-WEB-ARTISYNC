@@ -2,7 +2,7 @@ package uteq.edu.ec.artisync.repository.legal;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractReportRow;
+import uteq.edu.ec.artisync.dto.response.legal.ContractReportRow;
 
 import java.time.LocalDateTime;
 
@@ -21,7 +21,7 @@ public interface ContractRepositoryCustom {
      * "Firmado" se deriva de que el hash de firma no sea nulo — igual criterio
      * que ContratoVistaComponent.yaFirme en el frontend.
      */
-    Page<ContractReportRow> buscarParaReporte(LocalDateTime desde, LocalDateTime hasta,
+    Page<ContractReportRow> findForReport(LocalDateTime desde, LocalDateTime hasta,
                                                  Long idPerfilCreador, Boolean soloFirmados,
                                                  Pageable pageable);
 }

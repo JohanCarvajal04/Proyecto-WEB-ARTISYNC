@@ -8,24 +8,24 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.FileExtensions;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.FilePolicy;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.StoragePrefix;
-import uteq.edu.ec.artisync.dto.respuesta.legal.DeliverableResponse;
+import uteq.edu.ec.artisync.service.shared.storage.DocumentStorage;
+import uteq.edu.ec.artisync.service.shared.storage.FileExtensions;
+import uteq.edu.ec.artisync.service.shared.storage.FilePolicy;
+import uteq.edu.ec.artisync.service.shared.storage.StoragePrefix;
+import uteq.edu.ec.artisync.dto.response.legal.DeliverableResponse;
 import uteq.edu.ec.artisync.entity.legal.FinalDeliverable;
 import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
 import uteq.edu.ec.artisync.entity.legal.PaymentTransaction;
-import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.pedido.OrderStatusHistory;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.entity.order.OrderStatusHistory;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.*;
-import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
-import uteq.edu.ec.artisync.repository.pedido.OrderStatusHistoryRepository;
-import uteq.edu.ec.artisync.repository.pedido.WorkflowStageConfigRepository;
-import uteq.edu.ec.artisync.service.comunicacion.ChatService;
-import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
+import uteq.edu.ec.artisync.repository.order.OrderRepository;
+import uteq.edu.ec.artisync.repository.order.OrderStatusHistoryRepository;
+import uteq.edu.ec.artisync.repository.order.WorkflowStageConfigRepository;
+import uteq.edu.ec.artisync.service.communication.ChatService;
+import uteq.edu.ec.artisync.service.communication.NotificationService;
 import uteq.edu.ec.artisync.service.legal.IDeliverableService;
 
 import java.math.BigDecimal;
@@ -67,8 +67,8 @@ public class DeliverableServiceImpl implements IDeliverableService {
     @Transactional
     public DeliverableResponse uploadDeliverable(Long idPedido, Long idCreador,
                                                 MultipartFile versionMarcaAgua, MultipartFile versionLimpia) {
-        FilePolicy.ENTREGABLE.validar(versionMarcaAgua);
-        FilePolicy.ENTREGABLE.validar(versionLimpia);
+        FilePolicy.ENTREGABLE.validate(versionMarcaAgua);
+        FilePolicy.ENTREGABLE.validate(versionLimpia);
 
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
@@ -91,9 +91,9 @@ public class DeliverableServiceImpl implements IDeliverableService {
         String anteriorLimpia = entregable.getUrlVersionLimpia();
 
         entregable.setUrlVersionMarcaAgua(
-                almacenamiento.guardar(versionMarcaAgua, StoragePrefix.ENTREGABLES));
+                almacenamiento.save(versionMarcaAgua, StoragePrefix.ENTREGABLES));
         entregable.setUrlVersionLimpia(
-                almacenamiento.guardar(versionLimpia, StoragePrefix.ENTREGABLES));
+                almacenamiento.save(versionLimpia, StoragePrefix.ENTREGABLES));
 
         entregable = entregableRepository.save(entregable);
         deleteIfExists(anteriorMarcaAgua);
@@ -113,7 +113,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
             return;
         }
         try {
-            almacenamiento.eliminar(referencia);
+            almacenamiento.delete(referencia);
         } catch (RuntimeException e) {
             log.warn("No se pudo eliminar el entregable reemplazado {}: {}", referencia, e.getMessage());
         }
@@ -248,7 +248,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ArchivoDescargado downloadCleanVersion(Long idPedido, Long idCliente) {
+    public DownloadedFile downloadCleanVersion(Long idPedido, Long idCliente) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
 
@@ -269,8 +269,8 @@ public class DeliverableServiceImpl implements IDeliverableService {
         }
 
         log.info("Descarga de version limpia para pedido {}", idPedido);
-        return new ArchivoDescargado(
-                almacenamiento.leer(referencia),
+        return new DownloadedFile(
+                almacenamiento.read(referencia),
                 "entregable-pedido-" + idPedido + extensionDe(referencia),
                 FileExtensions.contentTypeDe(referencia));
     }
@@ -285,7 +285,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ArchivoDescargado downloadWatermarkedVersion(Long idPedido, Long idUsuario) {
+    public DownloadedFile downloadWatermarkedVersion(Long idPedido, Long idUsuario) {
         FinalDeliverable entregable = entregableRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("No hay entregable para este pedido"));
 
@@ -302,8 +302,8 @@ public class DeliverableServiceImpl implements IDeliverableService {
             throw new ResourceNotFoundException("El entregable no tiene version con marca de agua");
         }
 
-        return new ArchivoDescargado(
-                almacenamiento.leer(referencia),
+        return new DownloadedFile(
+                almacenamiento.read(referencia),
                 "vista-previa-pedido-" + idPedido + extensionDe(referencia),
                 FileExtensions.contentTypeDe(referencia));
     }

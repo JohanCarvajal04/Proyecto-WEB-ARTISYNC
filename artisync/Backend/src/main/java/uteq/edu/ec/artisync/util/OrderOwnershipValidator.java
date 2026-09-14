@@ -3,7 +3,7 @@ package uteq.edu.ec.artisync.util;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import uteq.edu.ec.artisync.entity.pedido.Order;
+import uteq.edu.ec.artisync.entity.order.Order;
 
 /**
  * Extraído de OrderServiceImpl/RevisionTicketServiceImpl (duplicado

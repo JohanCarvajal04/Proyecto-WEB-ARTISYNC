@@ -27,16 +27,16 @@ class ContractIntegritySchedulerTest {
         Contract firmado = Contract.builder().idContrato(1L).hashContenido("abc").build();
         when(contratoRepository.findByHashContenidoIsNotNull()).thenReturn(List.of(firmado));
 
-        scheduler.verificarIntegridadDeTodos();
+        scheduler.verifyIntegrityOfAll();
 
-        verify(contratoIntegridadEjecutorServicio).verificar(1L);
+        verify(contratoIntegridadEjecutorServicio).verify(1L);
     }
 
     @Test
     void verificarIntegridadDeTodos_sinContratosFirmados_noHaceNada() {
         when(contratoRepository.findByHashContenidoIsNotNull()).thenReturn(List.of());
 
-        scheduler.verificarIntegridadDeTodos();
+        scheduler.verifyIntegrityOfAll();
 
         verifyNoInteractions(contratoIntegridadEjecutorServicio);
     }
@@ -46,11 +46,11 @@ class ContractIntegritySchedulerTest {
         Contract a = Contract.builder().idContrato(1L).hashContenido("abc").build();
         Contract b = Contract.builder().idContrato(2L).hashContenido("def").build();
         when(contratoRepository.findByHashContenidoIsNotNull()).thenReturn(List.of(a, b));
-        doThrow(new RuntimeException("fallo simulado")).when(contratoIntegridadEjecutorServicio).verificar(1L);
+        doThrow(new RuntimeException("fallo simulado")).when(contratoIntegridadEjecutorServicio).verify(1L);
 
-        scheduler.verificarIntegridadDeTodos();
+        scheduler.verifyIntegrityOfAll();
 
-        verify(contratoIntegridadEjecutorServicio).verificar(1L);
-        verify(contratoIntegridadEjecutorServicio).verificar(2L);
+        verify(contratoIntegridadEjecutorServicio).verify(1L);
+        verify(contratoIntegridadEjecutorServicio).verify(2L);
     }
 }

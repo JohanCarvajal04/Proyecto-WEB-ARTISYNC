@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RaffleController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.social</a> &gt; <span class="el_source">RaffleController.java</span></div><h1>RaffleController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.social;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.request.social.UpdateRaffleRequest;
+import uteq.edu.ec.artisync.dto.request.social.CreateRaffleRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.social.WinnerResponse;
+import uteq.edu.ec.artisync.dto.response.social.ParticipantResponse;
+import uteq.edu.ec.artisync.dto.response.social.RaffleResponse;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.social.RaffleService;
+
+import java.util.List;
+
+/**
+ * Controlador de sorteos configurables.
+ * RF-23: CRUD, participación y consulta de ganadores.
+ */
+@Tag(name = &quot;Sorteos&quot;, description = &quot;Gestión de sorteos configurables por el creador&quot;)
+@RestController
+@RequiredArgsConstructor
+public class RaffleController {
+
+    private final RaffleService sorteoService;
+
+    // =========================================================================
+    // CRUD de Sorteos
+    // =========================================================================
+
+    /**
+     * Crea un nuevo sorteo para el creador autenticado.
+     *
+     * @param peticion datos del sorteo a crear
+     * @param userDetails usuario autenticado que crea el sorteo
+     * @return el sorteo creado, con estado 201
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si los datos del sorteo violan alguna regla de negocio
+     */
+    @Operation(summary = &quot;Crear un nuevo sorteo (CREADOR)&quot;)
+    @PostMapping(&quot;/api/v1/sorteos&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity&lt;RaffleResponse&gt; createRaffle(
+            @Valid @RequestBody CreateRaffleRequest peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L53">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L54">                .body(sorteoService.createRaffle(userDetails.getIdUsuario(), peticion));</span>
+    }
+
+    /**
+     * Obtiene el detalle público de un sorteo.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
+     * @return el detalle del sorteo solicitado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     */
+    @Operation(summary = &quot;Obtener detalle de un sorteo (público)&quot;)
+    @GetMapping(&quot;/api/v1/sorteos/{idSorteo}&quot;)
+    public ResponseEntity&lt;RaffleResponse&gt; getRaffle(
+            @PathVariable Long idSorteo,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
+<span class="fc" id="L71">        return ResponseEntity.ok(sorteoService.getRaffle(idSorteo, idUsuarioActual));</span>
+    }
+
+    /**
+     * Edita un sorteo existente, sujeto a las restricciones de edición del negocio.
+     *
+     * @param idSorteo identificador del sorteo a editar
+     * @param peticion datos actualizados del sorteo
+     * @param userDetails usuario autenticado que solicita la edición
+     * @return el sorteo actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo no puede editarse en su estado actual
+     */
+    @Operation(summary = &quot;Editar un sorteo (CREADOR, con restricciones)&quot;)
+    @PutMapping(&quot;/api/v1/sorteos/{idSorteo}&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RaffleResponse&gt; updateRaffle(
+            @PathVariable Long idSorteo,
+            @Valid @RequestBody UpdateRaffleRequest peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L91">        return ResponseEntity.ok(</span>
+<span class="fc" id="L92">                sorteoService.updateRaffle(idSorteo, userDetails.getIdUsuario(), peticion));</span>
+    }
+
+    /**
+     * Elimina un sorteo que aún no tiene participantes.
+     *
+     * @param idSorteo identificador del sorteo a eliminar
+     * @param userDetails usuario autenticado que solicita la eliminación
+     * @return mensaje de confirmación de la eliminación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo ya tiene participantes
+     */
+    @Operation(summary = &quot;Eliminar un sorteo sin participantes (CREADOR)&quot;)
+    @DeleteMapping(&quot;/api/v1/sorteos/{idSorteo}&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;MessageResponse&gt; deleteRaffle(
+            @PathVariable Long idSorteo,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L110">        return ResponseEntity.ok(sorteoService.deleteRaffle(idSorteo, userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Lista los sorteos de un creador.
+     *
+     * @param idPerfil identificador del perfil de creador
+     * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
+     * @return listado de sorteos del creador
+     */
+    @Operation(summary = &quot;Listar sorteos de un creador (público)&quot;)
+    @GetMapping(&quot;/api/v1/creadores/{idPerfil}/sorteos&quot;)
+    public ResponseEntity&lt;List&lt;RaffleResponse&gt;&gt; listRafflesByCreator(
+            @PathVariable Long idPerfil,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc bfc" id="L125" title="All 2 branches covered.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
+<span class="fc" id="L126">        return ResponseEntity.ok(sorteoService.listRafflesByCreator(idPerfil, idUsuarioActual));</span>
+    }
+
+    /**
+     * Lista los sorteos actualmente activos.
+     *
+     * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
+     * @return listado de sorteos activos
+     */
+    @Operation(summary = &quot;Listar sorteos activos (público)&quot;)
+    @GetMapping(&quot;/api/v1/sorteos/activos&quot;)
+    public ResponseEntity&lt;List&lt;RaffleResponse&gt;&gt; listActiveRaffles(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
+<span class="fc" id="L140">        return ResponseEntity.ok(sorteoService.listActiveRaffles(idUsuarioActual));</span>
+    }
+
+    // =========================================================================
+    // Participación
+    // =========================================================================
+
+    /**
+     * Inscribe al usuario autenticado como participante en un sorteo.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param userDetails usuario autenticado que se inscribe
+     * @return la participación creada, con estado 201
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo no está activo, aún no ha comenzado o el periodo de inscripción ha finalizado
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el usuario ya está inscrito en el sorteo
+     */
+    @Operation(summary = &quot;Inscribirse en un sorteo&quot;)
+    @PostMapping(&quot;/api/v1/sorteos/{idSorteo}/joinRaffle&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity&lt;ParticipantResponse&gt; joinRaffle(
+            @PathVariable Long idSorteo,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L164">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L165">                .body(sorteoService.joinRaffle(idSorteo, userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Cancela la inscripción del usuario autenticado en un sorteo.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param userDetails usuario autenticado que cancela su inscripción
+     * @return mensaje de confirmación de la cancelación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo ya ha finalizado
+     */
+    @Operation(summary = &quot;Cancelar inscripción en un sorteo&quot;)
+    @DeleteMapping(&quot;/api/v1/sorteos/{idSorteo}/joinRaffle&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;MessageResponse&gt; cancelParticipation(
+            @PathVariable Long idSorteo,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L183">        return ResponseEntity.ok(</span>
+<span class="fc" id="L184">                sorteoService.cancelParticipation(idSorteo, userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Lista los participantes inscritos en un sorteo.
+     *
+     * @param idSorteo identificador del sorteo
+     * @return listado de participantes del sorteo
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     */
+    @Operation(summary = &quot;Listar participantes de un sorteo&quot;)
+    @GetMapping(&quot;/api/v1/sorteos/{idSorteo}/participantes&quot;)
+    public ResponseEntity&lt;List&lt;ParticipantResponse&gt;&gt; listParticipants(
+            @PathVariable Long idSorteo) {
+<span class="fc" id="L198">        return ResponseEntity.ok(sorteoService.listParticipants(idSorteo));</span>
+    }
+
+    /**
+     * Lista los ganadores de un sorteo, disponible solo después del cierre.
+     *
+     * @param idSorteo identificador del sorteo
+     * @return listado de ganadores del sorteo
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     */
+    @Operation(summary = &quot;Ver ganadores del sorteo (solo post-cierre)&quot;)
+    @GetMapping(&quot;/api/v1/sorteos/{idSorteo}/ganadores&quot;)
+    public ResponseEntity&lt;List&lt;WinnerResponse&gt;&gt; listWinners(
+            @PathVariable Long idSorteo) {
+<span class="fc" id="L212">        return ResponseEntity.ok(sorteoService.listWinners(idSorteo));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

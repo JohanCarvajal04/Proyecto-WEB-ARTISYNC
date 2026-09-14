@@ -189,6 +189,16 @@ cobertura de seguridad consistente en ambas direcciones (top-down por
 control OWASP, bottom-up por herramienta automatizada), sin
 contradicciones entre ambas fuentes.
 
+\textbf{Cookie de refresh y cabeceras en producción.} Complementando A05,
+\texttt{docs/mediciones/seguridad/cabeceras-produccion.md} documenta las
+cinco propiedades de la cookie de refresh (\texttt{HttpOnly},
+\texttt{Secure}, \texttt{SameSite=Strict}, \texttt{Path} y \texttt{Max-Age})
+verificadas tanto a nivel de código (\texttt{AuthController}) como por
+pruebas automatizadas (\texttt{AuthControllerTest}, incluido el caso en el
+que \texttt{Secure} se desactiva en desarrollo local), y las cabeceras HSTS,
+CSP, X-Frame-Options y X-Content-Type-Options capturadas en vivo contra
+\texttt{artisync-frontend.onrender.com}.
+
 \section{Usabilidad (SUS) --- RQ1}
 
 \textbf{Métrica:} puntaje System Usability Scale
@@ -287,24 +297,24 @@ el nivel en el que la guía fija el umbral del 70\,\%.
 \toprule
 \textbf{Métrica} & \textbf{Cobertura} & \textbf{Umbral} & \textbf{Cumple} \\
 \midrule
-Lines         & 82.93\,\% (6023/7263)   & $\geq$70\,\% & \checkmark \\
-Branches      & 71.50\,\% (1548/2165)   & $\geq$70\,\% & \checkmark \\
-Instructions  & 81.10\,\% (27789/34263) & ---          & --- \\
-Complexity    & 70.32\,\% (1737/2470)   & ---          & --- \\
+Lines         & 92.88\,\% (6823/7346)   & $\geq$70\,\% & \checkmark \\
+Branches      & 81.93\,\% (1795/2191)   & $\geq$70\,\% & \checkmark \\
+Instructions  & 92.42\,\% (32018/34643) & ---          & --- \\
+Complexity    & 79.74\,\% (1991/2497)   & ---          & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{table}[H]
 \centering
-\caption{Cobertura de código JaCoCo --- desglose por capa (OBS-P1-01)}
+\caption{Cobertura de código JaCoCo --- desglose por capa (OBS-P1-01 / Punto 7)}
 \label{tab:jacoco-capas}
 \begin{tabular}{@{}lllc@{}}
 \toprule
 \textbf{Capa} & \textbf{Lines} & \textbf{Branches} & \textbf{Cumple ambas} \\
 \midrule
-Servicios      & 85.89\,\% (4778/5563) & 76.09\,\% (1273/1673) & \checkmark \\
-Controladores  & 86.18\,\% (393/456)   & 78.05\,\% (64/82)     & \checkmark \\
+Servicios      & 93.02\,\% (5247/5641) & 81.52\,\% (1385/1699) & \checkmark \\
+Controladores  & 91.42\,\% (426/466)   & 89.02\,\% (73/82)     & \checkmark \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -312,19 +322,24 @@ Controladores  & 86.18\,\% (393/456)   & 78.05\,\% (64/82)     & \checkmark \\
 \textbf{Interpretación:} la cobertura de líneas y de ramas cumplen el
 umbral de 70\,\% tanto en el agregado global como en cada una de las
 capas exigidas por la guía (servicios, controladores) --- declarado sin
-maquillaje: el mismo día de esta medición (2026-09-11) una ronda anterior
-había detectado que la capa de Controladores caía a 67.07\,\% de ramas,
-por debajo del umbral, al incorporar funcionalidad nueva (plantillas de
-acuerdo por creador, reconciliación PayPal, expiración de tickets de
-revisión, integridad de contratos) sin pruebas equivalentes; se cerró la
-misma tarde añadiendo pruebas para los cinco controladores y el servicio
-sin cobertura propia (ver \texttt{docs/mediciones/jacoco/REPORTE-JACOCO.md}
-para el detalle de ambas rondas). Cabe además la advertencia empírica de
-Inozemtseva y Holmes~\cite{INOZEMTSEVA2014}: un porcentaje de cobertura
+maquillaje: el 2026-09-11 una ronda anterior había detectado que la capa
+de Controladores caía a 67.07\,\% de ramas, por debajo del umbral, al
+incorporar funcionalidad nueva (plantillas de acuerdo por creador,
+reconciliación PayPal, expiración de tickets de revisión, integridad de
+contratos) sin pruebas equivalentes; se cerró la misma tarde añadiendo
+pruebas para los cinco controladores y el servicio sin cobertura propia.
+El cierre del Punto 7 de la rúbrica del examen final (2026-09-14) fue más
+allá del mínimo agregado: se verificó, paquete por paquete, que ninguno de
+los 48 paquetes con código ejecutable quedara por debajo del 70\,\% de
+líneas ni de ramas (el más ajustado, \texttt{controller.catalog}, cierra
+en 70.18\,\%/78.57\,\%), subiendo el agregado global a
+92.88\,\%/81.93\,\% (ver \texttt{docs/mediciones/jacoco/REPORTE-JACOCO.md}
+para el detalle de todas las rondas). Cabe además la advertencia empírica
+de Inozemtseva y Holmes~\cite{INOZEMTSEVA2014}: un porcentaje de cobertura
 alto no implica por sí solo una suite de pruebas efectiva para detectar
 defectos, por lo que estas cifras deben leerse como una medida de
 exhaustividad estructural, no como un sustituto de la efectividad real de
-las 1230 pruebas. Además, \texttt{pom.xml} configura JaCoCo solo para
+las 1441 pruebas. Además, \texttt{pom.xml} configura JaCoCo solo para
 reportar, sin \texttt{jacoco:check} que falle el build bajo el umbral
 (Capítulo~\ref{cap:diseno-arquitectura}, brecha declarada también en
 \texttt{docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md}).

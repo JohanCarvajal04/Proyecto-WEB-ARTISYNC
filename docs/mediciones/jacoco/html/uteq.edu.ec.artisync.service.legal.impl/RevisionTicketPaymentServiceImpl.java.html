@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RevisionTicketPaymentServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.legal.impl</a> &gt; <span class="el_source">RevisionTicketPaymentServiceImpl.java</span></div><h1>RevisionTicketPaymentServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.legal.impl;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpStatusCodeException;
+import uteq.edu.ec.artisync.entity.legal.RevisionTicketPayment;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.entity.order.RevisionTicket;
+import uteq.edu.ec.artisync.repository.legal.RevisionTicketPaymentRepository;
+import uteq.edu.ec.artisync.service.communication.NotificationService;
+import uteq.edu.ec.artisync.service.legal.IRevisionTicketPaymentService;
+import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
+
+import java.math.BigDecimal;
+
+/**
+ * REQ-F-022b/c: cobro de la revisión adicional cuando un ticket de revisión
+ * supera el límite del contrato. Deliberadamente autocontenido respecto a
+ * PaymentServiceImpl (no reutiliza sus métodos privados de captura/creación):
+ * mismo motivo que PayPalReconciliationExecutorService, no arriesgar el
+ * flujo de escrow principal ya verificado a cambio de ahorrar ~15 líneas.
+ */
+<span class="fc" id="L30">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class RevisionTicketPaymentServiceImpl implements IRevisionTicketPaymentService {
+
+    private static final String ESTADO_PENDIENTE = &quot;Pendiente&quot;;
+    private static final String ESTADO_PAGADO = &quot;Pagado&quot;;
+
+    private static final String EVENTO_ORDEN_APROBADA = &quot;CHECKOUT.ORDER.APPROVED&quot;;
+
+    private final RevisionTicketPaymentRepository pagoTicketRevisionRepository;
+    private final NotificationService notificacionService;
+    private final PayPalClient payPalClient;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Value(&quot;${app.frontend.url:http://localhost:4200}&quot;)
+    private String frontendUrl;
+
+    @Override
+    @Transactional
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param ticket parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public void createPaymentOrder(RevisionTicket ticket) {
+        try {
+<span class="fc" id="L59">            Order pedido = ticket.getPedido();</span>
+<span class="fc" id="L60">            BigDecimal monto = ticket.getCostoAdicionalGenerado();</span>
+
+<span class="fc" id="L62">            JsonNode orden = createOrderInPayPal(pedido.getIdPedido(), monto);</span>
+<span class="fc" id="L63">            String orderId = orden.path(&quot;id&quot;).asText();</span>
+<span class="fc" id="L64">            String approvalUrl = extractApprovalUrl(orden);</span>
+
+<span class="fc" id="L66">            RevisionTicketPayment pago = pagoTicketRevisionRepository.findByTicketIdTicket(ticket.getIdTicket())</span>
+<span class="fc" id="L67">                    .orElseGet(() -&gt; RevisionTicketPayment.builder().ticket(ticket).build());</span>
+<span class="fc" id="L68">            pago.setIdOrdenPaypal(orderId);</span>
+<span class="fc" id="L69">            pago.setUrlAprobacion(approvalUrl);</span>
+<span class="fc" id="L70">            pago.setMonto(monto);</span>
+<span class="fc" id="L71">            pago.setEstadoPago(ESTADO_PENDIENTE);</span>
+<span class="fc" id="L72">            pago.setMensajeError(null);</span>
+<span class="fc" id="L73">            pagoTicketRevisionRepository.save(pago);</span>
+
+<span class="fc" id="L75">            log.info(&quot;Orden PayPal {} creada para el cargo adicional del ticket de revision {}&quot;,</span>
+<span class="fc" id="L76">                    orderId, ticket.getIdTicket());</span>
+<span class="fc" id="L77">        } catch (Exception e) {</span>
+            // No debe impedir que el ticket quede creado: el cliente puede
+            // retry el pago más tarde (limitación aceptada: hoy no hay un
+            // mecanismo automático de reintento, ver docs/requisitos/SRS.md).
+<span class="fc" id="L81">            log.error(&quot;Error al create la orden de pago del ticket de revision {}: {}&quot;,</span>
+<span class="fc" id="L82">                    ticket.getIdTicket(), e.getMessage(), e);</span>
+<span class="fc" id="L83">        }</span>
+<span class="fc" id="L84">    }</span>
+
+    private JsonNode createOrderInPayPal(Long idPedido, BigDecimal monto) {
+<span class="fc" id="L87">        String retorno = frontendUrl + &quot;/pedido/&quot; + idPedido;</span>
+
+<span class="fc" id="L89">        ObjectNode raiz = objectMapper.createObjectNode();</span>
+<span class="fc" id="L90">        raiz.put(&quot;intent&quot;, &quot;CAPTURE&quot;);</span>
+
+<span class="fc" id="L92">        ObjectNode unidad = raiz.putArray(&quot;purchase_units&quot;).addObject();</span>
+<span class="fc" id="L93">        unidad.put(&quot;description&quot;, &quot;ARTISYNC - Revision adicional del pedido #&quot; + idPedido);</span>
+<span class="fc" id="L94">        unidad.putObject(&quot;amount&quot;)</span>
+<span class="fc" id="L95">                .put(&quot;currency_code&quot;, &quot;USD&quot;)</span>
+<span class="fc" id="L96">                .put(&quot;value&quot;, monto.toPlainString());</span>
+
+<span class="fc" id="L98">        raiz.putObject(&quot;application_context&quot;)</span>
+<span class="fc" id="L99">                .put(&quot;return_url&quot;, retorno)</span>
+<span class="fc" id="L100">                .put(&quot;cancel_url&quot;, retorno);</span>
+
+<span class="fc" id="L102">        return payPalClient.callPayPal(&quot;/v2/checkout/orders&quot;, HttpMethod.POST, raiz);</span>
+    }
+
+    private String extractApprovalUrl(JsonNode orden) {
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">        for (JsonNode enlace : orden.path(&quot;links&quot;)) {</span>
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">            if (&quot;approve&quot;.equals(enlace.path(&quot;rel&quot;).asText())) {</span>
+<span class="fc" id="L108">                return enlace.path(&quot;href&quot;).asText();</span>
+            }
+<span class="nc" id="L110">        }</span>
+<span class="nc" id="L111">        return &quot;&quot;;</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idTicket identificador unico que referencia de manera univoca al registro
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public String getPendingPaymentUrl(Long idTicket) {
+<span class="fc" id="L124">        return pagoTicketRevisionRepository.findByTicketIdTicket(idTicket)</span>
+<span class="fc" id="L125">                .filter(pago -&gt; ESTADO_PENDIENTE.equals(pago.getEstadoPago()))</span>
+<span class="fc" id="L126">                .map(RevisionTicketPayment::getUrlAprobacion)</span>
+<span class="fc" id="L127">                .orElse(null);</span>
+    }
+
+    @Override
+    @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idOrdenPaypal identificador unico que referencia de manera univoca al registro
+     * @param tipoEvento parametro requerido para la correcta ejecucion del procedimiento
+     * @return valor logico verdadero si la comprobacion fue exitosa, o falso si no cumplio los requisitos
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public boolean processOrderWebhook(String idOrdenPaypal, String tipoEvento) {
+<span class="fc" id="L141">        RevisionTicketPayment pago = pagoTicketRevisionRepository.findByIdOrdenPaypal(idOrdenPaypal).orElse(null);</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">        if (pago == null) {</span>
+<span class="fc" id="L143">            return false;</span>
+        }
+
+        // Misma idempotencia por estado que PaymentServiceImpl.processPayPalWebhook:
+        // un PAYMENT.CAPTURE.COMPLETED que llega despues de que CHECKOUT.ORDER.APPROVED
+        // ya confirmo el pago se absorbe aqui como duplicado, sin volver a capturar.
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        if (!ESTADO_PENDIENTE.equalsIgnoreCase(pago.getEstadoPago())) {</span>
+<span class="fc" id="L150">            log.info(&quot;Webhook PayPal duplicado para la orden {} del ticket de revision {}: el pago ya esta en {}&quot;,</span>
+<span class="fc" id="L151">                    idOrdenPaypal, pago.getTicket().getIdTicket(), pago.getEstadoPago());</span>
+<span class="fc" id="L152">            return true;</span>
+        }
+
+<span class="pc bpc" id="L155" title="2 of 4 branches missed.">        if (EVENTO_ORDEN_APROBADA.equals(tipoEvento) &amp;&amp; !captureOrder(idOrdenPaypal)) {</span>
+<span class="nc" id="L156">            log.error(&quot;No se pudo capturar la orden {} del ticket de revision {}; el pago sigue pendiente&quot;,</span>
+<span class="nc" id="L157">                    idOrdenPaypal, pago.getTicket().getIdTicket());</span>
+<span class="nc" id="L158">            return true;</span>
+        }
+
+<span class="fc" id="L161">        pago.setEstadoPago(ESTADO_PAGADO);</span>
+<span class="fc" id="L162">        pago.setMensajeError(null);</span>
+<span class="fc" id="L163">        pagoTicketRevisionRepository.save(pago);</span>
+
+<span class="fc" id="L165">        RevisionTicket ticket = pago.getTicket();</span>
+<span class="fc" id="L166">        Order pedido = ticket.getPedido();</span>
+<span class="fc" id="L167">        log.info(&quot;Pago del ticket de revision {} confirmado. Monto: ${}&quot;, ticket.getIdTicket(), pago.getMonto());</span>
+
+<span class="fc" id="L169">        String mensaje = &quot;Se confirmó el pago de la revisión adicional del pedido \&quot;&quot;</span>
+<span class="fc" id="L170">                + pedido.getServicio().getTituloServicio() + &quot;\&quot;.&quot;;</span>
+<span class="fc" id="L171">        notificacionService.notify(pedido.getUsuarioCliente(), &quot;PAGO_CONFIRMADO&quot;, mensaje);</span>
+<span class="fc" id="L172">        notificacionService.notify(pedido.getServicio().getPerfil().getUsuario(), &quot;PAGO_CONFIRMADO&quot;, mensaje);</span>
+<span class="fc" id="L173">        return true;</span>
+    }
+
+    /** Misma logica que PaymentServiceImpl.capturarOrden, duplicada a proposito (ver Javadoc de la clase). */
+    private boolean captureOrder(String orderId) {
+        try {
+<span class="fc" id="L179">            JsonNode respuesta = payPalClient.callPayPal(&quot;/v2/checkout/orders/&quot; + orderId + &quot;/capture&quot;,</span>
+<span class="fc" id="L180">                    HttpMethod.POST, objectMapper.createObjectNode());</span>
+<span class="fc" id="L181">            String estado = respuesta.path(&quot;status&quot;).asText();</span>
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">            if (!&quot;COMPLETED&quot;.equals(estado)) {</span>
+<span class="nc" id="L183">                log.error(&quot;La captura de la orden {} devolvió estado {}&quot;, orderId, estado);</span>
+<span class="nc" id="L184">                return false;</span>
+            }
+<span class="fc" id="L186">            return true;</span>
+<span class="nc" id="L187">        } catch (HttpStatusCodeException e) {</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">            if (e.getResponseBodyAsString().contains(&quot;ORDER_ALREADY_CAPTURED&quot;)) {</span>
+<span class="nc" id="L189">                log.info(&quot;La orden {} ya estaba capturada&quot;, orderId);</span>
+<span class="nc" id="L190">                return true;</span>
+            }
+<span class="nc" id="L192">            log.error(&quot;Error capturando la orden {}: {}&quot;, orderId, e.getResponseBodyAsString());</span>
+<span class="nc" id="L193">            return false;</span>
+<span class="nc" id="L194">        } catch (Exception e) {</span>
+<span class="nc" id="L195">            log.error(&quot;Error capturando la orden {}&quot;, orderId, e);</span>
+<span class="nc" id="L196">            return false;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -9,8 +9,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.SignatureStatusResponse;
+import uteq.edu.ec.artisync.dto.response.legal.ContractResponse;
+import uteq.edu.ec.artisync.dto.response.legal.SignatureStatusResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IContractService;
 

@@ -77,6 +77,37 @@ Las dos rutinas restantes, `sp_purgar_datos_seguridad` (Fase 4, sección 18) y
 `FUNCTION` no puede hacer bajo ninguna circunstancia (§0.1 de `PLAN-CONCURRENCIA-SP.md`). Ninguna
 devuelve nada y ambas se invocan con `CALL`, nunca con `SELECT`.
 
+### Mecanismo de invocación desde Java (uniformidad del acceso)
+
+Las 28 rutinas activas (26 de `db/procs/` + 2 de verificación asistida por IA, §14) se invocan desde
+Java con **tres mecanismos posibles**, nunca por SQL dinámico:
+
+| Mecanismo | Cuántas rutinas | Condición para usarlo |
+|---|---|---|
+| `@Procedure` | 3 (`sp_registrar_decision_verificacion`, `sp_restablecer_contrasena`, `sp_cambiar_contrasena`) | Método Java `void` **y** la rutina no declara ningún parámetro `OUT`/`INOUT` — el único patrón verificado sin fallos contra Hibernate 7.4.1 (ver más abajo). |
+| `@NamedStoredProcedureQuery` | 0 | No usado: exige declarar `@StoredProcedureParameter(mode = OUT)`, que dispara el mismo bug de Hibernate 7.4.1 que `@Procedure` con retorno no-`void` (ver más abajo). |
+| `@Query(nativeQuery = true)` contra la función | 23 | Toda rutina que deba devolver un valor (escalar, `JSONB` o `TABLE`) — es decir, todas las `FUNCTION` de la tabla de arriba salvo las dos `PROCEDURE` puras. |
+
+**No es una elección de conveniencia: es la única combinación que funciona contra Hibernate 7.4.1 +
+PostgreSQL.** En cuanto un método `@Procedure` (o un `@NamedStoredProcedureQuery` con un parámetro
+`OUT`) declara un tipo de retorno distinto de `void`, Hibernate serializa **todos** sus parámetros
+—incluido el propio `OUT`— con la sintaxis de argumento nombrado de PostgreSQL
+(`nombre => valor`) dentro del *JDBC escape* `{call ...}`, que PostgreSQL no puede interpretar ahí
+(`ERROR: syntax error at or near "=>"`). Se probó explícitamente sobre `sp_permisos_efectivos_usuario`
+con un parámetro `OUT p_resultado TEXT`, contra el stack real y con inicio de sesión efectivo: el
+error se reprodujo de forma consistente. Un commit del 4 de septiembre de 2026 que migró las 7
+funciones escalares de `UsuarioRepository` a `@Procedure` ignorando esta restricción **rompió el
+inicio de sesión en producción**; se revirtió de inmediato y quedó documentada la causa raíz (§14 de
+este catálogo y `07-implementacion.tex` §"Excepción documentada: rutinas con retorno escalar" del
+informe final).
+
+Las cifras de esta tabla son verificables de forma reproducible (excluyendo menciones dentro de
+comentarios Javadoc, que no son anotaciones reales) con:
+
+```bash
+python scripts/auditoria-rubrica.py p6
+```
+
 ### Postura de seguridad
 
 Ninguna de las veintiséis rutinas activas construye SQL por concatenación. No aparece `EXECUTE
@@ -534,6 +565,83 @@ que devuelven un valor) en vez de revertir a `nativeQuery`, y se probó **contra
 Conclusión vigente: `@Procedure` en este proyecto solo es seguro cuando el método Java es `void` y la
 rutina no tiene ningún parámetro `OUT`/`INOUT`. Para cualquier rutina que deba devolver un valor
 escalar, `@Query(nativeQuery=true)` sigue siendo la opción correcta y verificada.
+
+**Segunda revisión técnica (2026-09-14) — se repitió la investigación desde cero, no se aceptó la
+conclusión anterior sin volver a probarla:**
+
+Antes de dar por definitiva la excepción de arriba, se levantó un Postgres real
+(`docker compose -f artisync/docker-compose.yml up -d postgres`) y se probaron variantes que la
+revisión de 2026-09-05 no había agotado, contra `fn_es_seguidor` (la función más simple del
+catálogo: 2 parámetros `IN BIGINT`, retorno `BOOLEAN`):
+
+1. **`@NamedStoredProcedureQuery` con parámetros puramente posicionales** (sin `@Param`, sin
+   ningún nombre declarado en la anotación Java) — hipótesis: si el causante era el nombre que el
+   desarrollador le pone al parámetro, quitar el nombre debería evitar la sintaxis `=>`.
+   **Resultado: no evita el bug.** Spring Data JPA generó de todas formas
+   `call fn_es_seguidor(idUsuarioSeguidor => ?, idPerfilCreador => ?, out => ?)`, tomando los
+   nombres directamente de los parámetros del método Java vía reflexión (compilado con
+   `-parameters`, que Spring Boot activa por defecto) cuando no hay `@Param` explícito. No existe,
+   en la práctica, una invocación "puramente posicional" vía `@Procedure`/`@NamedStoredProcedureQuery`
+   de Spring Data contra Postgres.
+2. **API nativa de Hibernate** (`Session.createStoredProcedureCall(...)` +
+   `ProcedureCall.markAsFunctionCall(Types.BOOLEAN)`, sin pasar por ninguna anotación de Spring
+   Data) — **sí funciona**: genera `select fn_es_seguidor(?,?)` (sin `{call ...}`, sin `=>`) y
+   devuelve el valor correcto contra Postgres real.
+3. **Inspección de bytecode** de `hibernate-core-7.4.1.Final.jar`
+   (`org.hibernate.procedure.internal.PostgreSQLCallableStatementSupport`,
+   `NamedCallableQueryMementoImpl`) para ubicar la causa raíz exacta: la variante que funciona (2)
+   depende de un campo (`functionReturn`, tipo `FunctionReturnImplementor`) que solo existe en la
+   interfaz imperativa `ProcedureCallImplementor` de la API nativa de Hibernate.
+   `NamedCallableQueryMementoImpl` — la clase que respalda a `@NamedStoredProcedureQuery` — no
+   tiene ningún campo equivalente, y la especificación JPA no define ningún atributo para declarar
+   "esto es una función escalar, no un procedimiento". Es decir: la vía que evita el bug
+   (`markAsFunctionCall`) es estructuralmente inalcanzable desde cualquier anotación JPA declarativa
+   — solo existe como llamada imperativa a la API nativa de Hibernate, lo que en la práctica
+   significaría implementar cada método a mano con `EntityManager`/`Session` en vez de usar
+   `@Procedure`/`@NamedStoredProcedureQuery`, es decir, cambiar una forma de invocación nativa por
+   otra sin ganancia real de conformidad literal (ninguna de las dos es la anotación que exige la
+   rúbrica) y con mayor costo de mantenimiento (una implementación por rutina en vez de una
+   anotación declarativa).
+
+**Los dos `PROCEDURE` de purga también se reconsideraron y se descartaron por un motivo distinto:**
+`sp_purgar_notificaciones` y `sp_purgar_datos_seguridad` son `void`, solo `IN` — el patrón que sí
+funciona con `@Procedure` — pero ambos ejecutan `COMMIT` explícito por lote dentro del propio
+`PROCEDURE` (para no sostener una transacción larga que bloquee `VACUUM`). Eso exige que la conexión
+no tenga ya una transacción abierta por Spring (`NotificationPurgeScheduler` y
+`SecurityPurgeScheduler` declaran `@Transactional(propagation = Propagation.NOT_SUPPORTED)` como
+requisito, no como estilo): Postgres falla con `2D000 invalid_transaction_termination` si el `CALL`
+ocurre dentro de una transacción ya iniciada. Un método `@Procedure` se ejecuta a través del
+`EntityManager`/`Session` de Hibernate, atado al ciclo de vida transaccional de JPA de una forma en
+que `JdbcTemplate` con su propia conexión no lo está. Convertirlos arriesgaba reproducir para la
+purga (un job de mantenimiento en producción) el mismo tipo de incidente que ya rompió el login una
+vez. Se mantienen en `JdbcTemplate`, no por descuido sino por una restricción de manejo de
+transacciones independiente del bug de Hibernate.
+
+**Conclusión de la segunda revisión:** el reparto por mecanismo no cambia frente al de la revisión
+de 2026-09-05 (3 `@Procedure`, 0 `@NamedStoredProcedureQuery`, 23 `@Query(nativeQuery=true)`, 2
+`JdbcTemplate` directo). No es una limitación insuficientemente explorada: es una restricción
+estructural confirmada por dos vías independientes (reproducción end-to-end contra Postgres real +
+inspección de bytecode) en dos revisiones separadas, once días aparte. Se verificó además que
+ninguno de los cambios de esta revisión tocó `src/main` ni entidades de producción, y que la
+suite completa de pruebas (1441 tests) sigue en 0 fallos tras la investigación.
+
+**Tercera verificación (2026-09-14, misma noche) — se probó también el parche inmediatamente
+posterior de Hibernate.** Con `hibernate-core-7.4.5.Final` (cuatro versiones patch por delante de
+la 7.4.1 usada en producción, disponible en el repositorio Maven local) sobrescrito vía la
+propiedad `hibernate.version` en `pom.xml`, se repitió el experimento mínimo contra Postgres real:
+`@Procedure(procedureName = "fn_es_seguidor")` con dos parámetros `IN` y retorno `Boolean`. Falló
+de forma idéntica:
+
+```
+ERROR: syntax error at or near "=>"
+  Position: 79
+call fn_es_seguidor(p_id_usuario_seguidor => ('1'::int8),p_id_perfil_creador => ('1'::int8),out => (NULL))
+```
+
+Es decir, el bug no se corrigió entre 7.4.1 y 7.4.5 — no es un defecto ya parcheado que el proyecto
+simplemente no haya actualizado. El experimento se revirtió por completo (override de
+`hibernate.version` retirado de `pom.xml`, clase de prueba desechable eliminada) sin dejar rastro en
+el árbol de producción ni en `src/test`.
 
 ### 14a. `fn_listar_cola_verificacion` — consultas multi-tabla
 
