@@ -89,12 +89,14 @@ en el diagrama PRISMA (Figura~\ref{fig:prisma}).
 
   \node (exc1) [right of=screen, xshift=5cm] {Excluded (not relevant)\\ (n = 83)};
   \node (exc2) [right of=elig, xshift=5cm] {Excluded (no technical contribution)\\ (n = 41)};
-  
+  \node (exc3) [right of=incl, xshift=5cm] {Excluded (does not meet IC1/IC2)\\ (n = 13)};
+
   \draw[->] (ident) -- (screen);
   \draw[->] (ident) -| (exc1);
   \draw[->] (screen) -- (elig);
   \draw[->] (screen) -| (exc2);
   \draw[->] (elig) -- (incl);
+  \draw[->] (elig) -| (exc3);
 \end{tikzpicture}
 \caption{Diagrama de flujo PRISMA 2020 del proceso de selecci\'on.}
 \label{fig:prisma}
@@ -119,14 +121,26 @@ Laksono et al.~\cite{LAKSONO2024} & 2024 & Pasarela de pago en plataforma freela
 Waleed et al.~\cite{TSMART2021} & 2021 & Confianza granular en mercado inteligente & No & No & N/A & Simulaci\'on (precisi\'on/latencia) \\
 Gu y Zhu~\cite{GU2021} & 2021 & Confianza y desintermediaci\'on (freelance) & No & No & N/A & Emp\'irico (RCT de campo) \\
 Bandari~\cite{BANDARI2026} & 2026 & Gesti\'on comunitaria y servicios hiperlocales & No & No & No & Evaluaci\'on post-despliegue \\
-Hagiu y Wright~\cite{HAGIU2015} & 2015 & Multi-sided platforms & No & No & N/A & N/A \\
-Gussek et al.~\cite{GUSSEK2023} & 2023 & Freelance tensions & No & No & N/A & N/A \\
+Hagiu y Wright~\cite{HAGIU2015} & 2015 & Plataformas multilaterales (\emph{multi-sided}) & No & No & N/A & N/A \\
+Gussek et al.~\cite{GUSSEK2023} & 2023 & Tensiones del trabajo freelance en plataformas digitales & No & No & N/A & N/A \\
 Wang et al.~\cite{WANG2021} & 2021 & Microservicios vs Monolito & N/A & N/A & S\'i & Arquitectura \\
 Asgaonkar~\cite{ASGAONKAR2019} & 2019 & Dep\'osito dual & S\'i & No & N/A & Simulaci\'on \\
 \midrule
 \textbf{Artisync} & \textbf{2026} & \textbf{Econom\'ia Creativa} & \textbf{S\'i} & \textbf{S\'i} & \textbf{S\'i} & \textbf{Perf, Sec, Usab} \\
 \bottomrule
 \end{tabular}
+
+\vspace{4pt}
+\footnotesize
+\textbf{DOI de los 8 estudios incluidos:}
+Laksono et al.~\cite{LAKSONO2024}: \href{https://doi.org/10.32664/smatika.v14i01.1227}{10.32664/smatika.v14i01.1227} \textbullet{}
+Waleed et al.~\cite{TSMART2021}: \href{https://doi.org/10.3390/jtaer16060132}{10.3390/jtaer16060132} \textbullet{}
+Gu y Zhu~\cite{GU2021}: \href{https://doi.org/10.1287/mnsc.2020.3583}{10.1287/mnsc.2020.3583} \textbullet{}
+Bandari~\cite{BANDARI2026}: \href{https://doi.org/10.22214/ijraset.2026.79868}{10.22214/ijraset.2026.79868} \textbullet{}
+Hagiu y Wright~\cite{HAGIU2015}: \href{https://doi.org/10.1016/j.ijindorg.2015.03.003}{10.1016/j.ijindorg.2015.03.003} \textbullet{}
+Gussek et al.~\cite{GUSSEK2023}: \href{https://doi.org/10.1007/s12525-023-00675-y}{10.1007/s12525-023-00675-y} \textbullet{}
+Wang et al.~\cite{WANG2021}: \href{https://doi.org/10.1007/s10664-020-09910-y}{10.1007/s10664-020-09910-y} \textbullet{}
+Asgaonkar~\cite{ASGAONKAR2019}: \href{https://doi.org/10.1109/BLOC.2019.8751482}{10.1109/BLOC.2019.8751482}
 \end{table}
 
 Dos estudios adicionales, aunque no encajan en las columnas de la tabla por

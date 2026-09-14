@@ -128,7 +128,7 @@ URL del repositorio: &
 https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC.git \\
 \end{longtable}
 
-\subsubsection{Integrantes del Equipo}\label{integrantes-del-equipo}
+\subsubsection{Integrantes del Equipo}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.6200}}
@@ -146,9 +146,9 @@ Rios Cuyabazo Jhon Kevin & Backend CRUD \\
 \emph{Stack: Java 25 · Spring Boot 4.1.0 · Angular 22 · PostgreSQL 18 ·
 Redis 7 · Flyway · TailwindCSS 4 · Docker Compose}
 
-\section{Tabla de Contenidos}\label{tabla-de-contenidos}
+\section{Tabla de Contenidos}
 
-\section{1. Resumen Ejecutivo}\label{resumen-ejecutivo}
+\section{1. Resumen Ejecutivo}
 
 En la presente entrega se implementó el módulo de autenticación
 stateless basado en JSON Web Tokens (JWT) y el acceso relacional de
@@ -187,9 +187,9 @@ El esquema de base de datos comprende 7 módulos funcionales con más de
 35 tablas relacionales gestionadas mediante 3 migraciones Flyway
 versionadas.
 
-\section{2. Introducción}\label{introducciuxf3n}
+\section{2. Introducción}
 
-\subsection{2.1 Contexto}\label{contexto}
+\subsection{2.1 Contexto}
 
 En la actualidad, la economía creativa y de libre dedicación (freelance)
 en el Ecuador carece de ecosistemas digitales unificados que centralicen
@@ -217,7 +217,7 @@ resguardando la integridad operativa y la propiedad intelectual de la
 comunidad creativa.
 
 \subsection{2.2 Objetivos de la Entrega
-1B}\label{objetivos-de-la-entrega-1b}
+1B}
 
 1. Implementar el módulo de autenticación stateless y el control de
 acceso basado en roles dinámicos (RBAC) empleando Spring Security 6 y la
@@ -240,7 +240,7 @@ migraciones versionadas.
 de la infraestructura completa (backend, frontend, base de datos y
 caché) por medio de la orquestación de contenedores con Docker Compose.
 
-\subsection{2.3 Alcance}\label{alcance}
+\subsection{2.3 Alcance}
 
 Módulos implementados en esta entrega: Se consolida el núcleo operativo
 de seguridad y persistencia que incluye el registro seguro de usuarios
@@ -266,7 +266,7 @@ electrónica y la pasarela de liberación de fondos bajo el patrón Escrow
 con webhooks de PayPal.
 
 \subsection{2.4 Estructura del
-Documento}\label{estructura-del-documento}
+Documento}
 
 El presente informe se organiza en las siguientes secciones:
 
@@ -293,10 +293,10 @@ relevante.
 
 11. Referencias Bibliográficas
 
-\section{3. Marco Teórico}\label{marco-teuxf3rico}
+\section{3. Marco Teórico}
 
 \subsection{3.1 Autenticación Stateless vs. Stateful y
-JWT}\label{autenticaciuxf3n-stateless-vs.-stateful-y-jwt}
+JWT}
 
 La autenticación en aplicaciones web se ha implementado históricamente
 bajo dos paradigmas: el modelo con estado (stateful) y el modelo sin
@@ -334,7 +334,7 @@ almacenada en Redis con TTL equivalente al tiempo restante de expiración
 {[}2{]}, {[}3{]}.
 
 \subsection{3.2 Spring Security 6 y el Modelo de
-Filtros}\label{spring-security-6-y-el-modelo-de-filtros}
+Filtros}
 
 Spring Security 6, integrado en Spring Boot 4.1.0, implementa un modelo
 de seguridad declarativo basado en una cadena de filtros de servlet
@@ -370,7 +370,7 @@ inyección de contenido y fuga de información del referrer {[}4{]},
 {[}5{]}.
 
 \subsection{3.3 ORM y Mapeo Objeto-Relacional con
-Hibernate/JPA}\label{orm-y-mapeo-objeto-relacional-con-hibernatejpa}
+Hibernate/JPA}
 
 El mapeo objeto-relacional (ORM) constituye un paradigma de programación
 que establece una correspondencia bidireccional entre las entidades del
@@ -402,7 +402,7 @@ presentación, evitando el antipatrón de consultas N+1 y promoviendo la
 carga explícita de relaciones mediante FetchType.LAZY {[}6{]}.
 
 \subsection{3.4 Migraciones de Base de Datos con
-Flyway}\label{migraciones-de-base-de-datos-con-flyway}
+Flyway}
 
 La gestión del esquema de base de datos en equipos de desarrollo
 colaborativo requiere mecanismos de versionado que garanticen la
@@ -436,7 +436,7 @@ modificarlas, evitando alteraciones accidentales del esquema en
 producción.
 
 \subsection{3.5 OWASP Top 10 y Seguridad
-JWT}\label{owasp-top-10-y-seguridad-jwt}
+JWT}
 
 El Open Web Application Security Project (OWASP) publica periódicamente
 una clasificación de los diez riesgos de seguridad más críticos para
@@ -488,10 +488,10 @@ directamente relevantes para la implementación de ARTISYNC {[}3{]}:
   aceptación de tokens potencialmente revocados {[}8{]}.
 \end{itemize}
 
-\section{4. Diseño del Sistema}\label{diseuxf1o-del-sistema}
+\section{4. Diseño del Sistema}
 
 \subsection{4.1 Diagrama C4 Nivel 2
-(Contenedores)}\label{diagrama-c4-nivel-2-contenedores}
+(Contenedores)}
 
 \includegraphics[width=6.3in,height=5.19931in]{media/media/image1.png}
 
@@ -517,55 +517,55 @@ Caché / Blacklist & Redis 7 alpine & TCP & 6379 & Lista negra de JTI,
 caché de sesiones y revocación de tokens \\
 \end{longtable}
 
-\subsection{}\label{section}
+\subsection{}
 
 \subsection[4.2 Diagrama de Clases UML (Backend
 Completo)]{\texorpdfstring{\protect\includegraphics[width=7.90347in,height=10.20833in]{media/media/image2.png}4.2
 Diagrama de Clases UML (Backend
-Completo)}{4.2 Diagrama de Clases UML (Backend Completo)}}\label{diagrama-de-clases-uml-backend-completo}
+Completo)}{4.2 Diagrama de Clases UML (Backend Completo)}}
 
-\subsection{}\label{section-1}
+\subsection{}
 
-\subsection{}\label{section-2}
+\subsection{}
 
-\subsection{}\label{section-3}
+\subsection{}
 
-\subsection{}\label{section-4}
+\subsection{}
 
-\subsection{}\label{section-5}
+\subsection{}
 
-\subsection{}\label{section-6}
+\subsection{}
 
-\subsection{}\label{section-7}
+\subsection{}
 
-\subsection{}\label{section-8}
+\subsection{}
 
-\subsection{}\label{section-9}
+\subsection{}
 
-\subsection{}\label{section-10}
+\subsection{}
 
-\subsection{}\label{section-11}
+\subsection{}
 
-\subsection{}\label{section-12}
+\subsection{}
 
-\subsection{}\label{section-13}
+\subsection{}
 
-\subsection{}\label{section-14}
+\subsection{}
 
-\subsection{}\label{section-15}
+\subsection{}
 
-\subsection{}\label{section-16}
+\subsection{}
 
-\subsection{}\label{section-17}
+\subsection{}
 
-\subsection{}\label{section-18}
+\subsection{}
 
-\subsection{}\label{section-19}
+\subsection{}
 
-\subsection{}\label{section-20}
+\subsection{}
 
 \subsection{4.3 Tabla de Correspondencia Java ↔
-PostgreSQL}\label{tabla-de-correspondencia-java-postgresql}
+PostgreSQL}
 
 Tabla de correspondencia de tipos para la entidad usuarios:
 
@@ -639,7 +639,7 @@ actualizadoEn & LocalDateTime & TIMESTAMPTZ & Trigger +
 
 \subsection[4.4 Diagrama de Secuencia: Flujo de Autenticación
 JWT]{\texorpdfstring{4.4 Diagrama de Secuencia: Flujo de Autenticación
-JWT\protect\includegraphics[width=7.50833in,height=4.61491in]{media/media/image3.png}}{4.4 Diagrama de Secuencia: Flujo de Autenticación JWT}}\label{diagrama-de-secuencia-flujo-de-autenticaciuxf3n-jwt}
+JWT\protect\includegraphics[width=7.50833in,height=4.61491in]{media/media/image3.png}}{4.4 Diagrama de Secuencia: Flujo de Autenticación JWT}}
 
 Los 12 pasos del flujo de autenticación JWT son:
 
@@ -683,10 +683,10 @@ authInterceptor clona la petición y agrega Authorization: Bearer
 
 \subsection[4.5 Diagrama Entidad-Relación (DER)]{\texorpdfstring{4.5
 Diagrama Entidad-Relación
-(DER)\protect\includegraphics[width=8in,height=4.14861in]{media/media/image4.png}}{4.5 Diagrama Entidad-Relación (DER)}}\label{diagrama-entidad-relaciuxf3n-der}
+(DER)\protect\includegraphics[width=8in,height=4.14861in]{media/media/image4.png}}{4.5 Diagrama Entidad-Relación (DER)}}
 
 \subsection{4.6 Scripts Flyway de
-Migración}\label{scripts-flyway-de-migraciuxf3n}
+Migración}
 
 Los scripts de migración se encuentran en database/migrations/ y en
 Backend/src/main/resources/db/migration/:
@@ -712,7 +712,7 @@ Backend/src/main/resources/db/migration/:
 Todos los scripts se ejecutan sin errores en PostgreSQL 18 con ddl-auto:
 validate.
 
-\subsection{4.7 Diccionario de Datos}\label{diccionario-de-datos}
+\subsection{4.7 Diccionario de Datos}
 
 Tabla usuarios (Módulo 1: Seguridad y Control de Acceso):
 
@@ -791,10 +791,10 @@ actualizado\_en & TIMESTAMPTZ & SÍ & CURRENT\_TIMESTAMP & Timestamp de
 última actualización; trigger automático \\
 \end{longtable}
 
-\section{5. Implementación}\label{implementaciuxf3n}
+\section{5. Implementación}
 
 \subsection{5.1 Estructura del Repositorio
-(Monorepo)}\label{estructura-del-repositorio-monorepo}
+(Monorepo)}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.4049}}
@@ -828,7 +828,7 @@ docs/adr/ & Decisiones de arquitectura (ADRs) \\
 \end{longtable}
 
 \subsection{5.2 Configuración de Spring Boot
-(application.properties)}\label{configuraciuxf3n-de-spring-boot-application.properties}
+(application.properties)}
 
 Archivo de configuración ubicado en
 Backend/src/main/resources/application.properties:
@@ -866,7 +866,7 @@ Backend/src/main/resources/application.properties:
 \end{itemize}
 
 \subsection{5.3 Implementación del Filtro JWT
-(JwtAuthenticationFilter)}\label{implementaciuxf3n-del-filtro-jwt-jwtauthenticationfilter}
+(JwtAuthenticationFilter)}
 
 El filtro JwtAuthenticationFilter extiende OncePerRequestFilter e
 intercepta cada solicitud HTTP para:
@@ -897,7 +897,7 @@ enlace al archivo en el repositorio
 (Backend/src/main/java/.../security/JwtAuthenticationFilter.java){]}}
 
 \subsection{5.4 Tabla de Endpoints
-Implementados}\label{tabla-de-endpoints-implementados}
+Implementados}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1047}}
@@ -953,7 +953,7 @@ OK (HTML) \\
 \end{longtable}
 
 \subsection{5.5 Estructura del JWT
-Emitido}\label{estructura-del-jwt-emitido}
+Emitido}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.1496}}
@@ -978,7 +978,7 @@ Redis (TTL = tiempo restante) \\
 \end{longtable}
 
 \subsection{5.6 Implementación Angular: Interceptor JWT y
-AuthGuard}\label{implementaciuxf3n-angular-interceptor-jwt-y-authguard}
+AuthGuard}
 
 El frontend Angular 22 implementa los siguientes componentes de
 seguridad del lado del cliente:
@@ -1029,10 +1029,10 @@ seguridad del lado del cliente:
   tras recargas de página.
 \end{itemize}
 
-\section{6. Pruebas}\label{pruebas}
+\section{6. Pruebas}
 
 \subsection{6.1 Pruebas Unitarias JUnit
-5}\label{pruebas-unitarias-junit-5}
+5}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.0434}}
@@ -1091,202 +1091,202 @@ PASS \\
 \begin{minipage}[b]{\linewidth}\raggedright
 \subsection{{[}INFO{]} Tests run: 1, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 17.84 s -- in
-uteq.edu.ec.artisync.ArtisyncApplicationTests}\label{info-tests-run-1-failures-0-errors-0-skipped-0-time-elapsed-17.84-s-in-uteq.edu.ec.artisync.artisyncapplicationtests}
+uteq.edu.ec.artisync.ArtisyncApplicationTests}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.controller.seguridad.AdminUserControllerTest}\label{info-running-uteq.edu.ec.artisync.controller.seguridad.adminusercontrollertest}
+uteq.edu.ec.artisync.controller.seguridad.AdminUserControllerTest}
 
 \subsection{{[}INFO{]} Tests run: 4, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.177 s -\/- in
-uteq.edu.ec.artisync.controller.seguridad.AdminUserControllerTest}\label{info-tests-run-4-failures-0-errors-0-skipped-0-time-elapsed-0.177-s----in-uteq.edu.ec.artisync.controller.seguridad.adminusercontrollertest}
+uteq.edu.ec.artisync.controller.seguridad.AdminUserControllerTest}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.controller.seguridad.AuthControllerTest}\label{info-running-uteq.edu.ec.artisync.controller.seguridad.authcontrollertest}
+uteq.edu.ec.artisync.controller.seguridad.AuthControllerTest}
 
 \subsection{{[}INFO{]} Tests run: 5, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.207 s -\/- in
-uteq.edu.ec.artisync.controller.seguridad.AuthControllerTest}\label{info-tests-run-5-failures-0-errors-0-skipped-0-time-elapsed-0.207-s----in-uteq.edu.ec.artisync.controller.seguridad.authcontrollertest}
+uteq.edu.ec.artisync.controller.seguridad.AuthControllerTest}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.controller.seguridad.PaisControllerTest}\label{info-running-uteq.edu.ec.artisync.controller.seguridad.paiscontrollertest}
+uteq.edu.ec.artisync.controller.seguridad.PaisControllerTest}
 
 \subsection{{[}INFO{]} Tests run: 3, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.079 s -\/- in
-uteq.edu.ec.artisync.controller.seguridad.PaisControllerTest}\label{info-tests-run-3-failures-0-errors-0-skipped-0-time-elapsed-0.079-s----in-uteq.edu.ec.artisync.controller.seguridad.paiscontrollertest}
+uteq.edu.ec.artisync.controller.seguridad.PaisControllerTest}
 
 \subsection{\texorpdfstring{{[}INFO{]} Running
 uteq.edu.ec.artisync.controller.seguridad.RolePermissionControllerTest
-}{{[}INFO{]} Running uteq.edu.ec.artisync.controller.seguridad.RolePermissionControllerTest }}\label{info-running-uteq.edu.ec.artisync.controller.seguridad.rolepermissioncontrollertest}
+}{{[}INFO{]} Running uteq.edu.ec.artisync.controller.seguridad.RolePermissionControllerTest }}
 
 \subsection{{[}INFO{]} Tests run: 4, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.097 s -\/- in
-uteq.edu.ec.artisync.controller.seguridad.RolePermissionControllerTest}\label{info-tests-run-4-failures-0-errors-0-skipped-0-time-elapsed-0.097-s----in-uteq.edu.ec.artisync.controller.seguridad.rolepermissioncontrollertest}
+uteq.edu.ec.artisync.controller.seguridad.RolePermissionControllerTest}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.controller.seguridad.UserControllerTest}\label{info-running-uteq.edu.ec.artisync.controller.seguridad.usercontrollertest}
+uteq.edu.ec.artisync.controller.seguridad.UserControllerTest}
 
 \subsection{{[}INFO{]} Tests run: 3, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.136 s -\/- in
-uteq.edu.ec.artisync.controller.seguridad.UserControllerTest}\label{info-tests-run-3-failures-0-errors-0-skipped-0-time-elapsed-0.136-s----in-uteq.edu.ec.artisync.controller.seguridad.usercontrollertest}
+uteq.edu.ec.artisync.controller.seguridad.UserControllerTest}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.security.JwtAuthenticationFilterTest}\label{info-running-uteq.edu.ec.artisync.security.jwtauthenticationfiltertest}
+uteq.edu.ec.artisync.security.JwtAuthenticationFilterTest}
 
 \subsection{{[}INFO{]} Tests run: 3, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.525 s -\/- in
-uteq.edu.ec.artisync.security.JwtAuthenticationFilterTest}\label{info-tests-run-3-failures-0-errors-0-skipped-0-time-elapsed-0.525-s----in-uteq.edu.ec.artisync.security.jwtauthenticationfiltertest}
+uteq.edu.ec.artisync.security.JwtAuthenticationFilterTest}
 
 \subsection{\texorpdfstring{{[}INFO{]} Running
 uteq.edu.ec.artisync.service.comunicacion.impl.BriefingServiceImplTest
-}{{[}INFO{]} Running uteq.edu.ec.artisync.service.comunicacion.impl.BriefingServiceImplTest }}\label{info-running-uteq.edu.ec.artisync.service.comunicacion.impl.briefingserviceimpltest}
+}{{[}INFO{]} Running uteq.edu.ec.artisync.service.comunicacion.impl.BriefingServiceImplTest }}
 
 \subsection{2026-06-10T17:14:11.145-05:00 INFO 14644 -\/-\/- {[}main{]}
 u.e.e.a.s.c.impl.BriefingServiceImpl : Plantilla de briefing
 \textquotesingle Briefing Logo\textquotesingle{} creada para perfil
-5}\label{t171411.145-0500-info-14644-----main-u.e.e.a.s.c.impl.briefingserviceimpl-plantilla-de-briefing-briefing-logo-creada-para-perfil-5}
+5}
 
 \subsection{{[}INFO{]} Tests run: 6, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.711 s -\/- in
-uteq.edu.ec.artisync.service.comunicacion.impl.BriefingServiceImplTest}\label{info-tests-run-6-failures-0-errors-0-skipped-0-time-elapsed-0.711-s----in-uteq.edu.ec.artisync.service.comunicacion.impl.briefingserviceimpltest}
+uteq.edu.ec.artisync.service.comunicacion.impl.BriefingServiceImplTest}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.service.comunicacion.impl.ChatServiceImplTest}\label{info-running-uteq.edu.ec.artisync.service.comunicacion.impl.chatserviceimpltest}
+uteq.edu.ec.artisync.service.comunicacion.impl.ChatServiceImplTest}
 
 \subsection{2026-06-10T17:14:11.740-05:00 WARN 14644 -\/-\/- {[}main{]}
 u.e.e.a.s.c.impl.ChatServiceImpl : Infracción RF-15 registrada para
 usuario 1. Patrón: EMAIL. Total en 30 días:
-3}\label{t171411.740-0500-warn-14644-----main-u.e.e.a.s.c.impl.chatserviceimpl-infracciuxf3n-rf-15-registrada-para-usuario-1.-patruxf3n-email.-total-en-30-duxedas-3}
+3}
 
 \subsection{2026-06-10T17:14:11.741-05:00 WARN 14644 -\/-\/- {[}main{]}
 u.e.e.a.s.c.impl.ChatServiceImpl : Cuenta del usuario juan@example.com
 suspendida hasta
-2026-08-14}\label{t171411.741-0500-warn-14644-----main-u.e.e.a.s.c.impl.chatserviceimpl-cuenta-del-usuario-juanexample.com-suspendida-hasta-2026-08-14}
+2026-08-14}
 
 \subsection{2026-06-10T17:14:11.770-05:00 INFO 14644 -\/-\/- {[}main{]}
 u.e.e.a.s.c.impl.ChatServiceImpl : Sala 100 cerrada para pedido
-10}\label{t171411.770-0500-info-14644-----main-u.e.e.a.s.c.impl.chatserviceimpl-sala-100-cerrada-para-pedido-10}
+10}
 
 \subsection{2026-06-10T17:14:11.804-05:00 INFO 14644 -\/-\/- {[}main{]}
 u.e.e.a.s.c.impl.ChatServiceImpl : Sala de chat creada para pedido
-10}\label{t171411.804-0500-info-14644-----main-u.e.e.a.s.c.impl.chatserviceimpl-sala-de-chat-creada-para-pedido-10}
+10}
 
 \subsection{2026-06-10T17:14:11.818-05:00 WARN 14644 -\/-\/- {[}main{]}
 u.e.e.a.s.c.impl.ChatServiceImpl : Infracción RF-15 registrada para
 usuario 1. Patrón: TELEFONO. Total en 30 días:
-1}\label{t171411.818-0500-warn-14644-----main-u.e.e.a.s.c.impl.chatserviceimpl-infracciuxf3n-rf-15-registrada-para-usuario-1.-patruxf3n-telefono.-total-en-30-duxedas-1}
+1}
 
 \subsection{{[}INFO{]} Tests run: 10, Failures: 0, Errors: 0, Skipped:
 0, Time elapsed: 0.654 s -\/- in
-uteq.edu.ec.artisync.service.comunicacion.impl.ChatServiceImplTest}\label{info-tests-run-10-failures-0-errors-0-skipped-0-time-elapsed-0.654-s----in-uteq.edu.ec.artisync.service.comunicacion.impl.chatserviceimpltest}
+uteq.edu.ec.artisync.service.comunicacion.impl.ChatServiceImplTest}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.service.comunicacion.impl.MensajeFilterServiceImplTest}\label{info-running-uteq.edu.ec.artisync.service.comunicacion.impl.mensajefilterserviceimpltest}
+uteq.edu.ec.artisync.service.comunicacion.impl.MensajeFilterServiceImplTest}
 
 \subsection{{[}INFO{]} Tests run: 10, Failures: 0, Errors: 0, Skipped:
 0, Time elapsed: 0.037 s -\/- in
-uteq.edu.ec.artisync.service.comunicacion.impl.MensajeFilterServiceImplTest}\label{info-tests-run-10-failures-0-errors-0-skipped-0-time-elapsed-0.037-s----in-uteq.edu.ec.artisync.service.comunicacion.impl.mensajefilterserviceimpltest}
+uteq.edu.ec.artisync.service.comunicacion.impl.MensajeFilterServiceImplTest}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.service.seguridad.impl.AdminUserServiceImplTest}\label{info-running-uteq.edu.ec.artisync.service.seguridad.impl.adminuserserviceimpltest}
+uteq.edu.ec.artisync.service.seguridad.impl.AdminUserServiceImplTest}
 
 \subsection{{[}INFO{]} Tests run: 4, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.409 s -\/- in
-uteq.edu.ec.artisync.service.seguridad.impl.AdminUserServiceImplTest}\label{info-tests-run-4-failures-0-errors-0-skipped-0-time-elapsed-0.409-s----in-uteq.edu.ec.artisync.service.seguridad.impl.adminuserserviceimpltest}
+uteq.edu.ec.artisync.service.seguridad.impl.AdminUserServiceImplTest}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.service.seguridad.impl.AuthServiceImplTest}\label{info-running-uteq.edu.ec.artisync.service.seguridad.impl.authserviceimpltest}
+uteq.edu.ec.artisync.service.seguridad.impl.AuthServiceImplTest}
 
 \subsection{{[}INFO{]} Tests run: 4, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.408 s -\/- in
-uteq.edu.ec.artisync.service.seguridad.impl.AuthServiceImplTest}\label{info-tests-run-4-failures-0-errors-0-skipped-0-time-elapsed-0.408-s----in-uteq.edu.ec.artisync.service.seguridad.impl.authserviceimpltest}
+uteq.edu.ec.artisync.service.seguridad.impl.AuthServiceImplTest}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.service.seguridad.impl.PaisServiceImplTest}\label{info-running-uteq.edu.ec.artisync.service.seguridad.impl.paisserviceimpltest}
+uteq.edu.ec.artisync.service.seguridad.impl.PaisServiceImplTest}
 
 \subsection{{[}INFO{]} Tests run: 5, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.030 s -\/- in
-uteq.edu.ec.artisync.service.seguridad.impl.PaisServiceImplTest}\label{info-tests-run-5-failures-0-errors-0-skipped-0-time-elapsed-0.030-s----in-uteq.edu.ec.artisync.service.seguridad.impl.paisserviceimpltest}
+uteq.edu.ec.artisync.service.seguridad.impl.PaisServiceImplTest}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.service.seguridad.impl.RolePermissionServiceImplTest}\label{info-running-uteq.edu.ec.artisync.service.seguridad.impl.rolepermissionserviceimpltest}
+uteq.edu.ec.artisync.service.seguridad.impl.RolePermissionServiceImplTest}
 
 \subsection{2026-06-10T17:14:12.820-05:00 INFO 14644 -\/-\/- {[}main{]}
 u.e.e.a.s.s.i.RolePermissionServiceImpl : Rol personalizado creado
 exitosamente:
-SUPERVISOR}\label{t171412.820-0500-info-14644-----main-u.e.e.a.s.s.i.rolepermissionserviceimpl-rol-personalizado-creado-exitosamente-supervisor}
+SUPERVISOR}
 
 \subsection{2026-06-10T17:14:12.828-05:00 INFO 14644 -\/-\/- {[}main{]}
 u.e.e.a.s.s.i.RolePermissionServiceImpl : Rol personalizado eliminado
 exitosamente: SUPERVISOR (ID
-10)}\label{t171412.828-0500-info-14644-----main-u.e.e.a.s.s.i.rolepermissionserviceimpl-rol-personalizado-eliminado-exitosamente-supervisor-id-10}
+10)}
 
 \subsection{2026-06-10T17:14:12.835-05:00 INFO 14644 -\/-\/- {[}main{]}
 u.e.e.a.s.s.i.RolePermissionServiceImpl : Descripción del rol ID 10
 (SUPERVISOR)
-actualizada}\label{t171412.835-0500-info-14644-----main-u.e.e.a.s.s.i.rolepermissionserviceimpl-descripciuxf3n-del-rol-id-10-supervisor-actualizada}
+actualizada}
 
 \subsection{{[}INFO{]} Tests run: 5, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.129 s -\/- in
-uteq.edu.ec.artisync.service.seguridad.impl.RolePermissionServiceImplTest}\label{info-tests-run-5-failures-0-errors-0-skipped-0-time-elapsed-0.129-s----in-uteq.edu.ec.artisync.service.seguridad.impl.rolepermissionserviceimpltest}
+uteq.edu.ec.artisync.service.seguridad.impl.RolePermissionServiceImplTest}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.service.seguridad.impl.TwoFactorServiceImplTest}\label{info-running-uteq.edu.ec.artisync.service.seguridad.impl.twofactorserviceimpltest}
+uteq.edu.ec.artisync.service.seguridad.impl.TwoFactorServiceImplTest}
 
 \subsection{{[}INFO{]} Tests run: 2, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.281 s -\/- in
-uteq.edu.ec.artisync.service.seguridad.impl.TwoFactorServiceImplTest}\label{info-tests-run-2-failures-0-errors-0-skipped-0-time-elapsed-0.281-s----in-uteq.edu.ec.artisync.service.seguridad.impl.twofactorserviceimpltest}
+uteq.edu.ec.artisync.service.seguridad.impl.TwoFactorServiceImplTest}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.service.seguridad.impl.UserServiceImplTest}\label{info-running-uteq.edu.ec.artisync.service.seguridad.impl.userserviceimpltest}
+uteq.edu.ec.artisync.service.seguridad.impl.UserServiceImplTest}
 
 \subsection{{[}INFO{]} Tests run: 4, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.023 s -\/- in
-uteq.edu.ec.artisync.service.seguridad.impl.UserServiceImplTest}\label{info-tests-run-4-failures-0-errors-0-skipped-0-time-elapsed-0.023-s----in-uteq.edu.ec.artisync.service.seguridad.impl.userserviceimpltest}
+uteq.edu.ec.artisync.service.seguridad.impl.UserServiceImplTest}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.service.social.impl.ResenaServiceImplTest}\label{info-running-uteq.edu.ec.artisync.service.social.impl.resenaserviceimpltest}
+uteq.edu.ec.artisync.service.social.impl.ResenaServiceImplTest}
 
 \subsection{2026-06-10T17:14:13.399-05:00 INFO 14644 -\/-\/- {[}main{]}
 u.e.e.a.s.social.impl.ResenaServiceImpl : Reseña creada para pedido 50
 por cliente
-1}\label{t171413.399-0500-info-14644-----main-u.e.e.a.s.social.impl.resenaserviceimpl-reseuxf1a-creada-para-pedido-50-por-cliente-1}
+1}
 
 \subsection{{[}INFO{]} Tests run: 8, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.248 s -\/- in
-uteq.edu.ec.artisync.service.social.impl.ResenaServiceImplTest}\label{info-tests-run-8-failures-0-errors-0-skipped-0-time-elapsed-0.248-s----in-uteq.edu.ec.artisync.service.social.impl.resenaserviceimpltest}
+uteq.edu.ec.artisync.service.social.impl.ResenaServiceImplTest}
 
 \subsection{{[}INFO{]} Running
-uteq.edu.ec.artisync.service.social.impl.SorteoServiceImplTest}\label{info-running-uteq.edu.ec.artisync.service.social.impl.sorteoserviceimpltest}
+uteq.edu.ec.artisync.service.social.impl.SorteoServiceImplTest}
 
 \subsection{2026-06-10T17:14:13.706-05:00 INFO 14644 -\/-\/- {[}main{]}
 u.e.e.a.s.social.impl.SorteoServiceImpl : Sorteo \textquotesingle Sorteo
 de prueba\textquotesingle{} creado por usuario
-1}\label{t171413.706-0500-info-14644-----main-u.e.e.a.s.social.impl.sorteoserviceimpl-sorteo-sorteo-de-prueba-creado-por-usuario-1}
+1}
 
 \subsection{\texorpdfstring{2026-06-10T17:14:13.714-05:00 INFO 14644
 -\/-\/- {[}main{]} u.e.e.a.s.social.impl.SorteoServiceImpl : Usuario 2
 inscrito en sorteo 100
-}{2026-06-10T17:14:13.714-05:00 INFO 14644 -\/-\/- {[}main{]} u.e.e.a.s.social.impl.SorteoServiceImpl : Usuario 2 inscrito en sorteo 100 }}\label{t171413.714-0500-info-14644-----main-u.e.e.a.s.social.impl.sorteoserviceimpl-usuario-2-inscrito-en-sorteo-100}
+}{2026-06-10T17:14:13.714-05:00 INFO 14644 -\/-\/- {[}main{]} u.e.e.a.s.social.impl.SorteoServiceImpl : Usuario 2 inscrito en sorteo 100 }}
 
 \subsection{{[}INFO{]} Tests run: 8, Failures: 0, Errors: 0, Skipped: 0,
 Time elapsed: 0.338 s -\/- in
-uteq.edu.ec.artisync.service.social.impl.SorteoServiceImplTest}\label{info-tests-run-8-failures-0-errors-0-skipped-0-time-elapsed-0.338-s----in-uteq.edu.ec.artisync.service.social.impl.sorteoserviceimpltest}
+uteq.edu.ec.artisync.service.social.impl.SorteoServiceImplTest}
 
-\subsection{{[}INFO{]} Results:}\label{info-results}
+\subsection{{[}INFO{]} Results:}
 
 \subsection{{[}INFO{]} Tests run: 89, Failures: 0, Errors: 0, Skipped:
-0}\label{info-tests-run-89-failures-0-errors-0-skipped-0}
+0}
 
 \subsection{{[}INFO{]}
--\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-}\label{info-------------------------------------------------------------------------}
+-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-}
 
-\subsection{{[}INFO{]} BUILD SUCCESS}\label{info-build-success}
+\subsection{{[}INFO{]} BUILD SUCCESS}
 
 \subsection{{[}INFO{]}
--\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-}\label{info--------------------------------------------------------------------------1}
+-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-}
 
 \subsection{{[}INFO{]} Total time: 28.476
-s}\label{info-total-time-28.476-s}
+s}
 \end{minipage} \\
 \midrule\noalign{}
 \endhead
@@ -1294,10 +1294,10 @@ s}\label{info-total-time-28.476-s}
 \endlastfoot
 \end{longtable}
 
-\subsection{}\label{section-21}
+\subsection{}
 
 \subsection{6.2 Pruebas de Integración con
-Postman}\label{pruebas-de-integraciuxf3n-con-postman}
+Postman}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.0434}}
@@ -1334,7 +1334,7 @@ Postman}\label{pruebas-de-integraciuxf3n-con-postman}
 \end{longtable}
 
 \subsection{6.3 Métricas de
-Rendimiento}\label{muxe9tricas-de-rendimiento}
+Rendimiento}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.3500}}
@@ -1361,7 +1361,7 @@ POST /api/auth/logout & 8 ms & 18 ms & SET en Redis (blacklist JTI) con
 TTL; latencia dominada por Redis \\
 \end{longtable}
 
-\section{7. Seguridad Implementada}\label{seguridad-implementada}
+\section{7. Seguridad Implementada}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2000}}
@@ -1410,15 +1410,15 @@ Flujo 2FA completo en Postman \\
 \end{longtable}
 
 \section{8. Docker Compose y
-Despliegue}\label{docker-compose-y-despliegue}
+Despliegue}
 
 \subsection{8.1 Archivo
-docker-compose.yml}\label{archivo-docker-compose.yml}
+docker-compose.yml}
 
-\subsection{\texorpdfstring{\protect\includegraphics[width=6.3in,height=3.22847in]{media/media/image15.png}}{}}\label{section-22}
+\subsection{\texorpdfstring{\protect\includegraphics[width=6.3in,height=3.22847in]{media/media/image15.png}}{}}
 
 \subsection{8.2 Instrucciones de Ejecución
-(README.md)}\label{instrucciones-de-ejecuciuxf3n-readme.md}
+(README.md)}
 
 Las instrucciones de ejecución en 5 pasos (tal como aparecen en el
 README.md del repositorio):
@@ -1463,10 +1463,10 @@ frontend & node:24-alpine (build) / nginx:alpine (run) & 4200 & curl
 http://localhost:4200 & backend (service\_healthy) \\
 \end{longtable}
 
-\section{9. Conclusiones}\label{conclusiones}
+\section{9. Conclusiones}
 
 \subsection{Conclusión Objetivo 1: Módulo de Autenticación
-JWT}\label{conclusiuxf3n-objetivo-1-muxf3dulo-de-autenticaciuxf3n-jwt}
+JWT}
 
 El objetivo de implementar el módulo de autenticación stateless con
 control de acceso basado en roles dinámicos se logró satisfactoriamente.
@@ -1489,7 +1489,7 @@ tokens\_recuperacion, superando el alcance inicialmente previsto para
 este hito.
 
 \subsection{Conclusión Objetivo 2: Gestión de Tokens y Blacklist
-Redis}\label{conclusiuxf3n-objetivo-2-gestiuxf3n-de-tokens-y-blacklist-redis}
+Redis}
 
 La gestión de refresh tokens y la blacklist de JTI en Redis se
 implementaron exitosamente. El refreshToken se emite con el claim
@@ -1511,7 +1511,7 @@ en el controlador: primero se intenta extraer el token de la cookie
 exhaustivamente todos los escenarios de refresh y logout.
 
 \subsection{Conclusión Objetivo 3: CRUD con Spring Data JPA y
-Flyway}\label{conclusiuxf3n-objetivo-3-crud-con-spring-data-jpa-y-flyway}
+Flyway}
 
 El ciclo de vida transaccional completo para la entidad Servicio del
 catálogo dinámico se implementó exitosamente utilizando Spring Data JPA
@@ -1534,7 +1534,7 @@ Validation (@NotBlank, @DecimalMin, @Size) que garantizan la integridad
 de datos en la capa de aplicación.
 
 \subsection{Conclusión Objetivo 4: Docker Compose y
-Despliegue}\label{conclusiuxf3n-objetivo-4-docker-compose-y-despliegue}
+Despliegue}
 
 El despliegue reproducible con Docker Compose se logró exitosamente,
 orquestando 4 servicios (PostgreSQL 16, Redis 7 Alpine, Backend Spring
@@ -1557,7 +1557,7 @@ SMTP) se inyectan desde el archivo .env siguiendo el principio de los 12
 factores.
 
 \subsection{Proyección a Entrega 2 (Semana
-12)}\label{proyecciuxf3n-a-entrega-2-semana-12}
+12)}
 
 En la Entrega 2 se construirán los siguientes módulos y funcionalidades:
 
@@ -1584,7 +1584,7 @@ En la Entrega 2 se construirán los siguientes módulos y funcionalidades:
 \end{itemize}
 
 \section{10. Referencias
-Bibliográficas}\label{referencias-bibliogruxe1ficas}
+Bibliográficas}
 
 Las referencias se listan en formato IEEE, numeradas en el orden en que
 se citan por primera vez en el texto.
