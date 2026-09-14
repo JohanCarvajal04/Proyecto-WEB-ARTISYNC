@@ -39,6 +39,11 @@ class VerificationControllerTest {
         return new CustomUserDetails(1L, "creador@test.dev", "x", true, true, true, true, List.of());
     }
 
+    private CustomUserDetails usuarioAdmin() {
+        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        return new CustomUserDetails(50L, "admin@test.dev", "x", true, true, true, true, authorities);
+    }
+
     @Test
     void subir_devuelveCreated() {
         MockMultipartFile documento = new MockMultipartFile("documento", "c.jpg", "image/jpeg", "x".getBytes());
@@ -110,6 +115,15 @@ class VerificationControllerTest {
         when(verificacionServicio.getById(10L, 1L, false)).thenReturn(respuesta);
 
         ResponseEntity<VerificationResponse> res = controlador.getById(10L, usuarioCreador());
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void obtenerPorId_conRolAdmin_esRevisorTambien() {
+        VerificationResponse respuesta = VerificationResponse.builder().idCertificado(10L).build();
+        when(verificacionServicio.getById(10L, 50L, true)).thenReturn(respuesta);
+
+        ResponseEntity<VerificationResponse> res = controlador.getById(10L, usuarioAdmin());
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 

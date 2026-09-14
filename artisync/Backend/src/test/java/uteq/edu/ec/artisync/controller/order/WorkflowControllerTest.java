@@ -135,4 +135,26 @@ class WorkflowControllerTest {
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().getMessage()).contains("eliminada exitosamente");
     }
+
+    @Test
+    void eliminarEtapa_conRolAdmin_puedeVerTodosEsTrue() {
+        CustomUserDetails user = mock(CustomUserDetails.class);
+        when(user.getIdUsuario()).thenReturn(1L);
+        when(user.getAuthorities()).thenAnswer(invocation -> List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+
+        controlador.deleteStage(10L, 20L, user);
+
+        verify(flujoTrabajoServicio).deleteStage(10L, 20L, 1L, true);
+    }
+
+    @Test
+    void eliminarEtapa_conAutoridadNoRelacionada_puedeVerTodosEsFalse() {
+        CustomUserDetails user = mock(CustomUserDetails.class);
+        when(user.getIdUsuario()).thenReturn(1L);
+        when(user.getAuthorities()).thenAnswer(invocation -> List.of(new SimpleGrantedAuthority("FLUJO_GESTIONAR")));
+
+        controlador.deleteStage(10L, 20L, user);
+
+        verify(flujoTrabajoServicio).deleteStage(10L, 20L, 1L, false);
+    }
 }

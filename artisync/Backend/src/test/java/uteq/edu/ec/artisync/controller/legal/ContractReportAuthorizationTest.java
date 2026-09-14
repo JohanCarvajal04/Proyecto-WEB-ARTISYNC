@@ -54,6 +54,8 @@ class ContractReportAuthorizationTest {
                             .build());
             when(servicio.export(any(), any(), any()))
                     .thenReturn(new GeneratedDocument(new byte[0], "text/csv", "contratos.csv"));
+            when(servicio.export(any(), any(), any(Integer.class), any(), any()))
+                    .thenReturn(new GeneratedDocument(new byte[0], "text/csv", "contratos-p1.csv"));
             return servicio;
         }
 
@@ -129,5 +131,14 @@ class ContractReportAuthorizationTest {
         assertThrows(AccessDeniedException.class, () -> controlador.list(new ContractReportFilter(), 0, 20));
         assertThrows(AccessDeniedException.class, () -> controlador.export(
                 new ContractReportFilter(), ReportFormat.CSV, autenticacionActual()));
+    }
+
+    @Test
+    @DisplayName("export con page/size explícitos usa la variante paginada, no la de documento completo")
+    void export_conPageYSize_usaLaVariantePaginada() {
+        autenticar("ROLE_ADMIN");
+
+        assertDoesNotThrow(() -> controlador.export(
+                new ContractReportFilter(), ReportFormat.CSV, 0, 100, autenticacionActual()));
     }
 }

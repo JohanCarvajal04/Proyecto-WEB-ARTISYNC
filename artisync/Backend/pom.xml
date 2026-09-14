@@ -234,6 +234,17 @@
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.13</version>
+				<configuration>
+					<excludes>
+						<!-- Bootstrap de Spring Boot, no lógica de negocio: main() arranca un
+						     servidor real (no tiene sentido invocarlo en un test unitario) y
+						     el bean objectMapper() ya lo ejercita el contexto de
+						     ArtisyncApplicationTests sin que JaCoCo lo compute como "cubierto"
+						     línea por línea. Exclusión justificada (Fase 6 del plan de cierre
+						     del examen final, P7). -->
+						<exclude>uteq/edu/ec/artisync/ArtisyncApplication.class</exclude>
+					</excludes>
+				</configuration>
 				<executions>
 					<execution>
 						<goals>
