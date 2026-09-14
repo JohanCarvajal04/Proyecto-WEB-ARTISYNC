@@ -69,13 +69,13 @@ public class AuditAspect {
      * @throws Throwable la misma excepción que lance el método interceptado, sin envolver
      */
     @Around("@annotation(auditable)")
-    public Object auditar(ProceedingJoinPoint pjp, Auditable auditable) throws Throwable {
+    public Object audit(ProceedingJoinPoint pjp, Auditable auditable) throws Throwable {
         long inicioNanos = System.nanoTime();
 
         // Snapshot ANTES de proceder, mientras el hilo aún tiene el contexto
         // HTTP y de seguridad del llamante original.
         AuthenticatedActor.Actor actorSesion = AuthenticatedActor.actual();
-        RequestContext.Datos solicitud = RequestContext.actual();
+        RequestContext.Data solicitud = RequestContext.current();
 
         Object resultado = null;
         Throwable error = null;
@@ -105,28 +105,28 @@ public class AuditAspect {
                 // Siempre se limpia, incluso si recordEvent explota: una fuga
                 // de este ThreadLocal contaminaría la siguiente petición atendida
                 // por el mismo hilo del pool de Tomcat.
-                AuditContext.limpiar();
+                AuditContext.clear();
             }
         }
     }
 
     private void recordEvent(
             ProceedingJoinPoint pjp, Auditable auditable,
-            AuthenticatedActor.Actor actorSesion, RequestContext.Datos solicitud,
+            AuthenticatedActor.Actor actorSesion, RequestContext.Data solicitud,
             Object resultado, Throwable error, AuditResult resultadoEvento,
             long inicioNanos) {
         try {
-            StandardEvaluationContext contextoSpel = construirContextoSpel(pjp, resultado, error);
+            StandardEvaluationContext contextoSpel = buildSpelContext(pjp, resultado, error);
 
             String correoActor = resolveActorEmail(auditable, actorSesion, contextoSpel);
             Long idActor = actorSesion.correo().equals(correoActor) ? actorSesion.id() : null;
 
             Long idEntidad = evaluarLong(auditable.idEntidad(), contextoSpel);
             Map<String, Object> detalle = evaluarDetalle(auditable.detalle(), contextoSpel);
-            Map<String, Object> detalleConAntes = fusionarConContextoAuditoria(detalle);
+            Map<String, Object> detalleConAntes = mergeWithAuditContext(detalle);
 
             String mensajeError = error != null
-                    ? truncar(error.getClass().getSimpleName() + ": " + error.getMessage(), 480)
+                    ? truncate(error.getClass().getSimpleName() + ": " + error.getMessage(), 480)
                     : null;
 
             int duracionMs = (int) ((System.nanoTime() - inicioNanos) / 1_000_000);
@@ -140,12 +140,12 @@ public class AuditAspect {
                     resultadoEvento,
                     blankToNull(auditable.entidad()),
                     idEntidad,
-                    AuditSanitizer.sanitizar(detalleConAntes),
+                    AuditSanitizer.sanitize(detalleConAntes),
                     mensajeError,
                     solicitud.direccionIp(),
-                    truncar(solicitud.agenteUsuario(), 255),
+                    truncate(solicitud.agenteUsuario(), 255),
                     solicitud.metodoHttp(),
-                    truncar(solicitud.rutaSolicitud(), 255),
+                    truncate(solicitud.rutaSolicitud(), 255),
                     duracionMs
             );
 
@@ -158,7 +158,7 @@ public class AuditAspect {
         }
     }
 
-    private StandardEvaluationContext construirContextoSpel(ProceedingJoinPoint pjp, Object resultado, Throwable error) {
+    private StandardEvaluationContext buildSpelContext(ProceedingJoinPoint pjp, Object resultado, Throwable error) {
         StandardEvaluationContext contexto = new StandardEvaluationContext();
 
         MethodSignature firma = (MethodSignature) pjp.getSignature();
@@ -237,7 +237,7 @@ public class AuditAspect {
         }
     }
 
-    private Map<String, Object> fusionarConContextoAuditoria(Map<String, Object> detalle) {
+    private Map<String, Object> mergeWithAuditContext(Map<String, Object> detalle) {
         Map<String, Object> aportadoPorElServicio = AuditContext.drenar();
         if (aportadoPorElServicio.isEmpty()) {
             return detalle;
@@ -247,7 +247,7 @@ public class AuditAspect {
         return fusionado;
     }
 
-    private static String truncar(String texto, int maximo) {
+    private static String truncate(String texto, int maximo) {
         if (texto == null || texto.length() <= maximo) {
             return texto;
         }

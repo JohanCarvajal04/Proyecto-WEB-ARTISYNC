@@ -221,8 +221,8 @@ class OrderServiceImplTest {
 
         CreateOrderRequest peticion = CreateOrderRequest.builder().idServicio(1L)
                 .respuestasBriefing(List.of(
-                        AnswerBriefingRequest.RespuestaItem.builder().idPregunta(101L).textoRespuesta("Azul y blanco").build(),
-                        AnswerBriefingRequest.RespuestaItem.builder().idPregunta(102L).textoRespuesta("Ninguna en particular").build()
+                        AnswerBriefingRequest.AnswerItem.builder().idPregunta(101L).textoRespuesta("Azul y blanco").build(),
+                        AnswerBriefingRequest.AnswerItem.builder().idPregunta(102L).textoRespuesta("Ninguna en particular").build()
                 ))
                 .build();
 
@@ -252,7 +252,7 @@ class OrderServiceImplTest {
 
         CreateOrderRequest peticion = CreateOrderRequest.builder().idServicio(1L)
                 .respuestasBriefing(List.of(
-                        AnswerBriefingRequest.RespuestaItem.builder().idPregunta(101L).textoRespuesta("Azul y blanco").build()
+                        AnswerBriefingRequest.AnswerItem.builder().idPregunta(101L).textoRespuesta("Azul y blanco").build()
                         // falta la respuesta a la pregunta 102
                 ))
                 .build();

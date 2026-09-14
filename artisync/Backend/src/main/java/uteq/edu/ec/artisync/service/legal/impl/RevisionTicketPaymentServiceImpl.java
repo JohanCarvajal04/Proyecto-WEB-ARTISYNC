@@ -61,7 +61,7 @@ public class RevisionTicketPaymentServiceImpl implements IRevisionTicketPaymentS
 
             JsonNode orden = createOrderInPayPal(pedido.getIdPedido(), monto);
             String orderId = orden.path("id").asText();
-            String approvalUrl = extraerApprovalUrl(orden);
+            String approvalUrl = extractApprovalUrl(orden);
 
             RevisionTicketPayment pago = pagoTicketRevisionRepository.findByTicketIdTicket(ticket.getIdTicket())
                     .orElseGet(() -> RevisionTicketPayment.builder().ticket(ticket).build());
@@ -102,7 +102,7 @@ public class RevisionTicketPaymentServiceImpl implements IRevisionTicketPaymentS
         return payPalClient.callPayPal("/v2/checkout/orders", HttpMethod.POST, raiz);
     }
 
-    private String extraerApprovalUrl(JsonNode orden) {
+    private String extractApprovalUrl(JsonNode orden) {
         for (JsonNode enlace : orden.path("links")) {
             if ("approve".equals(enlace.path("rel").asText())) {
                 return enlace.path("href").asText();
@@ -152,7 +152,7 @@ public class RevisionTicketPaymentServiceImpl implements IRevisionTicketPaymentS
             return true;
         }
 
-        if (EVENTO_ORDEN_APROBADA.equals(tipoEvento) && !capturarOrden(idOrdenPaypal)) {
+        if (EVENTO_ORDEN_APROBADA.equals(tipoEvento) && !captureOrder(idOrdenPaypal)) {
             log.error("No se pudo capturar la orden {} del ticket de revision {}; el pago sigue pendiente",
                     idOrdenPaypal, pago.getTicket().getIdTicket());
             return true;
@@ -174,7 +174,7 @@ public class RevisionTicketPaymentServiceImpl implements IRevisionTicketPaymentS
     }
 
     /** Misma logica que PaymentServiceImpl.capturarOrden, duplicada a proposito (ver Javadoc de la clase). */
-    private boolean capturarOrden(String orderId) {
+    private boolean captureOrder(String orderId) {
         try {
             JsonNode respuesta = payPalClient.callPayPal("/v2/checkout/orders/" + orderId + "/capture",
                     HttpMethod.POST, objectMapper.createObjectNode());

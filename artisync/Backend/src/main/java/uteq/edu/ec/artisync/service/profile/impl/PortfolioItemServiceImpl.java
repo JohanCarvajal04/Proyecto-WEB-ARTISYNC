@@ -37,18 +37,7 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
     private final PortfolioRepository portafolioRepository;
     private final DocumentStorage almacenamiento;
 
-    /**
-     * Sube una obra al portafolio, hasta el tope de {@value #MAX_ITEMS_POR_PORTAFOLIO} por portafolio.
-     *
-     * @param idPortafolio identificador del portafolio
-     * @param idUsuario identificador de quien sube; debe ser dueño del portafolio
-     * @param peticion título y descripción de la obra
-     * @param archivo archivo multimedia de la obra, validado contra {@code FilePolicy.PORTAFOLIO}
-     * @return la obra creada
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien sube no es dueño del
-     *         portafolio, si ya alcanzó el máximo de obras, o si el archivo no cumple la política de tipo/tamaño
-     */
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public PortfolioItemResponse uploadItem(Long idPortafolio, Long idUsuario,
@@ -84,19 +73,12 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
         }
 
         log.info("Obra {} subida al portafolio {}", item.getIdItemPortafolio(), idPortafolio);
-        return mapear(item);
+        return map(item);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * @param idPortafolio identificador del portafolio
-     * @param idUsuario identificador de quien consulta; solo relevante si el portafolio es privado
-     * @return las obras del portafolio, más recientes primero
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público
-     *         y quien consulta no es su dueño
-     */
     public List<PortfolioItemResponse> listItems(Long idPortafolio, Long idUsuario) {
         Portfolio portafolio = portafolioRepository.findById(idPortafolio)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -106,59 +88,36 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
 
         return itemRepository.findByPortafolioIdPortafolioOrderByFechaSubidaDesc(idPortafolio)
                 .stream()
-                .map(this::mapear)
+                .map(this::map)
                 .toList();
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * @param idItem identificador de la obra
-     * @param idUsuario identificador de quien consulta; solo relevante si el portafolio es privado
-     * @return la obra solicitada
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público
-     *         y quien consulta no es su dueño
-     */
     public PortfolioItemResponse getItem(Long idItem, Long idUsuario) {
         PortfolioItem item = findItem(idItem);
         exigirVisibilidad(item.getPortafolio(), idUsuario);
-        return mapear(item);
+        return map(item);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * @param idItem identificador de la obra
-     * @param idUsuario identificador de quien descarga; solo relevante si el portafolio es privado
-     * @return el archivo de la obra, listo para transmitirse en streaming
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público
-     *         y quien descarga no es su dueño
-     */
     public DownloadedFile downloadFile(Long idItem, Long idUsuario) {
         PortfolioItem item = findItem(idItem);
         exigirVisibilidad(item.getPortafolio(), idUsuario);
 
         String referencia = item.getUrlArchivoMultimedia();
         return new DownloadedFile(
-                almacenamiento.leer(referencia),
+                almacenamiento.read(referencia),
                 "obra-" + idItem + extensionDe(referencia),
                 FileExtensions.contentTypeDe(referencia));
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
-    /**
-     * Actualiza el título y la descripción de una obra propia.
-     *
-     * @param idItem identificador de la obra
-     * @param idUsuario identificador de quien edita; debe ser dueño del portafolio
-     * @param peticion nuevo título y descripción
-     * @return la obra ya actualizada
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien edita no es dueño del portafolio
-     */
     public PortfolioItemResponse updateItem(Long idItem, Long idUsuario, CreatePortfolioItemRequest peticion) {
         PortfolioItem item = findItem(idItem);
         exigirPropietario(item.getPortafolio(), idUsuario);
@@ -168,19 +127,12 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
         item = itemRepository.save(item);
 
         log.info("Obra {} actualizada en el portafolio {}", idItem, item.getPortafolio().getIdPortafolio());
-        return mapear(item);
+        return map(item);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
-    /**
-     * Elimina una obra propia, junto con su archivo en el almacenamiento.
-     *
-     * @param idItem identificador de la obra a eliminar
-     * @param idUsuario identificador de quien elimina; debe ser dueño del portafolio
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien elimina no es dueño del portafolio
-     */
     public void deleteItem(Long idItem, Long idUsuario) {
         PortfolioItem item = findItem(idItem);
         exigirPropietario(item.getPortafolio(), idUsuario);
@@ -247,7 +199,7 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
         return punto < 0 ? "" : referencia.substring(punto);
     }
 
-    private PortfolioItemResponse mapear(PortfolioItem item) {
+    private PortfolioItemResponse map(PortfolioItem item) {
         String referencia = item.getUrlArchivoMultimedia();
         // Con Azure el video viaja directo desde el blob; sin SAS, por el backend.
         String url = almacenamiento.urlTemporal(referencia)

@@ -108,7 +108,7 @@ class SubcategoryControllerTest {
         when(categoriaServicio.markSubcategoryReviewed(5L))
                 .thenReturn(SubcategoryResponse.builder().idSubcategoria(5L).revisado(true).build());
 
-        ResponseEntity<SubcategoryResponse> result = controlador.marcarRevisada(5L);
+        ResponseEntity<SubcategoryResponse> result = controlador.markReviewed(5L);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getRevisado()).isTrue();

@@ -37,5 +37,5 @@ public class CreateOrderRequest {
      * no aquí, porque la obligatoriedad depende del servicio elegido.
      */
     @Valid
-    private List<AnswerBriefingRequest.RespuestaItem> respuestasBriefing;
+    private List<AnswerBriefingRequest.AnswerItem> respuestasBriefing;
 }

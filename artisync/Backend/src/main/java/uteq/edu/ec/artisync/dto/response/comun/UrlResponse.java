@@ -11,7 +11,7 @@ package uteq.edu.ec.artisync.dto.response.comun;
  *
  * @param url el enlace temporal o firmado
  */
-public record RespuestaUrl(String url) {
+public record UrlResponse(String url) {
 }
 
 

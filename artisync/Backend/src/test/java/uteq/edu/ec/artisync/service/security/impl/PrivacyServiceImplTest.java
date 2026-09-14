@@ -323,7 +323,7 @@ class PrivacyServiceImplTest {
         MessageResponse respuesta = privacidadService.requestOwnErasure(1L, "123456");
 
         assertEquals("Datos personales suprimidos exitosamente.", respuesta.getMessage());
-        verify(intentosAutenticacionService).limpiar("2fa-supresion-cuenta", "ana@example.com");
+        verify(intentosAutenticacionService).clear("2fa-supresion-cuenta", "ana@example.com");
         verify(sessionRevocationService).changeAccountStatus(1L, false);
     }
 

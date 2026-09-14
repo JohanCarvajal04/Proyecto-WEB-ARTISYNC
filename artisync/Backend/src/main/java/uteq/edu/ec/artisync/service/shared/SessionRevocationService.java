@@ -38,7 +38,7 @@ public class SessionRevocationService {
     public void revokeUserSessions(Long idUsuario) {
         List<RevokedSessionProjection> revocadas = sesionUsuarioRepository.revocarSesionesUsuario(idUsuario);
         for (RevokedSessionProjection sesion : revocadas) {
-            revocarJtiEnRedis(sesion.getJti(), Duration.ofSeconds(sesion.getSegundosRestantes()), idUsuario);
+            revokeJtiInRedis(sesion.getJti(), Duration.ofSeconds(sesion.getSegundosRestantes()), idUsuario);
         }
     }
 
@@ -59,20 +59,22 @@ public class SessionRevocationService {
         try {
             revocadas = usuarioRepository.cambiarEstadoCuenta(idUsuario, estado);
         } catch (RuntimeException e) {
-            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.NOT_FOUND);
+            throw StoredProcedureExceptionTranslator.translate(e, HttpStatus.NOT_FOUND);
         }
         for (RevokedSessionProjection sesion : revocadas) {
-            revocarJtiEnRedis(sesion.getJti(), Duration.ofSeconds(sesion.getSegundosRestantes()), idUsuario);
+            revokeJtiInRedis(sesion.getJti(), Duration.ofSeconds(sesion.getSegundosRestantes()), idUsuario);
         }
     }
 
-    @Transactional
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Extrae el token JWT de una cabecera {@code Authorization: Bearer ...} (por
+     * ejemplo, al cerrar sesión) y revoca tanto su entrada en Redis como su fila de
+     * sesión en base de datos. Si la cabecera no trae el prefijo {@code "Bearer "},
+     * no hace nada.
      *
-     * @param tokenHeader parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param tokenHeader valor de la cabecera HTTP {@code Authorization}
      */
+    @Transactional
     public void revokeTokenFromHeader(String tokenHeader) {
         if (tokenHeader != null && tokenHeader.startsWith("Bearer ")) {
             String token = tokenHeader.substring(7);
@@ -82,16 +84,19 @@ public class SessionRevocationService {
     }
 
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Marca el {@code jti} del token como revocado en Redis, con expiración igual al
+     * tiempo de vida restante del propio token, de forma que la entrada de la
+     * lista negra desaparezca sola cuando el token habría expirado de todos modos.
+     * Cualquier error al extraer el {@code jti} o contactar Redis solo se registra
+     * en el log, sin propagarse.
      *
-     * @param token parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param token JWT en texto plano cuyo {@code jti} se revoca
      */
     public void revokeToken(String token) {
         try {
-            String jti = jwtService.extraerJti(token);
-            long tiempoRestanteMs = jwtService.extraerTiempoRestante(token);
-            revocarJtiEnRedis(jti, Duration.ofMillis(tiempoRestanteMs), null);
+            String jti = jwtService.extractJti(token);
+            long tiempoRestanteMs = jwtService.extractRemainingTime(token);
+            revokeJtiInRedis(jti, Duration.ofMillis(tiempoRestanteMs), null);
         } catch (Exception e) {
             log.warn("Error revocando token en redis: {}", e.getMessage());
         }
@@ -99,7 +104,7 @@ public class SessionRevocationService {
 
     private void deleteSessionByToken(String token) {
         try {
-            String jti = jwtService.extraerJti(token);
+            String jti = jwtService.extractJti(token);
             if (jti != null) {
                 sesionUsuarioRepository.deleteByJti(jti);
             }
@@ -108,7 +113,7 @@ public class SessionRevocationService {
         }
     }
 
-    private void revocarJtiEnRedis(String jti, Duration tiempoRestante, Long idUsuario) {
+    private void revokeJtiInRedis(String jti, Duration tiempoRestante, Long idUsuario) {
         try {
             if (jti != null && tiempoRestante != null && tiempoRestante.compareTo(Duration.ZERO) > 0) {
                 redisTemplate.opsForValue().set("jti:" + jti, "revocado", tiempoRestante);

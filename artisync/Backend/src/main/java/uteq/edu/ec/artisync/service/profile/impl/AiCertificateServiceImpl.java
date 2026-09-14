@@ -27,18 +27,12 @@ public class AiCertificateServiceImpl implements IAiCertificateService {
     private final UserRepository usuarioRepository;
     private final VerificationStatusRepository estadoRepository;
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     @Auditable(accion = "CERTIFICADO_EMITIR", modulo = AuditModule.PORTAFOLIO,
             entidad = "certificados_ia", idEntidad = "#resultado.idCertificado",
             detalle = "{idUsuario: #peticion.idUsuario, idEstadoVerificacion: #peticion.idEstadoVerificacion}")
-    /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
-     *
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AiCertificateResponse issueCertificate(CreateAiCertificateRequest peticion) {
         User usuario = usuarioRepository.findById(peticion.idUsuario())
                 .orElseThrow(() -> new ResourceNotFoundException("User no encontrado con ID: " + peticion.idUsuario()));
@@ -54,63 +48,41 @@ public class AiCertificateServiceImpl implements IAiCertificateService {
                 .build();
 
         AiCertificate guardado = certificadoRepository.save(certificado);
-        return mapearARespuesta(guardado);
+        return mapToResponse(guardado);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idCertificado identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AiCertificateResponse getCertificateById(Long idCertificado) {
         AiCertificate certificado = certificadoRepository.findById(idCertificado)
                 .orElseThrow(() -> new ResourceNotFoundException("Certificado IA no encontrado con ID: " + idCertificado));
-        return mapearARespuesta(certificado);
+        return mapToResponse(certificado);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<AiCertificateResponse> listCertificatesByUser(Long idUsuario) {
         return certificadoRepository.findByUsuarioIdUsuario(idUsuario).stream()
-                .map(this::mapearARespuesta)
+                .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<AiCertificateResponse> listAllCertificates() {
         return certificadoRepository.findAll().stream()
-                .map(this::mapearARespuesta)
+                .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     @Auditable(accion = "CERTIFICADO_ELIMINAR", modulo = AuditModule.PORTAFOLIO,
             entidad = "certificados_ia", idEntidad = "#idCertificado")
-    /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
-     *
-     * @param idCertificado identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public void deleteCertificate(Long idCertificado) {
         if (!certificadoRepository.existsById(idCertificado)) {
             throw new ResourceNotFoundException("Certificado IA no encontrado con ID: " + idCertificado);
@@ -118,7 +90,7 @@ public class AiCertificateServiceImpl implements IAiCertificateService {
         certificadoRepository.deleteById(idCertificado);
     }
 
-    private AiCertificateResponse mapearARespuesta(AiCertificate certificado) {
+    private AiCertificateResponse mapToResponse(AiCertificate certificado) {
         return AiCertificateResponse.builder()
                 .idCertificado(certificado.getIdCertificado())
                 .idUsuario(certificado.getUsuario() != null ? certificado.getUsuario().getIdUsuario() : null)

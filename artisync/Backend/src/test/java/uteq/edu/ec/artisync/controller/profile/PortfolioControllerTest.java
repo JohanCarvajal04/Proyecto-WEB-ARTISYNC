@@ -91,7 +91,7 @@ class PortfolioControllerTest {
         CustomUserDetails user = mockUserDetails();
         ResponseEntity<MessageResponse> res = controlador.recordVisit(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-        verify(portafolioServicio).incrementarVisitas(10L, 1L);
+        verify(portafolioServicio).incrementVisits(10L, 1L);
     }
 
     @Test

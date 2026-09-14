@@ -92,7 +92,7 @@ public class RaffleServiceImpl implements RaffleService {
                 .requiereSeguidor(peticion.isRequiereSeguidor())
                 .estadoSorteo("Activo")
                 .build();
-        sorteo.setPremios(construirPremios(sorteo, peticion.getPremios()));
+        sorteo.setPremios(buildPrizes(sorteo, peticion.getPremios()));
 
         sorteo = sorteoRepository.save(sorteo);
         log.info("Raffle '{}' creado por usuario {}", sorteo.getTituloSorteo(), idUsuario);
@@ -108,7 +108,7 @@ public class RaffleServiceImpl implements RaffleService {
         }
     }
 
-    private List<RafflePrize> construirPremios(Raffle sorteo, List<String> descripciones) {
+    private List<RafflePrize> buildPrizes(Raffle sorteo, List<String> descripciones) {
         List<RafflePrize> premios = new ArrayList<>();
         for (int i = 0; i < descripciones.size(); i++) {
             premios.add(RafflePrize.builder()
@@ -210,7 +210,7 @@ public class RaffleServiceImpl implements RaffleService {
         if (!tieneParticipantes && peticion.getPremios() != null) {
             validatePrizeCount(peticion.getPremios().size(), sorteo.getCantidadGanadores());
             sorteo.getPremios().clear();
-            sorteo.getPremios().addAll(construirPremios(sorteo, peticion.getPremios()));
+            sorteo.getPremios().addAll(buildPrizes(sorteo, peticion.getPremios()));
         }
 
         sorteo = sorteoRepository.save(sorteo);
@@ -439,12 +439,12 @@ public class RaffleServiceImpl implements RaffleService {
                 .totalParticipantes(total)
                 .yoParticipo(yoParticipo)
                 .ganadores(ganadores)
-                .premios(mapToPremiosResponse(sorteo, ganadores))
+                .premios(mapToPrizesResponse(sorteo, ganadores))
                 .build();
     }
 
     /** Cruza cada premio del sorteo con su ganador (si ya hubo sorteo y ese premio fue asignado). */
-    private List<PrizeResponse> mapToPremiosResponse(Raffle sorteo, List<WinnerResponse> ganadores) {
+    private List<PrizeResponse> mapToPrizesResponse(Raffle sorteo, List<WinnerResponse> ganadores) {
         Map<Long, WinnerResponse> ganadorPorPremio = new HashMap<>();
         if (ganadores != null) {
             for (WinnerResponse g : ganadores) {

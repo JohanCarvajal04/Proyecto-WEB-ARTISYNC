@@ -75,7 +75,7 @@ public class ContractRepositoryImpl implements ContractRepositoryCustom {
                 cb.<Boolean>selectCase().when(cb.isNotNull(c.get("hashFirmaCliente")), true).otherwise(false),
                 cb.<Boolean>selectCase().when(cb.isNotNull(c.get("hashFirmaCreador")), true).otherwise(false)));
 
-        List<Predicate> predicados = construirPredicados(cb, c, perfil, desde, hasta, idPerfilCreador, soloFirmados);
+        List<Predicate> predicados = buildPredicates(cb, c, perfil, desde, hasta, idPerfilCreador, soloFirmados);
         if (!predicados.isEmpty()) {
             cq.where(predicados.toArray(new Predicate[0]));
         }
@@ -100,14 +100,14 @@ public class ContractRepositoryImpl implements ContractRepositoryCustom {
         Join<Offering, CreatorProfile> perfil = s.join("perfil");
 
         cq.select(cb.count(c));
-        List<Predicate> predicados = construirPredicados(cb, c, perfil, desde, hasta, idPerfilCreador, soloFirmados);
+        List<Predicate> predicados = buildPredicates(cb, c, perfil, desde, hasta, idPerfilCreador, soloFirmados);
         if (!predicados.isEmpty()) {
             cq.where(predicados.toArray(new Predicate[0]));
         }
         return entityManager.createQuery(cq).getSingleResult();
     }
 
-    private List<Predicate> construirPredicados(CriteriaBuilder cb, Root<Contract> c, Join<Offering, CreatorProfile> perfil,
+    private List<Predicate> buildPredicates(CriteriaBuilder cb, Root<Contract> c, Join<Offering, CreatorProfile> perfil,
                                                  LocalDateTime desde, LocalDateTime hasta,
                                                  Long idPerfilCreador, Boolean soloFirmados) {
         List<Predicate> predicados = new ArrayList<>();

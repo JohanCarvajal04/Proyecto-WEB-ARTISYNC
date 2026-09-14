@@ -43,7 +43,7 @@ public class EscrowPaymentAuditServiceImpl implements IEscrowPaymentAuditService
                 filtro.getEstadoFondos(), filtro.getIdPerfilCreador(), filtro.getIdUsuarioCliente(),
                 filtro.getDesde(), filtro.getHasta());
 
-        return pagoGarantiaRepository.findAll(spec, pageable).map(this::mapearAResumen);
+        return pagoGarantiaRepository.findAll(spec, pageable).map(this::mapToSummary);
     }
 
     @Override
@@ -103,7 +103,7 @@ public class EscrowPaymentAuditServiceImpl implements IEscrowPaymentAuditService
         return pagoGarantiaRepository.resumenPorEstado();
     }
 
-    private EscrowPaymentResponse mapearAResumen(EscrowPayment pago) {
+    private EscrowPaymentResponse mapToSummary(EscrowPayment pago) {
         Order pedido = pago.getContrato().getPedido();
         User cliente = pedido.getUsuarioCliente();
         User creador = pedido.getServicio().getPerfil().getUsuario();

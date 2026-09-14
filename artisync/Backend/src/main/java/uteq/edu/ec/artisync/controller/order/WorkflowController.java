@@ -62,7 +62,7 @@ public class WorkflowController {
     public ResponseEntity<List<WorkflowResponse>> listWorkflows(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(flujoTrabajoServicio.listWorkflows(
-                userDetails.getIdUsuario(), puedeVerTodos(userDetails)));
+                userDetails.getIdUsuario(), canViewAll(userDetails)));
     }
 
     /**
@@ -79,7 +79,7 @@ public class WorkflowController {
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(flujoTrabajoServicio.getWorkflowById(
-                id, userDetails.getIdUsuario(), puedeVerTodos(userDetails)));
+                id, userDetails.getIdUsuario(), canViewAll(userDetails)));
     }
 
     /**
@@ -99,7 +99,7 @@ public class WorkflowController {
             @Valid @RequestBody CreateWorkflowRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(flujoTrabajoServicio.updateWorkflow(
-                id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));
+                id, userDetails.getIdUsuario(), canViewAll(userDetails), peticion));
     }
 
     /**
@@ -121,7 +121,7 @@ public class WorkflowController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(flujoTrabajoServicio.addStage(
-                        id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));
+                        id, userDetails.getIdUsuario(), canViewAll(userDetails), peticion));
     }
 
     /**
@@ -143,7 +143,7 @@ public class WorkflowController {
             @Valid @RequestBody StageConfigRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(flujoTrabajoServicio.updateStage(
-                id, etapaId, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));
+                id, etapaId, userDetails.getIdUsuario(), canViewAll(userDetails), peticion));
     }
 
     /**
@@ -163,7 +163,7 @@ public class WorkflowController {
             @Valid @RequestBody SwapStagesRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(flujoTrabajoServicio.swapStageOrder(
-                id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));
+                id, userDetails.getIdUsuario(), canViewAll(userDetails), peticion));
     }
 
     /**
@@ -182,11 +182,11 @@ public class WorkflowController {
             @PathVariable Long id,
             @PathVariable Long etapaId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        flujoTrabajoServicio.deleteStage(id, etapaId, userDetails.getIdUsuario(), puedeVerTodos(userDetails));
+        flujoTrabajoServicio.deleteStage(id, etapaId, userDetails.getIdUsuario(), canViewAll(userDetails));
         return ResponseEntity.ok(new MessageResponse("Etapa eliminada exitosamente del flujo de trabajo"));
     }
 
-    private boolean puedeVerTodos(CustomUserDetails userDetails) {
+    private boolean canViewAll(CustomUserDetails userDetails) {
         return userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("FLUJO_MODERAR") || a.getAuthority().equals("ROLE_ADMIN"));
     }

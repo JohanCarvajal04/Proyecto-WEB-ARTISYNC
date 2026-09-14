@@ -121,14 +121,14 @@ class VerificationServiceImplTest {
                 .idCertificado(10L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
         when(certificadoIaRepository.findById(10L)).thenReturn(Optional.of(certificado));
-        when(almacenamiento.leer("ref.jpg")).thenReturn("bytes-originales".getBytes());
+        when(almacenamiento.read("ref.jpg")).thenReturn("bytes-originales".getBytes());
         when(preprocesador.comprimirParaIa(any())).thenReturn("bytes-comprimidos".getBytes());
         when(iaService.verifyIdentity(any(), eq("image/jpeg"))).thenReturn(
                 AiVerificationResponse.builder().aprobado(true).confianza(new BigDecimal("0.9"))
                         .nombreDetectado("Ana Pérez").build());
         when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        VerificationResponse respuesta = servicio.analizarConIa(10L);
+        VerificationResponse respuesta = servicio.analyzeWithAi(10L);
 
         assertThat(respuesta.veredictoIa()).isEqualTo("SUGIERE_APROBAR");
         assertThat(respuesta.nombreEstadoVerificacion()).isEqualTo("PENDIENTE"); // candado del diseño
@@ -142,7 +142,7 @@ class VerificationServiceImplTest {
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(true).build();
         when(certificadoIaRepository.findById(11L)).thenReturn(Optional.of(certificado));
 
-        assertThrows(BusinessRuleException.class, () -> servicio.analizarConIa(11L));
+        assertThrows(BusinessRuleException.class, () -> servicio.analyzeWithAi(11L));
         verifyNoInteractions(iaService);
     }
 
@@ -152,12 +152,12 @@ class VerificationServiceImplTest {
                 .idCertificado(12L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
         when(certificadoIaRepository.findById(12L)).thenReturn(Optional.of(certificado));
-        when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
+        when(almacenamiento.read("ref.jpg")).thenReturn("bytes".getBytes());
         when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
         when(iaService.verifyIdentity(any(), any()))
                 .thenThrow(new AiServiceUnavailableException("timeout", null));
 
-        assertThrows(AiServiceUnavailableException.class, () -> servicio.analizarConIa(12L));
+        assertThrows(AiServiceUnavailableException.class, () -> servicio.analyzeWithAi(12L));
         verify(certificadoIaRepository, never()).save(any());
         // No reintentable (constructor de 2 argumentos): un solo intento, sin reintento.
         verify(iaService, times(1)).verifyIdentity(any(), any());
@@ -169,7 +169,7 @@ class VerificationServiceImplTest {
                 .idCertificado(14L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
         when(certificadoIaRepository.findById(14L)).thenReturn(Optional.of(certificado));
-        when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
+        when(almacenamiento.read("ref.jpg")).thenReturn("bytes".getBytes());
         when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
         when(iaService.verifyIdentity(any(), any()))
                 .thenThrow(new AiServiceUnavailableException("429", null, true))
@@ -177,7 +177,7 @@ class VerificationServiceImplTest {
                         .aprobado(true).confianza(new BigDecimal("0.9")).build());
         when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        VerificationResponse respuesta = servicio.analizarConIa(14L);
+        VerificationResponse respuesta = servicio.analyzeWithAi(14L);
 
         assertThat(respuesta.veredictoIa()).isEqualTo("SUGIERE_APROBAR");
         verify(iaService, times(2)).verifyIdentity(any(), any());
@@ -189,12 +189,12 @@ class VerificationServiceImplTest {
                 .idCertificado(15L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
         when(certificadoIaRepository.findById(15L)).thenReturn(Optional.of(certificado));
-        when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
+        when(almacenamiento.read("ref.jpg")).thenReturn("bytes".getBytes());
         when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
         when(iaService.verifyIdentity(any(), any()))
                 .thenThrow(new AiServiceUnavailableException("401", null, false));
 
-        assertThrows(AiServiceUnavailableException.class, () -> servicio.analizarConIa(15L));
+        assertThrows(AiServiceUnavailableException.class, () -> servicio.analyzeWithAi(15L));
         verify(iaService, times(1)).verifyIdentity(any(), any());
     }
 
@@ -204,13 +204,13 @@ class VerificationServiceImplTest {
                 .idCertificado(13L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("CERTIFICADO").documentoEliminado(false).build();
         when(certificadoIaRepository.findById(13L)).thenReturn(Optional.of(certificado));
-        when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
+        when(almacenamiento.read("ref.jpg")).thenReturn("bytes".getBytes());
         when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
         when(iaService.analyzeCertificate(any(), any())).thenReturn(
                 AiVerificationResponse.builder().aprobado(true).confianza(new BigDecimal("0.8")).build());
         when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        servicio.analizarConIa(13L);
+        servicio.analyzeWithAi(13L);
 
         verify(iaService).analyzeCertificate(any(), eq("image/jpeg"));
         verify(iaService, never()).verifyIdentity(any(), any());
@@ -341,7 +341,7 @@ class VerificationServiceImplTest {
                 .idCertificado(34L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref-34.jpg").tipoDocumento("IDENTIDAD").build();
         when(certificadoIaRepository.findById(34L)).thenReturn(Optional.of(certificado));
-        when(almacenamiento.leer("ref-34.jpg")).thenReturn("contenido".getBytes());
+        when(almacenamiento.read("ref-34.jpg")).thenReturn("contenido".getBytes());
 
         byte[] resultado = servicio.getDocument(34L);
 

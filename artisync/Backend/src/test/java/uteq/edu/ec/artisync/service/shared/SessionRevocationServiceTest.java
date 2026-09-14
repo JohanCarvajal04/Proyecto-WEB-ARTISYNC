@@ -88,8 +88,8 @@ class SessionRevocationServiceTest {
     @Test
     void revokeTokenFromHeader_ok() {
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(jwtService.extraerJti("token123")).thenReturn("jti-3");
-        when(jwtService.extraerTiempoRestante("token123")).thenReturn(300000L); // 5 mins
+        when(jwtService.extractJti("token123")).thenReturn("jti-3");
+        when(jwtService.extractRemainingTime("token123")).thenReturn(300000L); // 5 mins
 
         servicio.revokeTokenFromHeader("Bearer token123");
 
@@ -107,8 +107,8 @@ class SessionRevocationServiceTest {
 
     @Test
     void revokeToken_errorRedis() {
-        when(jwtService.extraerJti("token123")).thenReturn("jti-3");
-        when(jwtService.extraerTiempoRestante("token123")).thenReturn(300000L);
+        when(jwtService.extractJti("token123")).thenReturn("jti-3");
+        when(jwtService.extractRemainingTime("token123")).thenReturn(300000L);
         when(redisTemplate.opsForValue()).thenThrow(new RuntimeException("Redis connection error"));
 
         servicio.revokeToken("token123"); // shouldn't throw error
@@ -117,7 +117,7 @@ class SessionRevocationServiceTest {
 
     @Test
     void deleteSessionByToken_jtiNull() {
-        when(jwtService.extraerJti("token123")).thenReturn(null);
+        when(jwtService.extractJti("token123")).thenReturn(null);
         // No hay manera de llamar a deleteSessionByToken directamente,
         // pero podemos pasar por revokeTokenFromHeader con un redis ok.
 
@@ -128,7 +128,7 @@ class SessionRevocationServiceTest {
 
     @Test
     void deleteSessionByToken_error() {
-        when(jwtService.extraerJti("token123")).thenThrow(new RuntimeException("invalid token"));
+        when(jwtService.extractJti("token123")).thenThrow(new RuntimeException("invalid token"));
         // Llamado a revokeToken falla en try/catch y luego deleteSessionByToken falla en su propio try/catch
         servicio.revokeTokenFromHeader("Bearer token123");
 

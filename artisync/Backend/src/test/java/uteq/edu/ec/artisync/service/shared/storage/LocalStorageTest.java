@@ -33,7 +33,7 @@ class LocalStorageTest {
                 "documento", "cedula.jpg", "image/jpeg", "contenido-de-prueba".getBytes());
 
         String referencia = almacenamiento.save(archivo);
-        byte[] leido = almacenamiento.leer(referencia);
+        byte[] leido = almacenamiento.read(referencia);
 
         assertThat(referencia).endsWith(".jpg");
         assertThat(new String(leido)).isEqualTo("contenido-de-prueba");
@@ -41,12 +41,12 @@ class LocalStorageTest {
 
     @Test
     void leer_referenciaInexistente_lanzaExcepcionRecursoNoEncontrado() {
-        assertThrows(ResourceNotFoundException.class, () -> almacenamiento.leer("no-existe.jpg"));
+        assertThrows(ResourceNotFoundException.class, () -> almacenamiento.read("no-existe.jpg"));
     }
 
     @Test
     void leer_intentoDeEscapeFueraDeLaRutaBase_esRechazado() {
-        assertThrows(BusinessRuleException.class, () -> almacenamiento.leer("../../etc/passwd"));
+        assertThrows(BusinessRuleException.class, () -> almacenamiento.read("../../etc/passwd"));
     }
 
     @Test
@@ -57,7 +57,7 @@ class LocalStorageTest {
 
         almacenamiento.delete(referencia);
 
-        assertThrows(ResourceNotFoundException.class, () -> almacenamiento.leer(referencia));
+        assertThrows(ResourceNotFoundException.class, () -> almacenamiento.read(referencia));
     }
 
     @Test
@@ -68,7 +68,7 @@ class LocalStorageTest {
         String referencia = almacenamiento.save(archivo, StoragePrefix.PORTAFOLIO);
 
         assertThat(referencia).startsWith("portafolio/").endsWith(".mp4");
-        assertThat(new String(almacenamiento.leer(referencia))).isEqualTo("video-de-prueba");
+        assertThat(new String(almacenamiento.read(referencia))).isEqualTo("video-de-prueba");
     }
 
     @Test
@@ -80,8 +80,8 @@ class LocalStorageTest {
         String enEntregables = almacenamiento.save(archivo, StoragePrefix.ENTREGABLES);
 
         assertThat(enPortafolio).isNotEqualTo(enEntregables);
-        assertThat(almacenamiento.leer(enPortafolio)).isNotEmpty();
-        assertThat(almacenamiento.leer(enEntregables)).isNotEmpty();
+        assertThat(almacenamiento.read(enPortafolio)).isNotEmpty();
+        assertThat(almacenamiento.read(enEntregables)).isNotEmpty();
     }
 
     @Test

@@ -22,14 +22,9 @@ public class TagServiceImpl implements ITagService {
 
     private final TagRepository etiquetaRepository;
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<TagResponse> listTags() {
         return etiquetaRepository.findAll()
                 .stream()
@@ -37,33 +32,21 @@ public class TagServiceImpl implements ITagService {
                 .collect(Collectors.toList());
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idEtiqueta identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public TagResponse getById(Long idEtiqueta) {
         Tag et = etiquetaRepository.findById(idEtiqueta)
                 .orElseThrow(() -> new ResourceNotFoundException("Tag no encontrada con ID: " + idEtiqueta));
         return mapToTagResponse(et);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     @Auditable(accion = "ETIQUETA_CREAR", modulo = AuditModule.CATALOGO,
             entidad = "etiquetas", idEntidad = "#resultado.idEtiqueta",
             detalle = "{nombreEtiqueta: #peticion.nombreEtiqueta}")
-    /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
-     *
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public TagResponse createTag(CreateTagRequest peticion) {
         if (etiquetaRepository.existsByNombreEtiquetaIgnoreCase(peticion.getNombreEtiqueta())) {
             throw new BusinessRuleException("Ya existe la etiqueta: " + peticion.getNombreEtiqueta());
@@ -75,16 +58,11 @@ public class TagServiceImpl implements ITagService {
         return mapToTagResponse(et);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     @Auditable(accion = "ETIQUETA_ELIMINAR", modulo = AuditModule.CATALOGO,
             entidad = "etiquetas", idEntidad = "#idEtiqueta")
-    /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
-     *
-     * @param idEtiqueta identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public void deleteTag(Long idEtiqueta) {
         if (!etiquetaRepository.existsById(idEtiqueta)) {
             throw new ResourceNotFoundException("Tag no encontrada con ID: " + idEtiqueta);

@@ -109,7 +109,7 @@ public class PortfolioController {
     public ResponseEntity<MessageResponse> recordVisit(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        portafolioServicio.incrementarVisitas(id, userDetails.getIdUsuario());
+        portafolioServicio.incrementVisits(id, userDetails.getIdUsuario());
         return ResponseEntity.ok(new MessageResponse("Visita al portafolio incrementada"));
     }
 

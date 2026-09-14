@@ -18,7 +18,7 @@ import uteq.edu.ec.artisync.dto.response.catalog.AttributeResponse;
 import uteq.edu.ec.artisync.dto.response.catalog.OfferingResponse;
 import uteq.edu.ec.artisync.dto.response.catalog.OfferingSummaryResponse;
 import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
-import uteq.edu.ec.artisync.dto.response.comun.RespuestaUrl;
+import uteq.edu.ec.artisync.dto.response.comun.UrlResponse;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.service.catalog.IOfferingCatalogService;
 import uteq.edu.ec.artisync.service.shared.storage.DocumentStorage;
@@ -188,9 +188,9 @@ public class OfferingController {
      */
     @PostMapping(value = "/miniatura", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaUrl> uploadThumbnail(@RequestParam("archivo") MultipartFile archivo) {
+    public ResponseEntity<UrlResponse> uploadThumbnail(@RequestParam("archivo") MultipartFile archivo) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new RespuestaUrl(servicioCatalogoServicio.uploadThumbnail(archivo)));
+                .body(new UrlResponse(servicioCatalogoServicio.uploadThumbnail(archivo)));
     }
 
     /**
@@ -212,7 +212,7 @@ public class OfferingController {
         if (!referencia.startsWith(StoragePrefix.SERVICIOS + "/")) {
             throw new ResourceNotFoundException("Miniatura no disponible: " + referencia);
         }
-        byte[] contenido = almacenamientoDocumentos.leer(referencia);
+        byte[] contenido = almacenamientoDocumentos.read(referencia);
         String contentType = FileExtensions.contentTypeDe(referencia);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))

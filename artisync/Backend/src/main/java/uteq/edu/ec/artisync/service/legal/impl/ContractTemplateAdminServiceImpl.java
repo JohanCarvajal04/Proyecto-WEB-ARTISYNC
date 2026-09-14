@@ -40,7 +40,7 @@ public class ContractTemplateAdminServiceImpl implements IContractTemplateAdminS
         }
 
         if (peticion.isEsPredeterminada()) {
-            limpiarPredeterminadaActual();
+            clearCurrentDefault();
         }
 
         ContractTemplate plantilla = ContractTemplate.builder()
@@ -71,7 +71,7 @@ public class ContractTemplateAdminServiceImpl implements IContractTemplateAdminS
                 .orElseThrow(() -> new ResourceNotFoundException("Plantilla de contrato no encontrada: " + idPlantilla));
 
         if (peticion.isEsPredeterminada() && !Boolean.TRUE.equals(plantilla.getEsPredeterminada())) {
-            limpiarPredeterminadaActual();
+            clearCurrentDefault();
         }
         if (!peticion.isEsPredeterminada() && Boolean.TRUE.equals(plantilla.getEsPredeterminada())) {
             throw new BusinessRuleException(
@@ -171,7 +171,7 @@ public class ContractTemplateAdminServiceImpl implements IContractTemplateAdminS
      * filas podrían coexistir con es_predeterminada = true dentro del mismo
      * flush y violar la restricción.
      */
-    private void limpiarPredeterminadaActual() {
+    private void clearCurrentDefault() {
         plantillaContratoRepository.findByEsPredeterminadaTrue().ifPresent(actual -> {
             actual.setEsPredeterminada(false);
             plantillaContratoRepository.save(actual);

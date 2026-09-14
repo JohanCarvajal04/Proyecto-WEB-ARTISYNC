@@ -71,7 +71,7 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public CommissionReportResponse getCommissionReport(FinancialReportFilter filtro) {
-        return parsear(query(filtro));
+        return parse(query(filtro));
     }
 
     @Override
@@ -90,7 +90,7 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public GeneratedDocument export(FinancialReportFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante) {
-        CommissionReportResponse reporte = parsear(query(filtro));
+        CommissionReportResponse reporte = parse(query(filtro));
         List<CommissionDetail> filas;
         String titulo = "Comisiones";
         String subtitulo = "Reporte financiero por creador";
@@ -161,7 +161,7 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
         return json;
     }
 
-    private CommissionReportResponse parsear(String json) {
+    private CommissionReportResponse parse(String json) {
         JsonNode nodo;
         try {
             nodo = objectMapper.readTree(json);

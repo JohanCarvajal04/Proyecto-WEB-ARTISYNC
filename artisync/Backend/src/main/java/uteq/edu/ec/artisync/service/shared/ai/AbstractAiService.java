@@ -25,7 +25,7 @@ public abstract class AbstractAiService {
     /**
      * Un intento + 1 reintento, solo si el fallo es transitorio (429/timeout,
      * ver AiServiceUnavailableException#isReintentable). Mismo patrón que
-     * VerificationServiceImpl#analizarConReintento, generalizado aquí para
+     * VerificationServiceImpl#analyzeWithRetry, generalizado aquí para
      * que moderarContenido/classifyOffering/sugerirPreguntasBriefing/
      * analyzeReview no descarten en silencio un 429 momentáneo del
      * proveedor (revisión técnica 2026-09-01: antes caían directo al
@@ -68,7 +68,7 @@ public abstract class AbstractAiService {
      * @param texto texto de entrada del usuario a interpolar en el prompt
      * @return el texto acotado a 4000 caracteres y sin comillas dobles
      */
-    protected String sanitizarParaPrompt(String texto) {
+    protected String sanitizeForPrompt(String texto) {
         if (texto == null) return "";
         String limitado = texto.length() > 4000 ? texto.substring(0, 4000) : texto;
         return limitado.replace("\"", "'");
@@ -99,7 +99,7 @@ public abstract class AbstractAiService {
      * @param respuesta texto crudo devuelto por el proveedor de IA
      * @return el JSON extraído, o {@code "{}"} si no se pudo identificar uno válido
      */
-    protected String extraerJson(String respuesta) {
+    protected String extractJson(String respuesta) {
         if (respuesta == null || respuesta.isBlank()) {
             return "{}";
         }

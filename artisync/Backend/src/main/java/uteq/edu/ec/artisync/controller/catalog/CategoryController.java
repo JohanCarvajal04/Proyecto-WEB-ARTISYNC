@@ -76,7 +76,7 @@ public class CategoryController {
     public ResponseEntity<CategoryResponse> createCategory(
             @Valid @RequestBody CreateCategoryRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        Long idUsuarioCreador = esModerador(userDetails) ? null : userDetails.getIdUsuario();
+        Long idUsuarioCreador = isModerator(userDetails) ? null : userDetails.getIdUsuario();
         return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.createCategory(idUsuarioCreador, peticion));
     }
 
@@ -139,11 +139,11 @@ public class CategoryController {
      */
     @PatchMapping("/{id}/revisar")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<CategoryResponse> marcarRevisada(@PathVariable Long id) {
+    public ResponseEntity<CategoryResponse> markReviewed(@PathVariable Long id) {
         return ResponseEntity.ok(categoriaServicio.markCategoryReviewed(id));
     }
 
-    private boolean esModerador(CustomUserDetails userDetails) {
+    private boolean isModerator(CustomUserDetails userDetails) {
         return userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("CATEGORIA_GESTIONAR") || a.getAuthority().equals("ROLE_ADMIN"));
     }

@@ -123,7 +123,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         // esa decisión la sigue tomando exclusivamente sincronizarPermisos()
         // más abajo, vía StoredProcedureExceptionTranslator.
         rolRepository.findByNombreRol(nombreRolUpper).ifPresent(rol ->
-                AuditContext.aportar("antes", Map.of("permisos",
+                AuditContext.put("antes", Map.of("permisos",
                         rol.getPermisos() == null ? List.of()
                                 : rol.getPermisos().stream().map(Permission::getNombrePermiso).toList())));
 
@@ -132,7 +132,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         try {
             totalAsignado = rolRepository.sincronizarPermisos(nombreRolUpper, codigos);
         } catch (RuntimeException e) {
-            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.NOT_FOUND);
+            throw StoredProcedureExceptionTranslator.translate(e, HttpStatus.NOT_FOUND);
         }
         log.info("Permisos sincronizados correctamente para el rol: {}. Total asignados: {}", nombreRolUpper, totalAsignado);
 
@@ -204,7 +204,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         try {
             idRol = rolRepository.crearRol(nombreRolUpper, request.getDescripcionRol(), codigos);
         } catch (RuntimeException e) {
-            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
+            throw StoredProcedureExceptionTranslator.translate(e, HttpStatus.BAD_REQUEST);
         }
 
         Role nuevoRol = rolRepository.findById(idRol)
@@ -268,7 +268,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         try {
             rolRepository.eliminarRol(idRol);
         } catch (RuntimeException e) {
-            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
+            throw StoredProcedureExceptionTranslator.translate(e, HttpStatus.BAD_REQUEST);
         }
         log.info("Role personalizado eliminado exitosamente (ID {})", idRol);
     }

@@ -9,7 +9,7 @@ import uteq.edu.ec.artisync.entity.profile.VerificationDocumentType;
 import java.util.List;
 
 /**
- * La IA solo asiste (analizarConIa); el único método que puede cambiar
+ * La IA solo asiste (analyzeWithAi); el único método que puede cambiar
  * id_estado_verificacion es recordDecision, restringido en el controlador
  * al permiso CERTIFICADO_REVISAR.
  */
@@ -68,7 +68,7 @@ public interface IVerificationService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el documento ya fue eliminado
      * @throws uteq.edu.ec.artisync.exception.AiServiceUnavailableException si el servicio de IA falla y el fallo no es reintentable, o falla también en el reintento
      */
-    VerificationResponse analizarConIa(Long idCertificado);
+    VerificationResponse analyzeWithAi(Long idCertificado);
 
     /**
      * Registra la decisión final de un moderador sobre una verificación. Es el único método

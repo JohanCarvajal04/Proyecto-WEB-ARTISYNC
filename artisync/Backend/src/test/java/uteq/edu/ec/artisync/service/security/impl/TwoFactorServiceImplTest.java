@@ -162,7 +162,7 @@ class TwoFactorServiceImplTest {
 
         twoFactorService.disable2Fa("creador@example.com", "ABCD1234");
 
-        verify(intentosAutenticacionService).limpiar("2fa-desactivar-cuenta", "creador@example.com");
+        verify(intentosAutenticacionService).clear("2fa-desactivar-cuenta", "creador@example.com");
         verify(intentosAutenticacionService, never()).checkQuota(anyString(), anyString(), anyInt(), any());
         verify(autenticacionDosFactoresRepository).desactivar2Fa(1L);
     }
@@ -257,7 +257,7 @@ class TwoFactorServiceImplTest {
 
         assertNotNull(respuesta);
         assertTrue(dosFactores.getEstaHabilitado());
-        verify(intentosAutenticacionService).limpiar("2fa-confirmar-cuenta", "creador@example.com");
+        verify(intentosAutenticacionService).clear("2fa-confirmar-cuenta", "creador@example.com");
         verify(intentosAutenticacionService, never()).checkQuota(anyString(), anyString(), anyInt(), any());
         verify(autenticacionDosFactoresRepository).save(dosFactores);
     }

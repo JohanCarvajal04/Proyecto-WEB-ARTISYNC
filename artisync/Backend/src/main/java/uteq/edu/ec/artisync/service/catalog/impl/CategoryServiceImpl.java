@@ -89,7 +89,7 @@ public class CategoryServiceImpl implements ICategoryService {
         Category cat = Category.builder()
                 .nombreCategoria(peticion.getNombreCategoria().trim())
                 .estadoActiva(peticion.getEstadoActiva() != null ? peticion.getEstadoActiva() : true)
-                .creador(resolverCreador(idUsuarioCreador))
+                .creador(resolveCreator(idUsuarioCreador))
                 .revisado(idUsuarioCreador == null)
                 .build();
         cat = categoriaRepository.save(cat);
@@ -218,7 +218,7 @@ public class CategoryServiceImpl implements ICategoryService {
         Subcategory sub = Subcategory.builder()
                 .categoria(cat)
                 .nombreSubcategoria(peticion.getNombreSubcategoria().trim())
-                .creador(resolverCreador(idUsuarioCreador))
+                .creador(resolveCreator(idUsuarioCreador))
                 .revisado(idUsuarioCreador == null)
                 .build();
         sub = subcategoriaRepository.save(sub);
@@ -314,7 +314,7 @@ public class CategoryServiceImpl implements ICategoryService {
         return mapToSubcategoryResponse(sub);
     }
 
-    private User resolverCreador(Long idUsuarioCreador) {
+    private User resolveCreator(Long idUsuarioCreador) {
         if (idUsuarioCreador == null) {
             return null;
         }

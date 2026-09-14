@@ -46,6 +46,14 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Crea el filtro con el {@link StringRedisTemplate} usado para contar intentos
+     * y, si Spring no provee uno propio, construye un {@link ObjectMapper} de
+     * respaldo con soporte para tipos {@code java.time}.
+     *
+     * @param redisTemplate plantilla Redis usada para incrementar y expirar los contadores por IP
+     * @param objectMapper mapper JSON inyectado por Spring; si es {@code null} se crea uno propio
+     */
     @Autowired
     public AuthRateLimitFilter(StringRedisTemplate redisTemplate,
                                 @Autowired(required = false) ObjectMapper objectMapper) {
@@ -86,7 +94,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        String ip = ClientIpResolver.resolver(request);
+        String ip = ClientIpResolver.resolve(request);
         String clave = "rl:" + politica.ambito() + ":" + ip;
         try {
             Long intentos = redisTemplate.opsForValue().increment(clave);

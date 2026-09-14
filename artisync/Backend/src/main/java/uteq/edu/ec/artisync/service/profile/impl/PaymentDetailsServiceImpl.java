@@ -21,33 +21,20 @@ public class PaymentDetailsServiceImpl implements IPaymentDetailsService {
     private final CreatorPaymentDetailsRepository datosPagoCreadorRepository;
     private final UserRepository usuarioRepository;
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public PaymentDetailsResponse getMyPaymentDetails(Long idUsuario) {
         return datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuario)
-                .map(this::mapear)
+                .map(this::map)
                 .orElseGet(() -> PaymentDetailsResponse.builder().correoPaypal(null).fechaActualizacion(null).build());
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     @Auditable(accion = "RETIRO_DATOS_PAGO_ACTUALIZAR", modulo = AuditModule.FINANZAS,
             entidad = "datos_pago_creador", idEntidad = "#idUsuario")
-    /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
-     *
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public PaymentDetailsResponse updatePaypalEmail(Long idUsuario, PaymentDetailsRequest peticion) {
         CreatorPaymentDetails datos = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseGet(() -> {
@@ -57,10 +44,10 @@ public class PaymentDetailsServiceImpl implements IPaymentDetailsService {
                 });
 
         datos.setCorreoPaypal(peticion.getCorreoPaypal());
-        return mapear(datosPagoCreadorRepository.save(datos));
+        return map(datosPagoCreadorRepository.save(datos));
     }
 
-    private PaymentDetailsResponse mapear(CreatorPaymentDetails datos) {
+    private PaymentDetailsResponse map(CreatorPaymentDetails datos) {
         return PaymentDetailsResponse.builder()
                 .correoPaypal(datos.getCorreoPaypal())
                 .fechaActualizacion(datos.getFechaActualizacion())

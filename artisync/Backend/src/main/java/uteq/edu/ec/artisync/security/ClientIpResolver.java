@@ -25,7 +25,7 @@ public final class ClientIpResolver {
      * @return la IP del cliente, ya corregida por el {@code RemoteIpValve} de Tomcat
      *         (a partir de {@code X-Forwarded-For} cuando la petición viene de un proxy de confianza)
      */
-    public static String resolver(HttpServletRequest request) {
+    public static String resolve(HttpServletRequest request) {
         return request.getRemoteAddr();
     }
 }

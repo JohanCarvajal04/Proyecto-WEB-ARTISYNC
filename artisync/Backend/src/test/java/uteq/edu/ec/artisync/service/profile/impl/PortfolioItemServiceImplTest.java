@@ -216,7 +216,7 @@ class PortfolioItemServiceImplTest {
     @Test
     void descargarArchivo_devuelveBytesYContentTypeSegunLaExtension() {
         when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(item("portafolio/obra.mp4")));
-        when(almacenamiento.leer("portafolio/obra.mp4")).thenReturn("video".getBytes());
+        when(almacenamiento.read("portafolio/obra.mp4")).thenReturn("video".getBytes());
 
         IPortfolioItemService.DownloadedFile archivo = servicio.downloadFile(ID_ITEM, null);
 
@@ -232,7 +232,7 @@ class PortfolioItemServiceImplTest {
 
         assertThrows(BusinessRuleException.class, () -> servicio.downloadFile(ID_ITEM, ID_OTRO));
 
-        verify(almacenamiento, never()).leer(anyString());
+        verify(almacenamiento, never()).read(anyString());
     }
 
     // ── Edición ──────────────────────────────────────────────────────────────

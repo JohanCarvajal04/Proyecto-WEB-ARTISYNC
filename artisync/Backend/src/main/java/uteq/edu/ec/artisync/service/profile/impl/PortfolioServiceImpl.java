@@ -37,19 +37,9 @@ public class PortfolioServiceImpl implements IPortfolioService {
     private final CreatorProfileRepository perfilRepository;
     private final StringRedisTemplate redisTemplate;
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
-    /**
-     * Crea el portafolio de un perfil de creador (relación 1:1), con opciones
-     * de personalización por defecto si no se indican.
-     *
-     * @param peticion perfil dueño, visibilidad y opciones de personalización
-     * @param idUsuarioLogueado identificador de quien crea; debe ser dueño del perfil
-     * @return el portafolio creado
-     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el perfil ya tiene un portafolio
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien crea no es dueño del perfil
-     */
     public PortfolioResponse createPortfolio(CreatePortfolioRequest peticion, Long idUsuarioLogueado) {
         if (portafolioRepository.findByPerfilIdPerfil(peticion.idPerfil()).isPresent()) {
             throw new DuplicateResourceException("El perfil de creador ya cuenta con un portafolio registrado.");
@@ -76,43 +66,33 @@ public class PortfolioServiceImpl implements IPortfolioService {
                 .build();
 
         Portfolio guardado = portafolioRepository.save(portafolio);
-        return mapearARespuesta(guardado);
+        return mapToResponse(guardado);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * @param idPortafolio identificador del portafolio
-     * @return el portafolio solicitado
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
-     *         o su dueño tiene la cuenta desactivada
-     */
     public PortfolioResponse getPortfolioById(Long idPortafolio) {
         Portfolio portafolio = portafolioRepository.findById(idPortafolio)
                 .orElseThrow(() -> new ResourceNotFoundException("Portfolio no encontrado con ID: " + idPortafolio));
         requireActiveAccount(portafolio);
-        return mapearARespuesta(portafolio);
+        return mapToResponse(portafolio);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * @param idPerfil identificador del perfil de creador
-     * @return el portafolio de ese perfil
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no tiene
-     *         portafolio, o su dueño tiene la cuenta desactivada
-     */
     public PortfolioResponse getPortfolioByProfile(Long idPerfil) {
         Portfolio portafolio = portafolioRepository.findByPerfilIdPerfil(idPerfil)
                 .orElseThrow(() -> new ResourceNotFoundException("No se encontró portafolio para el perfil con ID: " + idPerfil));
         requireActiveAccount(portafolio);
-        return mapearARespuesta(portafolio);
+        return mapToResponse(portafolio);
     }
 
     /**
      * REQ-NF-018 (ajuste de seguimiento): mismo criterio que
      * CreatorProfileServiceImpl.requireActiveAccount. Un portafolio sin perfil
-     * asociado (dato huérfano, ya contemplado por mapearARespuesta) no se
+     * asociado (dato huérfano, ya contemplado por mapToResponse) no se
      * confunde con "cuenta desactivada" — solo se rechaza cuando SÍ hay un
      * dueño identificado y su cuenta está inactiva.
      */
@@ -123,30 +103,21 @@ public class PortfolioServiceImpl implements IPortfolioService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /** @return todos los portafolios registrados */
     public List<PortfolioResponse> listPortfolios() {
         return portafolioRepository.findAll().stream()
-                .map(this::mapearARespuesta)
+                .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     @Auditable(accion = "PORTAFOLIO_ACTUALIZAR", modulo = AuditModule.PORTAFOLIO,
             entidad = "portafolios", idEntidad = "#idPortafolio",
             detalle = "{esPublico: #peticion.esPublico}")
-    /**
-     * Actualiza la visibilidad y/o las opciones de personalización de un portafolio propio.
-     *
-     * @param idPortafolio identificador del portafolio
-     * @param peticion campos a actualizar; los {@code null} no se modifican
-     * @param idUsuarioLogueado identificador de quien edita; debe ser dueño del portafolio
-     * @return el portafolio ya actualizado
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien edita no es su dueño
-     */
     public PortfolioResponse updatePortfolio(Long idPortafolio, UpdatePortfolioRequest peticion, Long idUsuarioLogueado) {
         Portfolio portafolio = portafolioRepository.findById(idPortafolio)
                 .orElseThrow(() -> new ResourceNotFoundException("Portfolio no encontrado con ID: " + idPortafolio));
@@ -164,21 +135,14 @@ public class PortfolioServiceImpl implements IPortfolioService {
         }
 
         Portfolio actualizado = portafolioRepository.save(portafolio);
-        return mapearARespuesta(actualizado);
+        return mapToResponse(actualizado);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
-    /**
-     * Registra una visita al portafolio, deduplicada por usuario dentro de
-     * una ventana de 24h (una visita real cuenta una sola vez al día).
-     *
-     * @param idPortafolio identificador del portafolio visitado
-     * @param idUsuario identificador del usuario que visita
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
-     */
-    public void incrementarVisitas(Long idPortafolio, Long idUsuario) {
-        if (!marcarVisitaSiEsNueva(idPortafolio, idUsuario)) {
+    public void incrementVisits(Long idPortafolio, Long idUsuario) {
+        if (!markVisitIfNew(idPortafolio, idUsuario)) {
             return;
         }
         Portfolio portafolio = portafolioRepository.findById(idPortafolio)
@@ -196,7 +160,7 @@ public class PortfolioServiceImpl implements IPortfolioService {
      * Fail-open ante caída de Redis (mismo criterio que AuthAttemptsService):
      * si Redis no responde, se cuenta la visita en vez de bloquear la métrica.
      */
-    private boolean marcarVisitaSiEsNueva(Long idPortafolio, Long idUsuario) {
+    private boolean markVisitIfNew(Long idPortafolio, Long idUsuario) {
         String clave = "visita-portafolio:" + idPortafolio + ":" + idUsuario;
         try {
             Boolean esNueva = redisTemplate.opsForValue().setIfAbsent(clave, "1", VENTANA_DEDUP_VISITA);
@@ -208,14 +172,11 @@ public class PortfolioServiceImpl implements IPortfolioService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     @Auditable(accion = "PORTAFOLIO_ELIMINAR", modulo = AuditModule.PORTAFOLIO,
             entidad = "portafolios", idEntidad = "#idPortafolio")
-    /**
-     * @param idPortafolio identificador del portafolio a eliminar
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
-     */
     public void deletePortfolio(Long idPortafolio) {
         if (!portafolioRepository.existsById(idPortafolio)) {
             throw new ResourceNotFoundException("Portfolio no encontrado con ID: " + idPortafolio);
@@ -223,7 +184,7 @@ public class PortfolioServiceImpl implements IPortfolioService {
         portafolioRepository.deleteById(idPortafolio);
     }
 
-    private PortfolioResponse mapearARespuesta(Portfolio portafolio) {
+    private PortfolioResponse mapToResponse(Portfolio portafolio) {
         return PortfolioResponse.builder()
                 .idPortafolio(portafolio.getIdPortafolio())
                 .idPerfil(portafolio.getPerfil() != null ? portafolio.getPerfil().getIdPerfil() : null)

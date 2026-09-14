@@ -65,7 +65,7 @@ class RevisionTicketExpirationServiceTest {
         given(pagoTicketRevisionRepository.findByTicketIdTicketParaActualizar(9L))
                 .willReturn(Optional.of(pagoPendiente));
 
-        servicio.expirarTicket(9L);
+        servicio.expireTicket(9L);
 
         assertThat(ticketAbierto.getEstadoTicket()).isEqualTo("Rechazado");
         assertThat(pagoPendiente.getEstadoPago()).isEqualTo("Expirado");
@@ -78,7 +78,7 @@ class RevisionTicketExpirationServiceTest {
     void yaResuelto_noOp() {
         ticketAbierto.setEstadoTicket("Resuelto");
 
-        servicio.expirarTicket(9L);
+        servicio.expireTicket(9L);
 
         verify(ticketRevisionRepository, never()).save(any());
         verify(pagoTicketRevisionRepository, never()).save(any());
@@ -89,7 +89,7 @@ class RevisionTicketExpirationServiceTest {
     void sinFilaDePago_rechazaTicketIgual() {
         given(pagoTicketRevisionRepository.findByTicketIdTicketParaActualizar(9L)).willReturn(Optional.empty());
 
-        servicio.expirarTicket(9L);
+        servicio.expireTicket(9L);
 
         assertThat(ticketAbierto.getEstadoTicket()).isEqualTo("Rechazado");
         verify(pagoTicketRevisionRepository, never()).save(any());

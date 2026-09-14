@@ -15,7 +15,7 @@ class AbstractAiServiceTest {
 
     static class ServicioDePrueba extends AbstractAiService {
         String cargar(String archivo, Object... args) { return loadPrompt(archivo, args); }
-        String extraer(String respuesta) { return extraerJson(respuesta); }
+        String extraer(String respuesta) { return extractJson(respuesta); }
         String texto(JsonNode nodo, String campo) { return textoONull(nodo, campo); }
         BigDecimal decimal(Object valor) { return toBigDecimal(valor); }
         BigDecimal acotar(BigDecimal valor) { return acotarConfianza(valor); }

@@ -184,7 +184,7 @@ class DeliverableServiceImplTest {
         assertThrows(BusinessRuleException.class,
                 () -> servicio.downloadCleanVersion(ID_PEDIDO, ID_CLIENTE));
 
-        verify(almacenamiento, never()).leer(anyString());
+        verify(almacenamiento, never()).read(anyString());
     }
 
     @Test
@@ -192,7 +192,7 @@ class DeliverableServiceImplTest {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
         when(entregableRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("entregables/m.png", "entregables/l.pdf", true)));
-        when(almacenamiento.leer("entregables/l.pdf")).thenReturn("%PDF".getBytes());
+        when(almacenamiento.read("entregables/l.pdf")).thenReturn("%PDF".getBytes());
 
         IDeliverableService.DownloadedFile archivo =
                 servicio.downloadCleanVersion(ID_PEDIDO, ID_CLIENTE);
@@ -216,7 +216,7 @@ class DeliverableServiceImplTest {
     void descargarMarcaAgua_clienteYCreadorPuedenVerlaSinPagoLiberado() {
         when(entregableRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("entregables/m.png", "entregables/l.png", false)));
-        when(almacenamiento.leer("entregables/m.png")).thenReturn("png".getBytes());
+        when(almacenamiento.read("entregables/m.png")).thenReturn("png".getBytes());
 
         assertThat(servicio.downloadWatermarkedVersion(ID_PEDIDO, ID_CLIENTE).contenido()).isNotEmpty();
         assertThat(servicio.downloadWatermarkedVersion(ID_PEDIDO, ID_CREADOR).contenido()).isNotEmpty();
@@ -230,7 +230,7 @@ class DeliverableServiceImplTest {
         assertThrows(BusinessRuleException.class,
                 () -> servicio.downloadWatermarkedVersion(ID_PEDIDO, ID_TERCERO));
 
-        verify(almacenamiento, never()).leer(anyString());
+        verify(almacenamiento, never()).read(anyString());
     }
 
     @Test

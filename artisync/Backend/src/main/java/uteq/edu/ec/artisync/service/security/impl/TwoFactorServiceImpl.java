@@ -149,7 +149,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
                     AMBITO_2FA_CONFIRM, correo, LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Código inválido o expirado");
         }
-        intentosAutenticacionService.limpiar(AMBITO_2FA_CONFIRM, correo);
+        intentosAutenticacionService.clear(AMBITO_2FA_CONFIRM, correo);
 
         dosFactores.setEstaHabilitado(true);
         autenticacionDosFactoresRepository.save(dosFactores);
@@ -184,7 +184,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
                     AMBITO_2FA_DISABLE, correo, LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código inválido o expirado");
         }
-        intentosAutenticacionService.limpiar(AMBITO_2FA_DISABLE, correo);
+        intentosAutenticacionService.clear(AMBITO_2FA_DISABLE, correo);
 
         // Fase 3 concurrencia (§7): fn_desactivar_2fa desactiva el flag y
         // purga los codigos de respaldo en una unica transaccion, en vez del

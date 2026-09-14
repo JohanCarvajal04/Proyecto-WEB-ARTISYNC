@@ -68,7 +68,7 @@ public class AsyncBackupJobService {
         } catch (Exception e) {
             log.error("[AsyncBackupJobService] Falló el respaldo {}: {}", idRespaldo, e.getMessage(), e);
             respaldo.setEstadoRespaldo(BackupStatus.FALLIDO);
-            respaldo.setMensajeError(truncar(e.getMessage(), 500));
+            respaldo.setMensajeError(truncate(e.getMessage(), 500));
         } finally {
             respaldo.setFechaFin(LocalDateTime.now());
             respaldo.setDuracionMs((int) ((System.nanoTime() - inicioNanos) / 1_000_000));
@@ -76,7 +76,7 @@ public class AsyncBackupJobService {
         }
     }
 
-    private String truncar(String mensaje, int maximo) {
+    private String truncate(String mensaje, int maximo) {
         if (mensaje == null) {
             return "Error desconocido";
         }

@@ -20,14 +20,14 @@ public class BriefingResponse {
     private String nombrePlantilla;
     private LocalDateTime fechaEnvio;
     private Boolean completado;
-    private List<PreguntaRespuestaItem> preguntas;
+    private List<QuestionAnswerItem> preguntas;
 
     /** Una pregunta del briefing junto con su respuesta, si ya fue contestada. */
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class PreguntaRespuestaItem {
+    public static class QuestionAnswerItem {
         private Long idPregunta;
         private String textoPregunta;
         private Integer numeroOrden;

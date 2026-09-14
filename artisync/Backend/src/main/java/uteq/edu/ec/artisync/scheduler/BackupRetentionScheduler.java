@@ -39,7 +39,7 @@ public class BackupRetentionScheduler {
     public void purgarRespaldosVencidos() {
         for (Backup respaldo : respaldoRepository.findByEstadoRespaldo(BackupStatus.COMPLETADO)) {
             try {
-                if (haVencido(respaldo) && isSafeToDelete(respaldo)) {
+                if (hasExpired(respaldo) && isSafeToDelete(respaldo)) {
                     if (respaldo.getRutaArchivo() != null) {
                         storage.delete(Path.of(respaldo.getRutaArchivo()));
                     }
@@ -53,7 +53,7 @@ public class BackupRetentionScheduler {
         }
     }
 
-    private boolean haVencido(Backup respaldo) {
+    private boolean hasExpired(Backup respaldo) {
         int dias = respaldo.getProgramacion() != null
                 ? respaldo.getProgramacion().getRetencionDias()
                 : respaldoProperties.getRetencionDiasManual();

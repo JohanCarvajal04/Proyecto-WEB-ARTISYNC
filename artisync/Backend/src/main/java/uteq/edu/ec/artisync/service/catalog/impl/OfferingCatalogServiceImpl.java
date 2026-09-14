@@ -598,14 +598,14 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
                 .nombrePlantillaContrato(servicio.getPlantillaContrato() != null ? servicio.getPlantillaContrato().getNombrePlantilla() : null)
                 .idBriefingPlantilla(servicio.getBriefingPlantilla() != null ? servicio.getBriefingPlantilla().getIdBriefingPlantilla() : null)
                 .nombreBriefingPlantilla(servicio.getBriefingPlantilla() != null ? servicio.getBriefingPlantilla().getNombrePlantilla() : null)
-                .preguntasBriefing(mapearPreguntasBriefing(servicio.getBriefingPlantilla()))
+                .preguntasBriefing(mapBriefingQuestions(servicio.getBriefingPlantilla()))
                 .atributos(atributos)
                 .etiquetas(etiquetas)
                 .actualizadoEn(servicio.getActualizadoEn())
                 .build();
     }
 
-    private List<OfferingResponse.PreguntaBriefingItem> mapearPreguntasBriefing(BriefingTemplate plantilla) {
+    private List<OfferingResponse.PreguntaBriefingItem> mapBriefingQuestions(BriefingTemplate plantilla) {
         if (plantilla == null) {
             return List.of();
         }

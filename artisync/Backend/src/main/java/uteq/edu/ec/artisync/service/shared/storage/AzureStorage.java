@@ -121,7 +121,7 @@ public class AzureStorage implements DocumentStorage {
 
     /** {@inheritDoc} */
     @Override
-    public byte[] leer(String referencia) {
+    public byte[] read(String referencia) {
         validateReference(referencia);
         asegurarContenedor();
         BlobClient blob = contenedor.getBlobClient(referencia);

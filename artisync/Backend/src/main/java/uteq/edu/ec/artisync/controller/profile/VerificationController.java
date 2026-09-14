@@ -132,8 +132,8 @@ public class VerificationController {
     @Operation(summary = "Pedir a la IA un dictamen orientativo (no decide)")
     @PostMapping("/{id}/analisis-ia")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
-    public ResponseEntity<VerificationResponse> analizarConIa(@PathVariable Long id) {
-        return ResponseEntity.ok(verificacionServicio.analizarConIa(id));
+    public ResponseEntity<VerificationResponse> analyzeWithAi(@PathVariable Long id) {
+        return ResponseEntity.ok(verificacionServicio.analyzeWithAi(id));
     }
 
     /**

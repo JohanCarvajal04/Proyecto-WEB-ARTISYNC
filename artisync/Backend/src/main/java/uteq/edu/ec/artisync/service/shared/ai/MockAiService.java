@@ -14,19 +14,16 @@ import java.util.List;
 @Slf4j
 public class MockAiService extends AbstractAiService implements AiService {
 
+    /**
+     * Construye el servicio mock e informa por log que no se realizarán llamadas
+     * reales a proveedores de IA — es el proveedor activo por defecto ({@code ia.provider=mock}).
+     */
     public MockAiService() {
         log.info("Offering de IA MOCK inicializado — no se realizarán llamadas reales a APIs de IA");
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
-     *
-     * @param imagenBytes objeto binario multipart representando el documento o medio fisico
-     * @param mimeType parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AiVerificationResponse verifyIdentity(byte[] imagenBytes, String mimeType) {
         return AiVerificationResponse.builder()
                 .aprobado(true)
@@ -39,15 +36,8 @@ public class MockAiService extends AbstractAiService implements AiService {
                 .build();
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
-     *
-     * @param imagenBytes objeto binario multipart representando el documento o medio fisico
-     * @param mimeType parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AiVerificationResponse analyzeCertificate(byte[] imagenBytes, String mimeType) {
         return AiVerificationResponse.builder()
                 .aprobado(true)
@@ -60,30 +50,16 @@ public class MockAiService extends AbstractAiService implements AiService {
                 .build();
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
-     *
-     * @param textoMensaje parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public IaModeracionResponse moderarContenido(String textoMensaje) {
         return IaModeracionResponse.builder()
                 .esApropiado(true).categoriaInfraccion("ninguno")
                 .confianza(new BigDecimal("0.95")).build();
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
-     *
-     * @param titulo parametro requerido para la correcta ejecucion del procedimiento
-     * @param descripcion parametro requerido para la correcta ejecucion del procedimiento
-     * @param categoriasDisponibles parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AiClassificationResponse classifyOffering(String titulo, String descripcion, List<String> categoriasDisponibles) {
         String categoria = categoriasDisponibles.isEmpty() ? "General" : categoriasDisponibles.get(0);
         return AiClassificationResponse.builder()
@@ -92,29 +68,14 @@ public class MockAiService extends AbstractAiService implements AiService {
                 .confianza(new BigDecimal("0.80")).build();
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
-     *
-     * @param categoria parametro requerido para la correcta ejecucion del procedimiento
-     * @param titulo parametro requerido para la correcta ejecucion del procedimiento
-     * @param descripcion parametro requerido para la correcta ejecucion del procedimiento
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<String> sugerirPreguntasBriefing(String categoria, String titulo, String descripcion) {
         return List.of("¿Cuál es el objetivo del proyecto?", "¿Tienes referencias visuales?");
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
-     *
-     * @param textoResena parametro requerido para la correcta ejecucion del procedimiento
-     * @param estrellas parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AiReviewResponse analyzeReview(String textoResena, int estrellas) {
         return AiReviewResponse.builder()
                 .sentimiento(estrellas >= 4 ? "positivo" : "neutro")

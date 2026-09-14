@@ -19,7 +19,7 @@ public final class ProfilePhotoUrl {
      * @param referencia referencia cruda guardada en {@code User.getProfilePhotoUrl()}
      * @return la URL pública servida por el backend, o {@code null} si no hay foto
      */
-    public static String construir(String referencia) {
+    public static String build(String referencia) {
         if (referencia == null || referencia.isBlank()) {
             return null;
         }

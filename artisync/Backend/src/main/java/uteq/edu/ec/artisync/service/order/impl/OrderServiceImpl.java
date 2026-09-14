@@ -476,7 +476,7 @@ public class OrderServiceImpl implements IOrderService {
      * rechace la creación completa, no solo el briefing.
      */
     private void validateBriefingAnswersComplete(BriefingTemplate plantilla,
-                                                      List<AnswerBriefingRequest.RespuestaItem> respuestas) {
+                                                      List<AnswerBriefingRequest.AnswerItem> respuestas) {
         if (respuestas == null || respuestas.isEmpty()) {
             throw new BusinessRuleException(
                     "Este servicio tiene un cuestionario: responde todas sus preguntas para crear el pedido");
@@ -484,7 +484,7 @@ public class OrderServiceImpl implements IOrderService {
 
         Set<Long> idsRespondidos = respuestas.stream()
                 .filter(r -> r.getTextoRespuesta() != null && !r.getTextoRespuesta().isBlank())
-                .map(AnswerBriefingRequest.RespuestaItem::getIdPregunta)
+                .map(AnswerBriefingRequest.AnswerItem::getIdPregunta)
                 .collect(Collectors.toSet());
 
         for (BriefingQuestion pregunta : plantilla.getPreguntas()) {
@@ -502,7 +502,7 @@ public class OrderServiceImpl implements IOrderService {
      * dependía de que el creador lo disparara manualmente después.
      */
     private void recordBriefingCompleted(Order pedido, BriefingTemplate plantilla,
-                                              List<AnswerBriefingRequest.RespuestaItem> respuestas) {
+                                              List<AnswerBriefingRequest.AnswerItem> respuestas) {
         SentBriefing enviado = SentBriefing.builder()
                 .pedido(pedido)
                 .plantilla(plantilla)
@@ -512,8 +512,8 @@ public class OrderServiceImpl implements IOrderService {
 
         Map<Long, String> textoPorPregunta = respuestas.stream()
                 .collect(Collectors.toMap(
-                        AnswerBriefingRequest.RespuestaItem::getIdPregunta,
-                        AnswerBriefingRequest.RespuestaItem::getTextoRespuesta,
+                        AnswerBriefingRequest.AnswerItem::getIdPregunta,
+                        AnswerBriefingRequest.AnswerItem::getTextoRespuesta,
                         (a, b) -> b));
 
         for (BriefingQuestion pregunta : plantilla.getPreguntas()) {
@@ -643,12 +643,11 @@ public class OrderServiceImpl implements IOrderService {
         return servicioExportacion.export(modelo, formato);
     }
 
-    @Override
-    @Transactional
-    // Las transiciones de flujo: incluye los intentos FALLIDOS, que
-    // historial_estados_pedido (tabla de dominio) nunca registra.
     /**
      * Avanza el pedido a la siguiente etapa configurada de su flujo de trabajo.
+     * El intento queda registrado por la anotación {@code @Auditable} incluso
+     * si falla, a diferencia del historial de estados del pedido (tabla de
+     * dominio), que solo guarda las transiciones que sí se concretan.
      *
      * @param idPedido identificador del pedido
      * @param idCreador identificador del creador; debe ser dueño del servicio del pedido
@@ -659,6 +658,8 @@ public class OrderServiceImpl implements IOrderService {
      *         servicio, si la etapa actual exige un entregable que aún no se subió, si la etapa actual
      *         ya no está en la configuración del flujo, o si el pedido ya está en la etapa final
      */
+    @Override
+    @Transactional
     @Auditable(accion = "PEDIDO_AVANZAR_ETAPA", modulo = AuditModule.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido",
             detalle = "{observacion: #peticion.observacion}")

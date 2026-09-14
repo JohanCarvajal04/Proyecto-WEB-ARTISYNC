@@ -29,7 +29,7 @@ public final class StoredProcedureExceptionTranslator {
      * @return la excepción HTTP equivalente, con el mensaje de negocio de la rutina
      * @throws RuntimeException el {@code origen} original, sin traducir, si no envuelve una {@link SQLException}
      */
-    public static ResponseStatusException traducir(RuntimeException origen, HttpStatus porDefecto) {
+    public static ResponseStatusException translate(RuntimeException origen, HttpStatus porDefecto) {
         SQLException sql = findSQLException(origen);
         if (sql == null) {
             throw origen;

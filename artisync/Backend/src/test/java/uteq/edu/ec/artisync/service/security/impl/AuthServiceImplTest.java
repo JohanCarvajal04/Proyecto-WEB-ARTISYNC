@@ -229,7 +229,7 @@ class AuthServiceImplTest {
         assertEquals("access-token", response.getAccessToken());
         assertFalse(response.isRequiere2fa());
         assertEquals(List.of("CLIENTE"), response.getRoles());
-        verify(intentosAutenticacionService).limpiar("login-cuenta", "juan@example.com");
+        verify(intentosAutenticacionService).clear("login-cuenta", "juan@example.com");
         verify(intentosAutenticacionService, never()).checkQuota(anyString(), anyString(), anyInt(), any());
     }
 
@@ -246,7 +246,7 @@ class AuthServiceImplTest {
                 () -> authService.login(loginRequest));
 
         verify(intentosAutenticacionService).checkQuota("login-cuenta", "juan@example.com", 5, java.time.Duration.ofMinutes(15));
-        verify(intentosAutenticacionService, never()).limpiar(anyString(), anyString());
+        verify(intentosAutenticacionService, never()).clear(anyString(), anyString());
     }
 
     @Test
@@ -258,7 +258,7 @@ class AuthServiceImplTest {
         when(usuarioRepository.resolverEstadoLogin("juan@example.com"))
                 .thenReturn(estadoLoginJson(1L, "juan@example.com", true, "CLIENTE"));
         when(usuarioRepository.getReferenceById(1L)).thenReturn(usuario);
-        when(preAuth2faTicketService.emitir(1L, "juan@example.com")).thenReturn("ticket-emitido");
+        when(preAuth2faTicketService.issue(1L, "juan@example.com")).thenReturn("ticket-emitido");
 
         TokenResponse response = authService.login(loginRequest);
 
@@ -284,7 +284,7 @@ class AuthServiceImplTest {
 
     @Test
     void verify2Fa_ShouldThrowUnauthorized_WhenTicketInvalido() {
-        when(preAuth2faTicketService.resolver("ticket-invalido")).thenReturn(Optional.empty());
+        when(preAuth2faTicketService.resolve("ticket-invalido")).thenReturn(Optional.empty());
 
         TwoFactorRequest request = TwoFactorRequest.builder().codigo("123456").build();
 
@@ -298,8 +298,8 @@ class AuthServiceImplTest {
 
     @Test
     void verify2Fa_ShouldThrowUnauthorized_WhenCodeInvalid() {
-        when(preAuth2faTicketService.resolver("ticket-valido"))
-                .thenReturn(Optional.of(new PreAuth2faTicketService.DatosTicket(1L, "juan@example.com")));
+        when(preAuth2faTicketService.resolve("ticket-valido"))
+                .thenReturn(Optional.of(new PreAuth2faTicketService.TicketData(1L, "juan@example.com")));
         when(usuarioRepository.resolverEstadoLogin("juan@example.com"))
                 .thenReturn(estadoLoginJson(1L, "juan@example.com", true, "CLIENTE"));
         when(twoFactorService.validateCodeOrBackup("juan@example.com", "000000")).thenReturn(false);
@@ -311,18 +311,18 @@ class AuthServiceImplTest {
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
 
         // El ticket NO se consume en un intento fallido (sigue disponible para reintentar).
-        verify(preAuth2faTicketService, never()).consumir(anyString());
+        verify(preAuth2faTicketService, never()).consume(anyString());
     }
 
     @Test
     void verify2Fa_ShouldSucceed_WhenTicketAndCodeValid() {
-        when(preAuth2faTicketService.resolver("ticket-valido"))
-                .thenReturn(Optional.of(new PreAuth2faTicketService.DatosTicket(1L, "juan@example.com")));
+        when(preAuth2faTicketService.resolve("ticket-valido"))
+                .thenReturn(Optional.of(new PreAuth2faTicketService.TicketData(1L, "juan@example.com")));
         when(usuarioRepository.resolverEstadoLogin("juan@example.com"))
                 .thenReturn(estadoLoginJson(1L, "juan@example.com", true, "CLIENTE"));
         when(usuarioRepository.getReferenceById(1L)).thenReturn(usuario);
         when(twoFactorService.validateCodeOrBackup("juan@example.com", "123456")).thenReturn(true);
-        when(preAuth2faTicketService.consumir("ticket-valido")).thenReturn(true);
+        when(preAuth2faTicketService.consume("ticket-valido")).thenReturn(true);
 
         UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
         when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
@@ -339,12 +339,12 @@ class AuthServiceImplTest {
 
     @Test
     void verify2Fa_ShouldThrowUnauthorized_WhenTicketAlreadyConsumedConcurrently() {
-        when(preAuth2faTicketService.resolver("ticket-valido"))
-                .thenReturn(Optional.of(new PreAuth2faTicketService.DatosTicket(1L, "juan@example.com")));
+        when(preAuth2faTicketService.resolve("ticket-valido"))
+                .thenReturn(Optional.of(new PreAuth2faTicketService.TicketData(1L, "juan@example.com")));
         when(usuarioRepository.resolverEstadoLogin("juan@example.com"))
                 .thenReturn(estadoLoginJson(1L, "juan@example.com", true, "CLIENTE"));
         when(twoFactorService.validateCodeOrBackup("juan@example.com", "123456")).thenReturn(true);
-        when(preAuth2faTicketService.consumir("ticket-valido")).thenReturn(false); // otra petición lo consumió antes
+        when(preAuth2faTicketService.consume("ticket-valido")).thenReturn(false); // otra petición lo consumió antes
 
         TwoFactorRequest request = TwoFactorRequest.builder().codigo("123456").build();
 
@@ -356,8 +356,8 @@ class AuthServiceImplTest {
 
     @Test
     void verify2Fa_ShouldThrowBadRequest_When2faNoHabilitado() {
-        when(preAuth2faTicketService.resolver("ticket-valido"))
-                .thenReturn(Optional.of(new PreAuth2faTicketService.DatosTicket(1L, "juan@example.com")));
+        when(preAuth2faTicketService.resolve("ticket-valido"))
+                .thenReturn(Optional.of(new PreAuth2faTicketService.TicketData(1L, "juan@example.com")));
         when(usuarioRepository.resolverEstadoLogin("juan@example.com"))
                 .thenReturn(estadoLoginJson(1L, "juan@example.com", false, "CLIENTE"));
 
@@ -370,8 +370,8 @@ class AuthServiceImplTest {
 
     @Test
     void verify2Fa_ShouldThrowNotFound_WhenUsuarioNoExiste() {
-        when(preAuth2faTicketService.resolver("ticket-valido"))
-                .thenReturn(Optional.of(new PreAuth2faTicketService.DatosTicket(99L, "fantasma@example.com")));
+        when(preAuth2faTicketService.resolve("ticket-valido"))
+                .thenReturn(Optional.of(new PreAuth2faTicketService.TicketData(99L, "fantasma@example.com")));
         when(usuarioRepository.resolverEstadoLogin("fantasma@example.com")).thenReturn(null);
 
         TwoFactorRequest request = TwoFactorRequest.builder().codigo("123456").build();
@@ -392,7 +392,7 @@ class AuthServiceImplTest {
 
     @Test
     void refreshToken_ShouldThrowUnauthorized_WhenSesionNoEncontrada() {
-        when(jwtService.extraerJti("refresh-token")).thenReturn("jti-1");
+        when(jwtService.extractJti("refresh-token")).thenReturn("jti-1");
         when(sesionUsuarioRepository.findByJti("jti-1")).thenReturn(Optional.empty());
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
@@ -402,7 +402,7 @@ class AuthServiceImplTest {
 
     @Test
     void refreshToken_ShouldThrowUnauthorized_WhenJtiNulo() {
-        when(jwtService.extraerJti("refresh-token")).thenReturn(null);
+        when(jwtService.extractJti("refresh-token")).thenReturn(null);
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> authService.refreshToken("refresh-token"));
@@ -411,9 +411,9 @@ class AuthServiceImplTest {
 
     @Test
     void refreshToken_ShouldThrowUnauthorized_WhenTokenInvalido() {
-        when(jwtService.extraerJti("refresh-token")).thenReturn("jti-1");
+        when(jwtService.extractJti("refresh-token")).thenReturn("jti-1");
         when(sesionUsuarioRepository.findByJti("jti-1")).thenReturn(Optional.of(uteq.edu.ec.artisync.entity.security.UserSession.builder().build()));
-        when(jwtService.extraerUsername("refresh-token")).thenReturn("juan@example.com");
+        when(jwtService.extractUsername("refresh-token")).thenReturn("juan@example.com");
         UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
         when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
         when(jwtService.isRefreshTokenValid("refresh-token", userDetails)).thenReturn(false);
@@ -427,9 +427,9 @@ class AuthServiceImplTest {
     void refreshToken_ShouldThrowForbidden_WhenCuentaInactiva() {
         User inactivo = User.builder().idUsuario(1L).correo("juan@example.com").estadoCuenta(false).build();
 
-        when(jwtService.extraerJti("refresh-token")).thenReturn("jti-1");
+        when(jwtService.extractJti("refresh-token")).thenReturn("jti-1");
         when(sesionUsuarioRepository.findByJti("jti-1")).thenReturn(Optional.of(uteq.edu.ec.artisync.entity.security.UserSession.builder().build()));
-        when(jwtService.extraerUsername("refresh-token")).thenReturn("juan@example.com");
+        when(jwtService.extractUsername("refresh-token")).thenReturn("juan@example.com");
         UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
         when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
         when(jwtService.isRefreshTokenValid("refresh-token", userDetails)).thenReturn(true);
@@ -442,17 +442,17 @@ class AuthServiceImplTest {
 
     @Test
     void refreshToken_ShouldSucceed_WhenTodoValido() {
-        when(jwtService.extraerJti("refresh-token")).thenReturn("jti-1");
+        when(jwtService.extractJti("refresh-token")).thenReturn("jti-1");
         when(sesionUsuarioRepository.findByJti("jti-1")).thenReturn(Optional.of(uteq.edu.ec.artisync.entity.security.UserSession.builder().build()));
-        when(jwtService.extraerUsername("refresh-token")).thenReturn("juan@example.com");
+        when(jwtService.extractUsername("refresh-token")).thenReturn("juan@example.com");
         UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
         when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
         when(jwtService.isRefreshTokenValid("refresh-token", userDetails)).thenReturn(true);
         when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(usuario));
         when(jwtService.generateToken(userDetails)).thenReturn("nuevo-access");
         when(jwtService.generateRefreshToken(userDetails)).thenReturn("nuevo-refresh");
-        when(jwtService.extraerJti("nuevo-access")).thenReturn("jti-access");
-        when(jwtService.extraerJti("nuevo-refresh")).thenReturn("jti-refresh");
+        when(jwtService.extractJti("nuevo-access")).thenReturn("jti-access");
+        when(jwtService.extractJti("nuevo-refresh")).thenReturn("jti-refresh");
         when(usuarioRolRepository.findByUsuarioIdUsuario(1L)).thenReturn(List.of(UserRole.builder().rol(rolCliente).build()));
 
         TokenResponse response = authService.refreshToken("refresh-token");
@@ -464,7 +464,7 @@ class AuthServiceImplTest {
 
     @Test
     void refreshToken_ShouldWrapUnexpectedException_AsUnauthorized() {
-        when(jwtService.extraerJti("token-raro")).thenThrow(new RuntimeException("token malformado"));
+        when(jwtService.extractJti("token-raro")).thenThrow(new RuntimeException("token malformado"));
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> authService.refreshToken("token-raro"));
@@ -475,7 +475,7 @@ class AuthServiceImplTest {
 
     @Test
     void logout_ShouldRevocarAmbosTokensYBorrarSesion() {
-        when(jwtService.extraerJti("refresh-token")).thenReturn("jti-1");
+        when(jwtService.extractJti("refresh-token")).thenReturn("jti-1");
 
         MessageResponse respuesta = authService.logout("Bearer access-token", "refresh-token");
 
@@ -495,7 +495,7 @@ class AuthServiceImplTest {
 
     @Test
     void logout_ShouldNotPropagate_WhenJtiExtractionFails() {
-        when(jwtService.extraerJti("refresh-token")).thenThrow(new RuntimeException("expirado"));
+        when(jwtService.extractJti("refresh-token")).thenThrow(new RuntimeException("expirado"));
 
         MessageResponse respuesta = assertDoesNotThrow(() -> authService.logout("Bearer access-token", "refresh-token"));
 

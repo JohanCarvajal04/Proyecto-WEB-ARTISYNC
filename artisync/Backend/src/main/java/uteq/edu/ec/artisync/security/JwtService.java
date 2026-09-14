@@ -179,16 +179,16 @@ public class JwtService {
      *         o no cumple issuer/audience; {@link IllegalArgumentException} si está
      *         vacío o mal formado
      */
-    public Claims extraerTodosLosClaims(String token) {
-        return parsear(token).getPayload();
+    public Claims extractAllClaims(String token) {
+        return parse(token).getPayload();
     }
 
     /**
      * @param token JWT compacto firmado
      * @return el claim {@code email} si está presente; si no, el subject del token
      */
-    public String extraerUsername(String token) {
-        Claims claims = extraerTodosLosClaims(token);
+    public String extractUsername(String token) {
+        Claims claims = extractAllClaims(token);
         String email = claims.get("email", String.class);
         return email != null ? email : claims.getSubject();
     }
@@ -197,8 +197,8 @@ public class JwtService {
      * @param token JWT compacto firmado
      * @return el JTI (identificador único) del token, usado como clave de revocación en Redis
      */
-    public String extraerJti(String token) {
-        return extraerTodosLosClaims(token).getId();
+    public String extractJti(String token) {
+        return extractAllClaims(token).getId();
     }
 
     /**
@@ -206,8 +206,8 @@ public class JwtService {
      * @return milisegundos restantes hasta la expiración del token; nunca negativo
      *         (0 si ya expiró)
      */
-    public long extraerTiempoRestante(String token) {
-        Date expiracion = extraerTodosLosClaims(token).getExpiration();
+    public long extractRemainingTime(String token) {
+        Date expiracion = extractAllClaims(token).getExpiration();
         long restante = expiracion.getTime() - System.currentTimeMillis();
         return Math.max(0, restante);
     }
@@ -219,7 +219,7 @@ public class JwtService {
      */
     public boolean isAccessTokenValid(String token, UserDetails userDetails) {
         try {
-            Claims claims = parsear(token).getPayload();
+            Claims claims = parse(token).getPayload();
             if (!TIPO_ACCESO.equals(claims.get("type"))) {
                 return false;
             }
@@ -245,8 +245,8 @@ public class JwtService {
      * @throws io.jsonwebtoken.JwtException si el token está mal firmado o no cumple issuer/audience
      */
     public boolean isRefreshTokenValid(String token, UserDetails userDetails) {
-        String username = extraerUsername(token);
-        Date expiracion = parsear(token).getPayload().getExpiration();
+        String username = extractUsername(token);
+        Date expiracion = parse(token).getPayload().getExpiration();
         return username.equals(userDetails.getUsername())
                 && expiracion.after(new Date())
                 && isRefreshToken(token)
@@ -262,13 +262,13 @@ public class JwtService {
      */
     public boolean isRefreshToken(String token) {
         try {
-            return TIPO_REFRESH.equals(extraerTodosLosClaims(token).get("type"));
+            return TIPO_REFRESH.equals(extractAllClaims(token).get("type"));
         } catch (Exception e) {
             return false;
         }
     }
 
-    private Jws<Claims> parsear(String token) {
+    private Jws<Claims> parse(String token) {
         return parser.parseSignedClaims(token);
     }
 }

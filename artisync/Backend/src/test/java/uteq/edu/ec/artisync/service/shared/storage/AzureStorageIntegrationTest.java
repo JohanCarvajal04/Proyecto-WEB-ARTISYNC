@@ -68,11 +68,11 @@ class AzureStorageIntegrationTest {
         String referencia = azure.save(archivo);
 
         assertThat(referencia).endsWith(".jpg");
-        assertThat(azure.leer(referencia)).isEqualTo(contenido);
+        assertThat(azure.read(referencia)).isEqualTo(contenido);
 
         azure.delete(referencia);
 
-        assertThrows(ResourceNotFoundException.class, () -> azure.leer(referencia));
+        assertThrows(ResourceNotFoundException.class, () -> azure.read(referencia));
     }
 
     @Test
@@ -108,13 +108,13 @@ class AzureStorageIntegrationTest {
                 "archivo", "obra.mp4", "video/mp4", contenido), StoragePrefix.PORTAFOLIO);
 
         assertThat(referencia).startsWith("portafolio/").endsWith(".mp4");
-        assertThat(azure.leer(referencia)).isEqualTo(contenido);
+        assertThat(azure.read(referencia)).isEqualTo(contenido);
     }
 
     @Test
     void leer_referenciaInexistente_reportaRecursoNoEncontrado() {
         AzureStorage azure = almacenamiento();
 
-        assertThrows(ResourceNotFoundException.class, () -> azure.leer("no-existe.jpg"));
+        assertThrows(ResourceNotFoundException.class, () -> azure.read("no-existe.jpg"));
     }
 }

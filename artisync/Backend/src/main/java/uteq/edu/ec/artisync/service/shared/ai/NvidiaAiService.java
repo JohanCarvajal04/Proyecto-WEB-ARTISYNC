@@ -27,6 +27,16 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
     private final AiProperties.NvidiaConfig config;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Construye el cliente de NVIDIA NIM validando de entrada que haya una API key
+     * configurada — falla rápido al arrancar en vez de fallar en la primera
+     * petición real de un usuario.
+     *
+     * @param restClient cliente HTTP compartido para llamadas a proveedores de IA
+     * @param iaProperties configuración de proveedores de IA, de la que se toma la sección de NVIDIA
+     * @param objectMapper mapeador JSON usado para construir y leer las peticiones/respuestas de NVIDIA
+     * @throws IllegalStateException si no hay una API key de NVIDIA configurada
+     */
     public NvidiaAiService(@Qualifier("iaRestClient") RestClient restClient,
                             AiProperties iaProperties,
                             ObjectMapper objectMapper) {
@@ -41,50 +51,32 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
         log.info("Offering de IA NVIDIA NIM inicializado [modelo={}]", config.getModel());
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Verifica la validez de un documento de identidad enviando su imagen al modelo NVIDIA NIM.
-     *
-     * @param imagenBytes bytes de la imagen del documento
-     * @param mimeType tipo MIME de la imagen (p. ej. {@code image/jpeg})
-     * @return el resultado de la verificación (validez, confianza, datos detectados)
-     * @throws uteq.edu.ec.artisync.exception.AiServiceUnavailableException si NVIDIA rechaza la
-     *         solicitud, responde con error, o la respuesta no puede interpretarse
-     */
     public AiVerificationResponse verifyIdentity(byte[] imagenBytes, String mimeType) {
         String prompt = loadPrompt("prompt_verificacion_identidad.md");
         String respuesta = callNvidiaWithImage(prompt, imagenBytes, mimeType);
         return parseStrictVerification(respuesta, true);
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Verifica la validez de un certificado académico/profesional enviando su imagen al modelo NVIDIA NIM.
-     *
-     * @param imagenBytes bytes de la imagen del certificado
-     * @param mimeType tipo MIME de la imagen (p. ej. {@code image/jpeg})
-     * @return el resultado de la verificación (validez, confianza, institución, campo de estudio)
-     * @throws uteq.edu.ec.artisync.exception.AiServiceUnavailableException si NVIDIA rechaza la
-     *         solicitud, responde con error, o la respuesta no puede interpretarse
-     */
     public AiVerificationResponse analyzeCertificate(byte[] imagenBytes, String mimeType) {
         String prompt = loadPrompt("prompt_verificacion_certificado.md");
         String respuesta = callNvidiaWithImage(prompt, imagenBytes, mimeType);
         return parseStrictVerification(respuesta, false);
     }
 
-    @Override
     /**
-     * Modera un mensaje de chat con el modelo NVIDIA NIM; ante cualquier error de IA,
-     * se degrada a "apropiado" en vez de bloquear el mensaje (fail-open).
-     *
-     * @param textoMensaje texto del mensaje a moderar
-     * @return si es apropiado, categoría de infracción detectada y nivel de confianza
+     * {@inheritDoc}
+     * Implementación NVIDIA NIM: ante cualquier error de IA se degrada a
+     * "apropiado" en vez de bloquear el mensaje (fail-open).
      */
+    @Override
     public IaModeracionResponse moderarContenido(String textoMensaje) {
-        String prompt = loadPrompt("prompt_moderacion_mensaje.md", sanitizarParaPrompt(textoMensaje));
+        String prompt = loadPrompt("prompt_moderacion_mensaje.md", sanitizeForPrompt(textoMensaje));
         try {
-            JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
+            JsonNode nodo = objectMapper.readTree(extractJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
             return IaModeracionResponse.builder()
                     .esApropiado(nodo.path("es_apropiado").asBoolean(true))
                     .categoriaInfraccion(nodo.path("categoria_infraccion").asString("ninguno"))
@@ -99,22 +91,14 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
-     *
-     * @param titulo parametro requerido para la correcta ejecucion del procedimiento
-     * @param descripcion parametro requerido para la correcta ejecucion del procedimiento
-     * @param categoriasDisponibles parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AiClassificationResponse classifyOffering(String titulo, String descripcion, List<String> categoriasDisponibles) {
         String categorias = String.join(", ", categoriasDisponibles);
         String prompt = loadPrompt("prompt_clasificacion_servicio.md", categorias,
-                sanitizarParaPrompt(titulo), sanitizarParaPrompt(descripcion));
+                sanitizeForPrompt(titulo), sanitizeForPrompt(descripcion));
         try {
-            JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
+            JsonNode nodo = objectMapper.readTree(extractJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
             List<String> etiquetas = new ArrayList<>();
             nodo.path("etiquetas_sugeridas").forEach(e -> etiquetas.add(e.asString()));
             return AiClassificationResponse.builder()
@@ -131,21 +115,13 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
-     *
-     * @param categoria parametro requerido para la correcta ejecucion del procedimiento
-     * @param titulo parametro requerido para la correcta ejecucion del procedimiento
-     * @param descripcion parametro requerido para la correcta ejecucion del procedimiento
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<String> sugerirPreguntasBriefing(String categoria, String titulo, String descripcion) {
-        String prompt = loadPrompt("prompt_sugerencia_briefing.md", sanitizarParaPrompt(categoria),
-                sanitizarParaPrompt(titulo), sanitizarParaPrompt(descripcion));
+        String prompt = loadPrompt("prompt_sugerencia_briefing.md", sanitizeForPrompt(categoria),
+                sanitizeForPrompt(titulo), sanitizeForPrompt(descripcion));
         try {
-            JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
+            JsonNode nodo = objectMapper.readTree(extractJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
             List<String> preguntas = new ArrayList<>();
             nodo.path("preguntas").forEach(p -> preguntas.add(p.asString()));
             return preguntas.isEmpty() ? List.of("¿Qué necesitas?") : preguntas;
@@ -156,19 +132,12 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
-     *
-     * @param textoResena parametro requerido para la correcta ejecucion del procedimiento
-     * @param estrellas parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AiReviewResponse analyzeReview(String textoResena, int estrellas) {
-        String prompt = loadPrompt("prompt_analisis_resena.md", estrellas, sanitizarParaPrompt(textoResena));
+        String prompt = loadPrompt("prompt_analisis_resena.md", estrellas, sanitizeForPrompt(textoResena));
         try {
-            JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
+            JsonNode nodo = objectMapper.readTree(extractJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
             return AiReviewResponse.builder()
                     .sentimiento(nodo.path("sentimiento").asString("neutro"))
                     .esCoherenteConEstrellas(nodo.path("es_coherente_con_estrellas").asBoolean(true))
@@ -254,7 +223,7 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
 
     private AiVerificationResponse parseStrictVerification(String respuestaJson, boolean esIdentidad) {
         try {
-            JsonNode nodo = objectMapper.readTree(extraerJson(respuestaJson));
+            JsonNode nodo = objectMapper.readTree(extractJson(respuestaJson));
             String campoValido = esIdentidad ? "es_documento_valido" : "es_certificado_valido";
             return AiVerificationResponse.builder()
                     .aprobado(nodo.path(campoValido).asBoolean(false))

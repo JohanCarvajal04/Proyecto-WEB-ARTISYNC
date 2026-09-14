@@ -57,7 +57,7 @@ public class PayPalReconciliationExecutorService {
     @Auditable(accion = "PAGO_RECONCILIAR", modulo = AuditModule.FINANZAS,
             correoActor = "'sistema:paypal'",
             entidad = "pagos_garantia", idEntidad = "#idPago")
-    public void reconciliar(Long idPago) {
+    public void reconcile(Long idPago) {
         // Relectura con lock: si el webhook confirmó el pago entre que el
         // scheduler lo leyó y esta transacción arrancó, gana el webhook y aquí
         // no hay nada que hacer.
@@ -79,7 +79,7 @@ public class PayPalReconciliationExecutorService {
         String estado = orden.path("status").asText();
         switch (estado) {
             case "COMPLETED" -> confirmPayment(pago, "reconciliación: la orden ya estaba COMPLETED en PayPal");
-            case "APPROVED" -> capturarYConfirmar(pago);
+            case "APPROVED" -> captureAndConfirm(pago);
             case "VOIDED" -> log.warn(
                     "[PayPalReconciliationExecutorService] Orden {} (pago {}) VOIDED en PayPal; sigue Pendiente, "
                             + "el cliente deberá iniciar un nuevo intento de pago",
@@ -91,7 +91,7 @@ public class PayPalReconciliationExecutorService {
         }
     }
 
-    private void capturarYConfirmar(EscrowPayment pago) {
+    private void captureAndConfirm(EscrowPayment pago) {
         try {
             JsonNode respuesta = payPalClient.callPayPal(
                     "/v2/checkout/orders/" + pago.getIdOrdenPaypal() + "/capture",

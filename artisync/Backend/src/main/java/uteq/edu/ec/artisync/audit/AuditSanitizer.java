@@ -48,25 +48,25 @@ public final class AuditSanitizer {
      *         {@value #MAX_LONGITUD_JSON} bytes aproximados (con
      *         {@code _truncado} en lugar del contenido si lo excede)
      */
-    public static Map<String, Object> sanitizar(Map<String, Object> origen) {
+    public static Map<String, Object> sanitize(Map<String, Object> origen) {
         if (origen == null || origen.isEmpty()) {
             return Map.of();
         }
         Map<String, Object> resultado = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entrada : origen.entrySet()) {
-            resultado.put(entrada.getKey(), sanitizarValor(entrada.getKey(), entrada.getValue()));
+            resultado.put(entrada.getKey(), sanitizeValue(entrada.getKey(), entrada.getValue()));
         }
-        return truncarJson(resultado);
+        return truncateJson(resultado);
     }
 
-    private static Object sanitizarValor(String clave, Object valor) {
-        if (esClaveSensible(clave)) {
+    private static Object sanitizeValue(String clave, Object valor) {
+        if (isSensitiveKey(clave)) {
             return "***";
         }
-        return normalizar(valor);
+        return normalize(valor);
     }
 
-    private static boolean esClaveSensible(String clave) {
+    private static boolean isSensitiveKey(String clave) {
         if (clave == null) {
             return false;
         }
@@ -75,7 +75,7 @@ public final class AuditSanitizer {
     }
 
     @SuppressWarnings("unchecked")
-    private static Object normalizar(Object valor) {
+    private static Object normalize(Object valor) {
         if (valor == null || valor instanceof Number || valor instanceof Boolean) {
             return valor;
         }
@@ -83,20 +83,20 @@ public final class AuditSanitizer {
             Map<String, Object> normalizado = new LinkedHashMap<>();
             for (Map.Entry<?, ?> entrada : mapa.entrySet()) {
                 String clave = String.valueOf(entrada.getKey());
-                normalizado.put(clave, sanitizarValor(clave, entrada.getValue()));
+                normalizado.put(clave, sanitizeValue(clave, entrada.getValue()));
             }
             return normalizado;
         }
         if (valor instanceof List<?> lista) {
-            return lista.stream().map(AuditSanitizer::normalizar).toList();
+            return lista.stream().map(AuditSanitizer::normalize).toList();
         }
         if (valor instanceof Temporal || valor instanceof java.util.Date) {
-            return truncar(String.valueOf(valor));
+            return truncate(String.valueOf(valor));
         }
-        return truncar(String.valueOf(valor));
+        return truncate(String.valueOf(valor));
     }
 
-    private static String truncar(String texto) {
+    private static String truncate(String texto) {
         if (texto == null || texto.length() <= MAX_LONGITUD_STRING) {
             return texto;
         }
@@ -108,7 +108,7 @@ public final class AuditSanitizer {
      * siendo enorme (muchas claves, cada una dentro del límite individual),
      * se descarta el detalle y se deja constancia del motivo en su lugar.
      */
-    private static Map<String, Object> truncarJson(Map<String, Object> resultado) {
+    private static Map<String, Object> truncateJson(Map<String, Object> resultado) {
         int longitudAproximada = resultado.toString().length();
         if (longitudAproximada <= MAX_LONGITUD_JSON) {
             return resultado;

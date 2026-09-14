@@ -52,7 +52,7 @@ class CreatorProfileServiceImplTest {
     void setUp() {
         usuario = User.builder().idUsuario(1L).nombres("Ana").apellidos("Diaz").build();
         perfil = CreatorProfile.builder().idPerfil(10L).usuario(usuario).biografia("bio").urlRedSocial("http://x.com").build();
-        // lenient: no todos los tests llegan a mapearARespuesta (algunos cortan
+        // lenient: no todos los tests llegan a mapToResponse (algunos cortan
         // antes con una excepción), y Mockito strict-stubs marcaría el resto
         // como "unnecessary stubbing" si no fuera lenient.
         lenient().when(verificacionServicio.isIdentityVerified(anyLong())).thenReturn(false);

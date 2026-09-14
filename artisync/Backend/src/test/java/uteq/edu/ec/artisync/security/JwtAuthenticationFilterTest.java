@@ -67,7 +67,7 @@ class JwtAuthenticationFilterTest {
         request.addHeader("Authorization", "Bearer refresh-token-string");
 
         Claims claims = mock(Claims.class);
-        when(jwtService.extraerTodosLosClaims("refresh-token-string")).thenReturn(claims);
+        when(jwtService.extractAllClaims("refresh-token-string")).thenReturn(claims);
         when(claims.get("type")).thenReturn("refresh");
 
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
@@ -82,7 +82,7 @@ class JwtAuthenticationFilterTest {
         request.addHeader("Authorization", "Bearer blacklisted-token");
 
         Claims claims = mock(Claims.class);
-        when(jwtService.extraerTodosLosClaims("blacklisted-token")).thenReturn(claims);
+        when(jwtService.extractAllClaims("blacklisted-token")).thenReturn(claims);
         when(claims.get("type")).thenReturn("access");
         when(claims.getId()).thenReturn("jti-123");
         when(redisTemplate.hasKey("jti:jti-123")).thenReturn(true);
@@ -102,7 +102,7 @@ class JwtAuthenticationFilterTest {
         request.addHeader("Authorization", "Bearer legacy-token-without-type");
 
         Claims claims = mock(Claims.class);
-        when(jwtService.extraerTodosLosClaims("legacy-token-without-type")).thenReturn(claims);
+        when(jwtService.extractAllClaims("legacy-token-without-type")).thenReturn(claims);
         when(claims.get("type")).thenReturn(null);
 
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
@@ -119,7 +119,7 @@ class JwtAuthenticationFilterTest {
         request.addHeader("Authorization", "Bearer disabled-user-token");
 
         Claims claims = mock(Claims.class);
-        when(jwtService.extraerTodosLosClaims("disabled-user-token")).thenReturn(claims);
+        when(jwtService.extractAllClaims("disabled-user-token")).thenReturn(claims);
         when(claims.get("type")).thenReturn("access");
         when(claims.getId()).thenReturn("jti-456");
         when(redisTemplate.hasKey("jti:jti-456")).thenReturn(false);
@@ -141,7 +141,7 @@ class JwtAuthenticationFilterTest {
         request.addHeader("Authorization", "Bearer valid-token");
 
         Claims claims = mock(Claims.class);
-        when(jwtService.extraerTodosLosClaims("valid-token")).thenReturn(claims);
+        when(jwtService.extractAllClaims("valid-token")).thenReturn(claims);
         when(claims.get("type")).thenReturn("access");
         when(claims.getId()).thenReturn("jti-789");
         when(redisTemplate.hasKey("jti:jti-789")).thenReturn(false);

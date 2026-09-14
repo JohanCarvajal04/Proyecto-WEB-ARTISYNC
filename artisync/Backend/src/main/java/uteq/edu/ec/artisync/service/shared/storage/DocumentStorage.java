@@ -17,7 +17,7 @@ public interface DocumentStorage {
     /**
      * Guarda bajo un prefijo lógico ("verificacion", "portafolio",
      * "entregables"), que separa por caso de uso lo que de otro modo sería un
-     * único espacio plano. La referencia devuelta ya lo incluye, así que leer()
+     * único espacio plano. La referencia devuelta ya lo incluye, así que read()
      * y delete() la reciben tal cual salió de aquí.
      */
     String save(MultipartFile archivo, String prefijo);
@@ -27,7 +27,7 @@ public interface DocumentStorage {
      * @param referencia referencia devuelta por {@link #save(MultipartFile, String)}
      * @return el contenido del archivo
      */
-    byte[] leer(String referencia);
+    byte[] read(String referencia);
 
     /**
      * Elimina un archivo guardado. No falla si ya no existe.
@@ -39,7 +39,7 @@ public interface DocumentStorage {
      * URL firmada y de vigencia corta para que el cliente descargue el archivo
      * sin pasar por el backend. Vacío si el proveedor no sabe emitirlas —
      * almacenamiento local no tiene manera—, en cuyo caso el consumidor debe
-     * caer a servir los bytes con leer().
+     * caer a servir los bytes con read().
      *
      * <p>Importa para video de portafolio: proxear cientos de MB por el backend
      * cuando Azure puede servirlos directamente es desperdiciar el servidor.

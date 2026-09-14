@@ -212,8 +212,8 @@ public class BriefingServiceImpl implements BriefingService {
 
     private BriefingResponse mapTemplateToResponse(BriefingTemplate plantilla,
                                                       SentBriefing enviado) {
-        List<BriefingResponse.PreguntaRespuestaItem> items = plantilla.getPreguntas().stream()
-                .map(p -> BriefingResponse.PreguntaRespuestaItem.builder()
+        List<BriefingResponse.QuestionAnswerItem> items = plantilla.getPreguntas().stream()
+                .map(p -> BriefingResponse.QuestionAnswerItem.builder()
                         .idPregunta(p.getIdPregunta())
                         .textoPregunta(p.getTextoPregunta())
                         .numeroOrden(p.getNumeroOrden())
@@ -242,10 +242,10 @@ public class BriefingServiceImpl implements BriefingService {
         Map<Long, BriefingAnswer> respuestaMap = respuestas.stream()
                 .collect(Collectors.toMap(r -> r.getPregunta().getIdPregunta(), r -> r));
 
-        List<BriefingResponse.PreguntaRespuestaItem> items = plantilla.getPreguntas().stream()
+        List<BriefingResponse.QuestionAnswerItem> items = plantilla.getPreguntas().stream()
                 .map(p -> {
                     BriefingAnswer r = respuestaMap.get(p.getIdPregunta());
-                    return BriefingResponse.PreguntaRespuestaItem.builder()
+                    return BriefingResponse.QuestionAnswerItem.builder()
                             .idPregunta(p.getIdPregunta())
                             .textoPregunta(p.getTextoPregunta())
                             .numeroOrden(p.getNumeroOrden())

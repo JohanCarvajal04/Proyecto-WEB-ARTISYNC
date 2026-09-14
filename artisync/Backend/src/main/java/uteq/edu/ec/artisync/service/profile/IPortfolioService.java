@@ -64,7 +64,7 @@ public interface IPortfolioService {
      * @param idUsuario    id del usuario visitante, o {@code null} si no hay sesión
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      */
-    void incrementarVisitas(Long idPortafolio, Long idUsuario);
+    void incrementVisits(Long idPortafolio, Long idUsuario);
 
     /**
      * Elimina un portafolio.

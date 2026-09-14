@@ -8,17 +8,17 @@ class ProfilePhotoUrlTest {
 
     @Test
     void construir_referenciaNull_devuelveNull() {
-        assertThat(ProfilePhotoUrl.construir(null)).isNull();
+        assertThat(ProfilePhotoUrl.build(null)).isNull();
     }
 
     @Test
     void construir_referenciaEnBlanco_devuelveNull() {
-        assertThat(ProfilePhotoUrl.construir("   ")).isNull();
+        assertThat(ProfilePhotoUrl.build("   ")).isNull();
     }
 
     @Test
     void construir_referenciaValida_devuelveLaUrlPublica() {
-        assertThat(ProfilePhotoUrl.construir("perfiles/uuid.jpg"))
+        assertThat(ProfilePhotoUrl.build("perfiles/uuid.jpg"))
                 .isEqualTo("/api/v1/usuarios/foto/perfiles/uuid.jpg");
     }
 }

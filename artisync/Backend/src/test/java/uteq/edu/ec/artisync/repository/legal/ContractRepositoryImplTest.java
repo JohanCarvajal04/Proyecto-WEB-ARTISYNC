@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Verifica {@link ContractRepositoryImpl#findForReport} contra JPA real (H2):
  * el join de 6 tablas, la proyección directa a {@link ContractReportRow} y
- * cada rama de {@code construirPredicados} (rango de fechas, creador,
+ * cada rama de {@code buildPredicates} (rango de fechas, creador,
  * firmado/no firmado/sin filtrar). No requiere Postgres, solo Criteria API
  * estándar.
  */

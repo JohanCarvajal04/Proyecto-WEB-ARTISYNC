@@ -151,7 +151,7 @@ public class CountryServiceImpl implements CountryService {
      * la SQLException y limpiar el mensaje.
      */
     private RuntimeException translateDuplicateException(RuntimeException origen, String nombrePais) {
-        ResponseStatusException traducido = StoredProcedureExceptionTranslator.traducir(origen, HttpStatus.BAD_REQUEST);
+        ResponseStatusException traducido = StoredProcedureExceptionTranslator.translate(origen, HttpStatus.BAD_REQUEST);
         if (traducido.getStatusCode() == HttpStatus.CONFLICT) {
             return new DuplicateResourceException(traducido.getReason());
         }

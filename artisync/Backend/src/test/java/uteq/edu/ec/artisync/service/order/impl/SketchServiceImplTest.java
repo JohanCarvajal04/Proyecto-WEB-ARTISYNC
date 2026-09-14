@@ -168,7 +168,7 @@ class SketchServiceImplTest {
     void descargarBoceto_devuelveBytesRealesYSuContentType() {
         when(bocetoRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(bocetoGuardado("bocetos/b.png")));
-        when(almacenamiento.leer("bocetos/b.png")).thenReturn("png".getBytes());
+        when(almacenamiento.read("bocetos/b.png")).thenReturn("png".getBytes());
 
         ISketchService.DownloadedFile archivo = servicio.downloadSketch(ID_PEDIDO, ID_CLIENTE);
 
@@ -185,6 +185,6 @@ class SketchServiceImplTest {
         assertThrows(BusinessRuleException.class,
                 () -> servicio.downloadSketch(ID_PEDIDO, ID_TERCERO));
 
-        verify(almacenamiento, never()).leer(anyString());
+        verify(almacenamiento, never()).read(anyString());
     }
 }

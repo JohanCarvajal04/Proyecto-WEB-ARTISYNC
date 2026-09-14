@@ -163,7 +163,7 @@ public class PrivacyServiceImpl implements PrivacyService {
                     AMBITO_2FA_SUPRESION, usuario.getCorreo(), LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código inválido o expirado");
         }
-        intentosAutenticacionService.limpiar(AMBITO_2FA_SUPRESION, usuario.getCorreo());
+        intentosAutenticacionService.clear(AMBITO_2FA_SUPRESION, usuario.getCorreo());
     }
 
     @Override
@@ -243,7 +243,7 @@ public class PrivacyServiceImpl implements PrivacyService {
         anonymizeCertificates(usuario.getIdUsuario());
         anonymizePaymentDetails(usuario.getIdUsuario(), excepciones);
 
-        AuditContext.aportar("excepcionesLegales", excepciones);
+        AuditContext.put("excepcionesLegales", excepciones);
         return excepciones;
     }
 
@@ -274,7 +274,7 @@ public class PrivacyServiceImpl implements PrivacyService {
             // Defensa en profundidad: con el UUID de arriba esta rama es
             // prácticamente inalcanzable, pero degrada a un 409 controlado
             // en vez de un 500 sin manejar si alguna vez ocurre.
-            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.CONFLICT);
+            throw StoredProcedureExceptionTranslator.translate(e, HttpStatus.CONFLICT);
         }
 
         // fn_cambiar_estado_cuenta desactiva la cuenta y revoca sus sesiones

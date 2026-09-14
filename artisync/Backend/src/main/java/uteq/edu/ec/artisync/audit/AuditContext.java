@@ -11,7 +11,7 @@ import java.util.Map;
  *
  * Uso típico:
  * <pre>
- *     AuditContext.aportar("antes", Map.of("correo", usuario.getCorreo()));
+ *     AuditContext.put("antes", Map.of("correo", usuario.getCorreo()));
  * </pre>
  *
  * El ThreadLocal se drena y se limpia SIEMPRE en el finally de
@@ -19,7 +19,7 @@ import java.util.Map;
  * de hilos de Tomcat, una fuga de este ThreadLocal contaminaría la siguiente
  * petición atendida por el mismo hilo.
  *
- * aportar() es intencionadamente un no-op seguro si no hay ningún aspecto
+ * put() es intencionadamente un no-op seguro si no hay ningún aspecto
  * activo (el mapa se crea perezosamente): un service puede llamarlo sin
  * preocuparse de si el método que lo contiene está anotado o no.
  */
@@ -40,7 +40,7 @@ public final class AuditContext {
      * @param valor valor a aportar; se sanitiza y normaliza igual que el resto
      *              del detalle antes de persistirse (ver {@link AuditSanitizer})
      */
-    public static void aportar(String clave, Object valor) {
+    public static void put(String clave, Object valor) {
         Map<String, Object> mapa = DATOS.get();
         if (mapa == null) {
             mapa = new LinkedHashMap<>();
@@ -57,7 +57,7 @@ public final class AuditContext {
     }
 
     /** Llamado por AuditAspect en el finally, incluso sin haber aportado nada. */
-    static void limpiar() {
+    static void clear() {
         DATOS.remove();
     }
 }

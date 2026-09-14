@@ -163,7 +163,7 @@ public class UserController {
         if (!referencia.startsWith(StoragePrefix.PERFILES + "/")) {
             throw new ResourceNotFoundException("Documento no disponible: " + referencia);
         }
-        byte[] contenido = almacenamientoDocumentos.leer(referencia);
+        byte[] contenido = almacenamientoDocumentos.read(referencia);
         String contentType = FileExtensions.contentTypeDe(referencia);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))

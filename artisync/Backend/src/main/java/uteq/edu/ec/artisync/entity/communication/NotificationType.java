@@ -10,7 +10,7 @@ import lombok.*;
  * 
  * Ciclo de vida: Constante enumerada del sistema, no persistida como tabla independiente.
  * 
- * Relaciones principales: Se incrusta como un valor escalar (@Enumerated) en los registros de notificacion.
+ * Relaciones principales: Se incrusta como un valor scale (@Enumerated) en los registros de notificacion.
  */
 @Entity
 @Table(name = "tipos_notificacion")

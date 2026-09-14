@@ -141,7 +141,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                     request.getEstadoCuenta(),
                     roles);
         } catch (RuntimeException e) {
-            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
+            throw StoredProcedureExceptionTranslator.translate(e, HttpStatus.BAD_REQUEST);
         }
 
         User usuario = usuarioRepository.findById(idUsuario)
@@ -170,7 +170,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         User usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
-        AuditContext.aportar("antes", Map.of(
+        AuditContext.put("antes", Map.of(
                 "nombres", usuario.getNombres(),
                 "apellidos", usuario.getApellidos(),
                 "estadoCuenta", usuario.getEstadoCuenta()));
@@ -304,7 +304,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         User usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
-        AuditContext.aportar("antes", Map.of("roles",
+        AuditContext.put("antes", Map.of("roles",
                 usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()
                         .map(ur -> ur.getRol().getNombreRol())
                         .toList()));
@@ -538,7 +538,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                     usuario.getIdUsuario(),
                     nuevosRoles.stream().map(String::toUpperCase).toArray(String[]::new));
         } catch (RuntimeException e) {
-            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
+            throw StoredProcedureExceptionTranslator.translate(e, HttpStatus.BAD_REQUEST);
         }
     }
 }

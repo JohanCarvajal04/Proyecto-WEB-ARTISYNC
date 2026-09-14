@@ -37,7 +37,7 @@ public class CreatorProfileController {
             @Valid @RequestBody CreateProfileRequest peticion,
             Authentication autenticacion) {
         ProfileResponse respuesta = perfilServicio.createProfile(
-                peticion, autenticacion.getName(), esAdmin(autenticacion));
+                peticion, autenticacion.getName(), isAdmin(autenticacion));
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
@@ -96,7 +96,7 @@ public class CreatorProfileController {
             @Valid @RequestBody UpdateProfileRequest peticion,
             Authentication autenticacion) {
         return ResponseEntity.ok(perfilServicio.updateProfile(
-                id, peticion, autenticacion.getName(), esAdmin(autenticacion)));
+                id, peticion, autenticacion.getName(), isAdmin(autenticacion)));
     }
 
     /**
@@ -117,7 +117,7 @@ public class CreatorProfileController {
      * dependa del SecurityContextHolder y siga siendo comprobable con un test
      * unitario corriente.
      */
-    private boolean esAdmin(Authentication autenticacion) {
+    private boolean isAdmin(Authentication autenticacion) {
         return autenticacion.getAuthorities().stream()
                 .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     }

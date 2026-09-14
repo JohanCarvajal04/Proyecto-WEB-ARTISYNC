@@ -53,7 +53,7 @@ public class ReportChartGenerator {
      */
     public byte[] generateRoleChart(Map<String, Long> datosRol) {
         BufferedImage imagen = new BufferedImage(ANCHO, ALTO, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = configurarGraphics(imagen);
+        Graphics2D g = configureGraphics(imagen);
 
         try {
             dibujarFondoTarjeta(g, "Distribución de Usuarios por Role", "Proporción de usuarios según su rol asignado");
@@ -162,7 +162,7 @@ public class ReportChartGenerator {
      */
     public byte[] generateCountryChart(Map<String, Long> datosPais) {
         BufferedImage imagen = new BufferedImage(ANCHO, ALTO, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = configurarGraphics(imagen);
+        Graphics2D g = configureGraphics(imagen);
 
         try {
             dibujarFondoTarjeta(g, "Distribución de Usuarios por País", "Concentración geográfica de los usuarios registrados");
@@ -242,7 +242,7 @@ public class ReportChartGenerator {
         }
     }
 
-    private Graphics2D configurarGraphics(BufferedImage imagen) {
+    private Graphics2D configureGraphics(BufferedImage imagen) {
         Graphics2D g = imagen.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);

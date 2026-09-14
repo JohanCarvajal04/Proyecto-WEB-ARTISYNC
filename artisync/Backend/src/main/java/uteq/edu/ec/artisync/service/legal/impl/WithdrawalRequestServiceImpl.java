@@ -153,7 +153,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
         log.info("Solicitud de retiro {} creada por creador {} por ${}",
                 solicitud.getIdSolicitud(), idUsuarioCreador, monto);
 
-        return mapear(solicitud);
+        return map(solicitud);
     }
 
     @Override
@@ -165,7 +165,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
     public List<WithdrawalRequestResponse> myRequests(Long idUsuarioCreador) {
         return solicitudRetiroRepository.findByUsuarioCreadorIdUsuarioOrderByFechaSolicitudDesc(idUsuarioCreador)
                 .stream()
-                .map(this::mapear)
+                .map(this::map)
                 .toList();
     }
 
@@ -182,7 +182,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
         var spec = WithdrawalRequestSpecification.conFiltros(
                 filtro.getEstado(), filtro.getIdUsuarioCreador(), filtro.getDesde(), filtro.getHasta());
 
-        return solicitudRetiroRepository.findAll(spec, pageable).map(this::mapear);
+        return solicitudRetiroRepository.findAll(spec, pageable).map(this::map);
     }
 
     @Override
@@ -210,7 +210,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
         solicitud = solicitudRetiroRepository.save(solicitud);
         log.info("Solicitud de retiro {} aprobada por admin {}: estado final {}",
                 idSolicitud, idAdmin, solicitud.getEstado());
-        return mapear(solicitud);
+        return map(solicitud);
     }
 
     @Override
@@ -243,7 +243,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
 
         solicitud = solicitudRetiroRepository.save(solicitud);
         log.info("Solicitud de retiro {} rechazada por admin {}", idSolicitud, idAdmin);
-        return mapear(solicitud);
+        return map(solicitud);
     }
 
     @Override
@@ -270,7 +270,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
         solicitud = solicitudRetiroRepository.save(solicitud);
         log.info("Solicitud de retiro {} reintentada por admin {}: estado final {}",
                 idSolicitud, idAdmin, solicitud.getEstado());
-        return mapear(solicitud);
+        return map(solicitud);
     }
 
     // ── PayPal Payouts ───────────────────────────────────────────────────────
@@ -352,7 +352,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
                 .orElseThrow(() -> new ResourceNotFoundException("User no encontrado"));
     }
 
-    private WithdrawalRequestResponse mapear(WithdrawalRequest s) {
+    private WithdrawalRequestResponse map(WithdrawalRequest s) {
         User creador = s.getUsuarioCreador();
         return WithdrawalRequestResponse.builder()
                 .idSolicitud(s.getIdSolicitud())

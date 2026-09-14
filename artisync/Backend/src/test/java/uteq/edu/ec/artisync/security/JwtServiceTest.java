@@ -51,7 +51,7 @@ class JwtServiceTest {
     @Test
     void generateToken_ShouldIncludeTypeAccessIssuerAndAudience() {
         String token = jwtService.generateToken(usuario);
-        Claims claims = jwtService.extraerTodosLosClaims(token);
+        Claims claims = jwtService.extractAllClaims(token);
 
         assertEquals("access", claims.get("type"));
         assertEquals("artisync-backend", claims.getIssuer());
@@ -66,7 +66,7 @@ class JwtServiceTest {
     @Test
     void generateRefreshToken_ShouldIncludeTypeRefresh() {
         String token = jwtService.generateRefreshToken(usuario);
-        Claims claims = jwtService.extraerTodosLosClaims(token);
+        Claims claims = jwtService.extractAllClaims(token);
 
         assertEquals("refresh", claims.get("type"));
         assertTrue(jwtService.isRefreshToken(token));
@@ -88,7 +88,7 @@ class JwtServiceTest {
                 .compact();
 
         assertThrows(io.jsonwebtoken.IncorrectClaimException.class,
-                () -> jwtService.extraerTodosLosClaims(tokenConIssuerFalso));
+                () -> jwtService.extractAllClaims(tokenConIssuerFalso));
     }
 
     @Test
@@ -107,7 +107,7 @@ class JwtServiceTest {
                 .compact();
 
         assertThrows(io.jsonwebtoken.IncorrectClaimException.class,
-                () -> jwtService.extraerTodosLosClaims(tokenConAudienciaFalsa));
+                () -> jwtService.extractAllClaims(tokenConAudienciaFalsa));
     }
 
     @Test
@@ -127,7 +127,7 @@ class JwtServiceTest {
                 .signWith(clave)
                 .compact();
 
-        assertDoesNotThrow(() -> jwtService.extraerTodosLosClaims(token));
+        assertDoesNotThrow(() -> jwtService.extractAllClaims(token));
     }
 
     @Test
@@ -185,17 +185,17 @@ class JwtServiceTest {
     @Test
     void extraerJti_ShouldReturnTokenId() {
         String token = jwtService.generateToken(usuario);
-        String jti = jwtService.extraerJti(token);
+        String jti = jwtService.extractJti(token);
 
         assertNotNull(jti);
-        assertEquals(jwtService.extraerTodosLosClaims(token).getId(), jti);
+        assertEquals(jwtService.extractAllClaims(token).getId(), jti);
     }
 
     @Test
     void extraerTiempoRestante_ShouldReturnPositiveValue_ForFreshToken() {
         String token = jwtService.generateToken(usuario);
 
-        long restante = jwtService.extraerTiempoRestante(token);
+        long restante = jwtService.extractRemainingTime(token);
 
         assertTrue(restante > 0 && restante <= 86_400_000L);
     }
@@ -218,7 +218,7 @@ class JwtServiceTest {
                 .signWith(clave)
                 .compact();
 
-        assertEquals(0L, jwtService.extraerTiempoRestante(tokenExpirado));
+        assertEquals(0L, jwtService.extractRemainingTime(tokenExpirado));
     }
 
     @Test

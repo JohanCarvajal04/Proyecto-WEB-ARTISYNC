@@ -30,7 +30,7 @@ class VerificationSchedulerTest {
         when(certificadoIaRepository.findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore(eq("PENDIENTE"), any()))
                 .thenReturn(List.of(vencida));
 
-        scheduler.expirarPendientesAntiguas();
+        scheduler.expireOldPending();
 
         verify(verificacionExpiracionServicio).expireCertificate(vencida);
     }
@@ -40,7 +40,7 @@ class VerificationSchedulerTest {
         when(certificadoIaRepository.findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore(eq("PENDIENTE"), any()))
                 .thenReturn(List.of());
 
-        scheduler.expirarPendientesAntiguas();
+        scheduler.expireOldPending();
 
         verifyNoInteractions(verificacionExpiracionServicio);
     }
@@ -53,7 +53,7 @@ class VerificationSchedulerTest {
                 .thenReturn(List.of(a, b));
         doThrow(new RuntimeException("fallo simulado")).when(verificacionExpiracionServicio).expireCertificate(a);
 
-        scheduler.expirarPendientesAntiguas();
+        scheduler.expireOldPending();
 
         // El fallo en 'a' no debe impedir que 'b' se procese: cada uno vive
         // en su propia transacción (REQUIRES_NEW), así que un error aislado

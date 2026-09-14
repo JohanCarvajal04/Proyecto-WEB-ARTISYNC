@@ -42,12 +42,15 @@ public class AiImagePreprocessor {
     private static final float CALIDAD_MINIMA = 0.25f;
     private static final int MAX_INTENTOS = 6;
 
-    /** Validación barata al subir: solo revisa el tipo declarado por el cliente. */
     /**
-     * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
+     * Validación barata al momento de la subida: solo revisa que el archivo no esté
+     * vacío, que su tipo MIME declarado por el cliente sea {@code image/jpeg} o
+     * {@code image/png}, y que no supere {@link #LIMITE_SUBIDA_BYTES}. No decodifica
+     * la imagen — esa verificación más costosa ocurre en {@link #comprimirParaIa(byte[])}.
      *
-     * @param archivo objeto binario multipart representando el documento o medio fisico
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param archivo documento subido por el cliente a validar
+     * @throws BusinessRuleException si el archivo está vacío, su tipo MIME no es soportado,
+     *         o supera el tamaño máximo permitido
      */
     public void validateFormat(MultipartFile archivo) {
         if (archivo == null || archivo.isEmpty()) {
@@ -85,7 +88,7 @@ public class AiImagePreprocessor {
             if (calidad > CALIDAD_MINIMA) {
                 calidad -= 0.15f;
             } else {
-                imagen = escalar(imagen, 0.75);
+                imagen = scale(imagen, 0.75);
                 calidad = CALIDAD_INICIAL;
             }
             resultado = comprimirJpeg(imagen, calidad);
@@ -133,7 +136,7 @@ public class AiImagePreprocessor {
         return sinAlfa;
     }
 
-    private BufferedImage escalar(BufferedImage original, double factor) {
+    private BufferedImage scale(BufferedImage original, double factor) {
         int nuevoAncho = Math.max(1, (int) (original.getWidth() * factor));
         int nuevoAlto = Math.max(1, (int) (original.getHeight() * factor));
         BufferedImage escalada = new BufferedImage(nuevoAncho, nuevoAlto, BufferedImage.TYPE_INT_RGB);

@@ -9,6 +9,15 @@ import uteq.edu.ec.artisync.entity.order.ContractTemplate;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link ContractTemplate}.
+ *
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ *
+ * Responsabilidad de consultas: Combina Derived Queries con una consulta JPQL mediante
+ * {@code @Query} para resolver el catálogo de plantillas visibles para un creador.
+ */
 @Repository
 public interface ContractTemplateRepository extends JpaRepository<ContractTemplate, Long> {
 

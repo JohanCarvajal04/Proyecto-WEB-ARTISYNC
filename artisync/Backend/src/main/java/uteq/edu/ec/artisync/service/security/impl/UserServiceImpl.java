@@ -123,7 +123,7 @@ public class UserServiceImpl implements UserService {
             usuarioRepository.cambiarContrasena(usuario.getIdUsuario(), usuario.getContrasenaHash(),
                     passwordEncoder.encode(request.getNuevaContrasena()));
         } catch (RuntimeException e) {
-            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.CONFLICT);
+            throw StoredProcedureExceptionTranslator.translate(e, HttpStatus.CONFLICT);
         }
 
         sessionRevocationService.revokeUserSessions(usuario.getIdUsuario());

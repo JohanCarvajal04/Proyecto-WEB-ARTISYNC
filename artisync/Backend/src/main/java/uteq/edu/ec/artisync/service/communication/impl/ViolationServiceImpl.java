@@ -74,9 +74,9 @@ public class ViolationServiceImpl implements ViolationService {
         // entre el COUNT y el UPDATE condicional que tenia la version en tres
         // llamadas independientes al repositorio).
         String patron = mensajeFilterService.detectPattern(mensaje);
-        AuditContext.aportar("idUsuarioInfractor", idUsuario);
-        AuditContext.aportar("patronDetectado", patron);
-        AuditContext.aportar("longitudMensaje", mensaje != null ? mensaje.length() : 0);
+        AuditContext.put("idUsuarioInfractor", idUsuario);
+        AuditContext.put("patronDetectado", patron);
+        AuditContext.put("longitudMensaje", mensaje != null ? mensaje.length() : 0);
 
         String resultadoJson = infraccionRepo.registerViolation(idUsuario, idPedido, mensaje, patron);
         JsonNode resultado = parseResultado(resultadoJson);

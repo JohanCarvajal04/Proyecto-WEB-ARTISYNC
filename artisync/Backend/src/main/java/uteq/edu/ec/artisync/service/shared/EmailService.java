@@ -37,15 +37,17 @@ public class EmailService {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
-    @Async
     /**
-     * Despacha un mensaje o notificacion a los destinatarios especificados.
+     * Compone y envía de forma asíncrona el correo de recuperación de contraseña,
+     * renderizando la plantilla Thymeleaf {@code email/recuperacion} con el enlace de
+     * restablecimiento embebido. Los errores de envío solo se registran en el log —
+     * nunca se propagan, para no exponer al llamante detalles de la infraestructura SMTP.
      *
-     * @param destinatario parametro requerido para la correcta ejecucion del procedimiento
-     * @param nombres parametro requerido para la correcta ejecucion del procedimiento
-     * @param tokenPlano parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param destinatario correo del usuario que recibirá el enlace de recuperación
+     * @param nombres nombres del usuario, usados para personalizar la plantilla
+     * @param tokenPlano token de recuperación en texto plano, incluido en el enlace del correo
      */
+    @Async
     public void sendRecoveryEmail(String destinatario, String nombres, String tokenPlano) {
         try {
             MimeMessage mensaje = mailSender.createMimeMessage();

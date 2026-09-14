@@ -12,6 +12,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ResponseStatus(HttpStatus.CONFLICT)
 public class DuplicateResourceException extends RuntimeException {
+    /**
+     * Crea la excepción con el mensaje que describe la restricción de unicidad violada.
+     *
+     * @param mensaje descripción del recurso duplicado (correo, nombre, etc.)
+     */
     public DuplicateResourceException(String mensaje) {
         super(mensaje);
     }

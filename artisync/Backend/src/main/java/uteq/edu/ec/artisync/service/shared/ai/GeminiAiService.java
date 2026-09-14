@@ -27,6 +27,16 @@ public class GeminiAiService extends AbstractAiService implements AiService {
     private final AiProperties.GeminiConfig config;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Construye el cliente de Gemini validando de entrada que haya una API key
+     * configurada — falla rápido al arrancar en vez de fallar en la primera
+     * petición real de un usuario.
+     *
+     * @param restClient cliente HTTP compartido para llamadas a proveedores de IA
+     * @param iaProperties configuración de proveedores de IA, de la que se toma la sección de Gemini
+     * @param objectMapper mapeador JSON usado para construir y leer las peticiones/respuestas de Gemini
+     * @throws IllegalStateException si no hay una API key de Gemini configurada
+     */
     public GeminiAiService(@Qualifier("iaRestClient") RestClient restClient,
                             AiProperties iaProperties,
                             ObjectMapper objectMapper) {
@@ -40,46 +50,26 @@ public class GeminiAiService extends AbstractAiService implements AiService {
         log.info("Offering de IA GEMINI inicializado [modelo={}]", config.getModel());
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
-     *
-     * @param imagenBytes objeto binario multipart representando el documento o medio fisico
-     * @param mimeType parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AiVerificationResponse verifyIdentity(byte[] imagenBytes, String mimeType) {
         String prompt = loadPrompt("prompt_verificacion_identidad.md");
         return parseStrictVerification(callGeminiWithImage(prompt, imagenBytes, mimeType), true);
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
-     *
-     * @param imagenBytes objeto binario multipart representando el documento o medio fisico
-     * @param mimeType parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AiVerificationResponse analyzeCertificate(byte[] imagenBytes, String mimeType) {
         String prompt = loadPrompt("prompt_verificacion_certificado.md");
         return parseStrictVerification(callGeminiWithImage(prompt, imagenBytes, mimeType), false);
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
-     *
-     * @param textoMensaje parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public IaModeracionResponse moderarContenido(String textoMensaje) {
-        String prompt = loadPrompt("prompt_moderacion_mensaje.md", sanitizarParaPrompt(textoMensaje));
+        String prompt = loadPrompt("prompt_moderacion_mensaje.md", sanitizeForPrompt(textoMensaje));
         try {
-            JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarGeminiSoloTexto(prompt))));
+            JsonNode nodo = objectMapper.readTree(extractJson(conReintentoTransitorio(() -> llamarGeminiSoloTexto(prompt))));
             return IaModeracionResponse.builder()
                     .esApropiado(nodo.path("es_apropiado").asBoolean(true))
                     .categoriaInfraccion(nodo.path("categoria_infraccion").asString("ninguno"))
@@ -94,22 +84,14 @@ public class GeminiAiService extends AbstractAiService implements AiService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
-     *
-     * @param titulo parametro requerido para la correcta ejecucion del procedimiento
-     * @param descripcion parametro requerido para la correcta ejecucion del procedimiento
-     * @param categoriasDisponibles parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AiClassificationResponse classifyOffering(String titulo, String descripcion, List<String> categoriasDisponibles) {
         String categorias = String.join(", ", categoriasDisponibles);
         String prompt = loadPrompt("prompt_clasificacion_servicio.md", categorias,
-                sanitizarParaPrompt(titulo), sanitizarParaPrompt(descripcion));
+                sanitizeForPrompt(titulo), sanitizeForPrompt(descripcion));
         try {
-            JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarGeminiSoloTexto(prompt))));
+            JsonNode nodo = objectMapper.readTree(extractJson(conReintentoTransitorio(() -> llamarGeminiSoloTexto(prompt))));
             List<String> etiquetas = new ArrayList<>();
             nodo.path("etiquetas_sugeridas").forEach(e -> etiquetas.add(e.asString()));
             return AiClassificationResponse.builder()
@@ -126,21 +108,13 @@ public class GeminiAiService extends AbstractAiService implements AiService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
-     *
-     * @param categoria parametro requerido para la correcta ejecucion del procedimiento
-     * @param titulo parametro requerido para la correcta ejecucion del procedimiento
-     * @param descripcion parametro requerido para la correcta ejecucion del procedimiento
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<String> sugerirPreguntasBriefing(String categoria, String titulo, String descripcion) {
-        String prompt = loadPrompt("prompt_sugerencia_briefing.md", sanitizarParaPrompt(categoria),
-                sanitizarParaPrompt(titulo), sanitizarParaPrompt(descripcion));
+        String prompt = loadPrompt("prompt_sugerencia_briefing.md", sanitizeForPrompt(categoria),
+                sanitizeForPrompt(titulo), sanitizeForPrompt(descripcion));
         try {
-            JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarGeminiSoloTexto(prompt))));
+            JsonNode nodo = objectMapper.readTree(extractJson(conReintentoTransitorio(() -> llamarGeminiSoloTexto(prompt))));
             List<String> preguntas = new ArrayList<>();
             nodo.path("preguntas").forEach(p -> preguntas.add(p.asString()));
             return preguntas.isEmpty() ? List.of("¿Qué necesitas?") : preguntas;
@@ -151,19 +125,12 @@ public class GeminiAiService extends AbstractAiService implements AiService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
-    /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
-     *
-     * @param textoResena parametro requerido para la correcta ejecucion del procedimiento
-     * @param estrellas parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AiReviewResponse analyzeReview(String textoResena, int estrellas) {
-        String prompt = loadPrompt("prompt_analisis_resena.md", estrellas, sanitizarParaPrompt(textoResena));
+        String prompt = loadPrompt("prompt_analisis_resena.md", estrellas, sanitizeForPrompt(textoResena));
         try {
-            JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarGeminiSoloTexto(prompt))));
+            JsonNode nodo = objectMapper.readTree(extractJson(conReintentoTransitorio(() -> llamarGeminiSoloTexto(prompt))));
             return AiReviewResponse.builder()
                     .sentimiento(nodo.path("sentimiento").asString("neutro"))
                     .esCoherenteConEstrellas(nodo.path("es_coherente_con_estrellas").asBoolean(true))
@@ -240,7 +207,7 @@ public class GeminiAiService extends AbstractAiService implements AiService {
 
     private AiVerificationResponse parseStrictVerification(String respuestaJson, boolean esIdentidad) {
         try {
-            JsonNode nodo = objectMapper.readTree(extraerJson(respuestaJson));
+            JsonNode nodo = objectMapper.readTree(extractJson(respuestaJson));
             String campoValido = esIdentidad ? "es_documento_valido" : "es_certificado_valido";
             return AiVerificationResponse.builder()
                     .aprobado(nodo.path(campoValido).asBoolean(false))

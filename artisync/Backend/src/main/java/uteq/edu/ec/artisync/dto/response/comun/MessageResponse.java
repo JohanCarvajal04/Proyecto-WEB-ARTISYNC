@@ -15,6 +15,13 @@ package uteq.edu.ec.artisync.dto.response.comun;
 public record MessageResponse(
         String mensaje
 ) {
+    /**
+     * Alias de compatibilidad para el componente {@code mensaje}, usado por código
+     * que espera el patrón de nomenclatura JavaBean (getX) en lugar del accesor
+     * canónico generado por el record.
+     *
+     * @return el texto del mensaje de confirmación
+     */
     public String getMessage() {
         return mensaje;
     }

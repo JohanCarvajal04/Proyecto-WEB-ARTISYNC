@@ -68,9 +68,9 @@ class VerificationControllerTest {
     @Test
     void analizarConIa_devuelveOk() {
         VerificationResponse respuesta = VerificationResponse.builder().idCertificado(5L).build();
-        when(verificacionServicio.analizarConIa(5L)).thenReturn(respuesta);
+        when(verificacionServicio.analyzeWithAi(5L)).thenReturn(respuesta);
 
-        ResponseEntity<VerificationResponse> resultado = controlador.analizarConIa(5L);
+        ResponseEntity<VerificationResponse> resultado = controlador.analyzeWithAi(5L);
 
         assertThat(resultado.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resultado.getBody().idCertificado()).isEqualTo(5L);

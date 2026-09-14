@@ -28,17 +28,9 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
     private final UserRepository usuarioRepository;
     private final IVerificationService verificacionServicio;
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
-    /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
-     *
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @param correoSolicitante direccion de correo electronico del actor o usuario principal
-     * @param esAdmin parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public ProfileResponse createProfile(CreateProfileRequest peticion, String correoSolicitante, boolean esAdmin) {
         // El idUsuario del cuerpo solo se honra para un ADMIN. Antes se confiaba
         // en él sin más, así que cualquier CREADOR podía crear un perfil a nombre
@@ -62,39 +54,27 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
                 .build();
 
         CreatorProfile guardado = perfilRepository.save(perfil);
-        return mapearARespuesta(guardado);
+        return mapToResponse(guardado);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idPerfil identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public ProfileResponse getProfileById(Long idPerfil) {
         CreatorProfile perfil = perfilRepository.findById(idPerfil)
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado con ID: " + idPerfil));
         requireActiveAccount(perfil);
-        return mapearARespuesta(perfil);
+        return mapToResponse(perfil);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public ProfileResponse getProfileByUser(Long idUsuario) {
         CreatorProfile perfil = perfilRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException("No se encontró perfil para el usuario con ID: " + idUsuario));
         requireActiveAccount(perfil);
-        return mapearARespuesta(perfil);
+        return mapToResponse(perfil);
     }
 
     /**
@@ -113,42 +93,25 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<ProfileResponse> listProfiles() {
         return perfilRepository.findAll().stream()
-                .map(this::mapearARespuesta)
+                .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<ProfileResponse> listActiveProfiles() {
         return perfilRepository.findByUsuarioEstadoCuentaTrue().stream()
-                .map(this::mapearARespuesta)
+                .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
-     * @param idPerfil id del perfil a actualizar
-     * @param peticion campos a actualizar; los valores {@code null} se dejan sin modificar
-     * @param correoSolicitante correo de quien solicita el cambio, usado para validar la propiedad del perfil
-     * @param esAdmin si es {@code true}, omite la comprobación de propiedad (el administrador puede editar cualquier perfil)
-     * @return el perfil ya actualizado
-     */
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public ProfileResponse updateProfile(Long idPerfil, UpdateProfileRequest peticion,
@@ -177,17 +140,12 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
         }
 
         CreatorProfile actualizado = perfilRepository.save(perfil);
-        return mapearARespuesta(actualizado);
+        return mapToResponse(actualizado);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
-    /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
-     *
-     * @param idPerfil identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public void deleteProfile(Long idPerfil) {
         if (!perfilRepository.existsById(idPerfil)) {
             throw new ResourceNotFoundException("Perfil no encontrado con ID: " + idPerfil);
@@ -201,7 +159,7 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
                 .orElseThrow(() -> new ResourceNotFoundException("User autenticado no encontrado"));
     }
 
-    private ProfileResponse mapearARespuesta(CreatorProfile perfil) {
+    private ProfileResponse mapToResponse(CreatorProfile perfil) {
         Long idUsuario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;
         return ProfileResponse.builder()
                 .idPerfil(perfil.getIdPerfil())
@@ -210,7 +168,7 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
                 .apellidosUsuario(perfil.getUsuario() != null ? perfil.getUsuario().getApellidos() : null)
                 .biografia(perfil.getBiografia())
                 .urlRedSocial(perfil.getUrlRedSocial())
-                .urlFotoPerfil(perfil.getUsuario() != null ? ProfilePhotoUrl.construir(perfil.getUsuario().getUrlFotoPerfil()) : null)
+                .urlFotoPerfil(perfil.getUsuario() != null ? ProfilePhotoUrl.build(perfil.getUsuario().getUrlFotoPerfil()) : null)
                 .tituloProfesional(perfil.getTituloProfesional())
                 // Antes el frontend pintaba "Identidad verificada" fijo para
                 // cualquier creador; ahora refleja el estado real (mismo criterio

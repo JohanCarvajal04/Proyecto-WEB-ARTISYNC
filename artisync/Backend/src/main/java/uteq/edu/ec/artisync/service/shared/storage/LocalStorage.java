@@ -62,7 +62,7 @@ public class LocalStorage implements DocumentStorage {
         asegurarDirectorio();
         String nombre = StoragePrefix.componer(
                 prefijo, UUID.randomUUID() + FileExtensions.desde(archivo.getContentType()));
-        Path destino = resolverDentroDeBase(nombre);
+        Path destino = resolveWithinBase(nombre);
         try (InputStream in = archivo.getInputStream()) {
             // El prefijo se traduce a subdirectorio; sin esto Files.copy falla.
             Files.createDirectories(destino.getParent());
@@ -88,8 +88,8 @@ public class LocalStorage implements DocumentStorage {
 
     /** {@inheritDoc} */
     @Override
-    public byte[] leer(String referencia) {
-        Path ruta = resolverDentroDeBase(referencia);
+    public byte[] read(String referencia) {
+        Path ruta = resolveWithinBase(referencia);
         try {
             return Files.readAllBytes(ruta);
         } catch (IOException e) {
@@ -105,7 +105,7 @@ public class LocalStorage implements DocumentStorage {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void delete(String referencia) {
-        Path ruta = resolverDentroDeBase(referencia);
+        Path ruta = resolveWithinBase(referencia);
         try {
             Files.deleteIfExists(ruta);
         } catch (IOException e) {
@@ -113,7 +113,7 @@ public class LocalStorage implements DocumentStorage {
         }
     }
 
-    private Path resolverDentroDeBase(String referencia) {
+    private Path resolveWithinBase(String referencia) {
         Path ruta = rutaBase.resolve(referencia).normalize();
         if (!ruta.startsWith(rutaBase)) {
             throw new BusinessRuleException("Referencia de documento inválida.");

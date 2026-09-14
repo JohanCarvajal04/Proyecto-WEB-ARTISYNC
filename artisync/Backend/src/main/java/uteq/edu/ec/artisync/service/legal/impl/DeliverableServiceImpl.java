@@ -270,7 +270,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
 
         log.info("Descarga de version limpia para pedido {}", idPedido);
         return new DownloadedFile(
-                almacenamiento.leer(referencia),
+                almacenamiento.read(referencia),
                 "entregable-pedido-" + idPedido + extensionDe(referencia),
                 FileExtensions.contentTypeDe(referencia));
     }
@@ -303,7 +303,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
         }
 
         return new DownloadedFile(
-                almacenamiento.leer(referencia),
+                almacenamiento.read(referencia),
                 "vista-previa-pedido-" + idPedido + extensionDe(referencia),
                 FileExtensions.contentTypeDe(referencia));
     }

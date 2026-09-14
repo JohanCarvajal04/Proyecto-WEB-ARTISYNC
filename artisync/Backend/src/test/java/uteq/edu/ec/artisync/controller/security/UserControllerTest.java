@@ -122,7 +122,7 @@ class UserControllerTest {
     void serveProfilePhoto_pathValido_devuelveOk() {
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURI()).thenReturn("/api/v1/usuarios/foto/perfiles/uuid.jpg");
-        when(almacenamientoDocumentos.leer("perfiles/uuid.jpg")).thenReturn(new byte[]{1, 2, 3});
+        when(almacenamientoDocumentos.read("perfiles/uuid.jpg")).thenReturn(new byte[]{1, 2, 3});
 
         ResponseEntity<byte[]> res = userController.serveProfilePhoto(request);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);

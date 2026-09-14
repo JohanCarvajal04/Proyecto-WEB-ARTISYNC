@@ -116,7 +116,7 @@ public class AuthServiceImpl implements AuthService {
                     request.getFechaNacimiento(),
                     rolNombre);
         } catch (RuntimeException e) {
-            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
+            throw StoredProcedureExceptionTranslator.translate(e, HttpStatus.BAD_REQUEST);
         }
 
         User usuario = usuarioRepository.findById(idUsuario)
@@ -169,7 +169,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Autenticación correcta: limpiar cualquier cuota acumulada por fallos previos.
-        intentosAutenticacionService.limpiar(AMBITO_LOGIN, request.getCorreo());
+        intentosAutenticacionService.clear(AMBITO_LOGIN, request.getCorreo());
 
         // REQ-F-002: fn_resolver_estado_login resuelve en una sola llamada el
         // estado de cuenta, el flag de 2FA y los roles (join usuario_roles-roles),
@@ -191,7 +191,7 @@ public class AuthServiceImpl implements AuthService {
             // contraseña ya se validó — AuthController lo mueve a una cookie
             // HttpOnly. Sin esto, verify2Fa() no tenía forma de saber si el
             // llamante había pasado por aquí.
-            String ticket = preAuth2faTicketService.emitir(idUsuario, correoUsuario);
+            String ticket = preAuth2faTicketService.issue(idUsuario, correoUsuario);
             return TokenResponse.builder()
                     .correo(correoUsuario)
                     .idUsuario(idUsuario)
@@ -211,8 +211,8 @@ public class AuthServiceImpl implements AuthService {
                 .filter(a -> !a.startsWith("ROLE_"))
                 .toList();
 
-        recordSessionBestEffort(usuario, jwtService.extraerJti(accessToken), jwtService.getExpirationMs());
-        recordSessionRequired(usuario, jwtService.extraerJti(refreshToken), jwtService.getRefreshExpirationMs());
+        recordSessionBestEffort(usuario, jwtService.extractJti(accessToken), jwtService.getExpirationMs());
+        recordSessionRequired(usuario, jwtService.extractJti(refreshToken), jwtService.getRefreshExpirationMs());
 
         log.info("evento=LOGIN resultado=EXITOSO correo={} ip={} sub={}", correoUsuario, ip, idUsuario);
 
@@ -249,7 +249,7 @@ public class AuthServiceImpl implements AuthService {
         // §2.1 (OBS-AUTO-05): el usuario se resuelve EXCLUSIVAMENTE desde el
         // ticket emitido por login() tras validar la contraseña — ya no desde
         // un correo en el body, que no probaba nada.
-        PreAuth2faTicketService.DatosTicket datos = preAuth2faTicketService.resolver(preAuthTicket)
+        PreAuth2faTicketService.TicketData datos = preAuth2faTicketService.resolve(preAuthTicket)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                         "Sesión de verificación inválida o expirada. Vuelve a iniciar sesión."));
 
@@ -275,7 +275,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Uso único: si otra petición concurrente ya consumió este ticket, no se
         // emiten tokens dos veces para el mismo ticket.
-        if (!preAuth2faTicketService.consumir(preAuthTicket)) {
+        if (!preAuth2faTicketService.consume(preAuthTicket)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                     "Sesión de verificación inválida o expirada. Vuelve a iniciar sesión.");
         }
@@ -291,8 +291,8 @@ public class AuthServiceImpl implements AuthService {
                 .filter(a -> !a.startsWith("ROLE_"))
                 .toList();
 
-        recordSessionBestEffort(usuario, jwtService.extraerJti(accessToken), jwtService.getExpirationMs());
-        recordSessionRequired(usuario, jwtService.extraerJti(refreshToken), jwtService.getRefreshExpirationMs());
+        recordSessionBestEffort(usuario, jwtService.extractJti(accessToken), jwtService.getExpirationMs());
+        recordSessionRequired(usuario, jwtService.extractJti(refreshToken), jwtService.getRefreshExpirationMs());
 
         return TokenResponse.builder()
                 .accessToken(accessToken)
@@ -322,7 +322,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         try {
-            String jti = jwtService.extraerJti(refreshToken);
+            String jti = jwtService.extractJti(refreshToken);
             // §2.5 (OBS-AUTO-06): un jti nulo cortocircuitaba el && anterior y SALTABA
             // por completo la comprobación de revocación (bug F3). Ahora un jti
             // ausente se trata igual que "no encontrado": rechazado.
@@ -330,7 +330,7 @@ public class AuthServiceImpl implements AuthService {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token revocado o expirado");
             }
 
-            String username = jwtService.extraerUsername(refreshToken);
+            String username = jwtService.extractUsername(refreshToken);
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
             if (!jwtService.isRefreshTokenValid(refreshToken, userDetails)) {
@@ -350,8 +350,8 @@ public class AuthServiceImpl implements AuthService {
             String nuevoAccessToken = jwtService.generateToken(userDetails);
             String nuevoRefreshToken = jwtService.generateRefreshToken(userDetails);
 
-            recordSessionBestEffort(usuario, jwtService.extraerJti(nuevoAccessToken), jwtService.getExpirationMs());
-            recordSessionRequired(usuario, jwtService.extraerJti(nuevoRefreshToken), jwtService.getRefreshExpirationMs());
+            recordSessionBestEffort(usuario, jwtService.extractJti(nuevoAccessToken), jwtService.getExpirationMs());
+            recordSessionRequired(usuario, jwtService.extractJti(nuevoRefreshToken), jwtService.getRefreshExpirationMs());
 
             List<String> roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()
                     .map(ur -> ur.getRol().getNombreRol())
@@ -400,7 +400,7 @@ public class AuthServiceImpl implements AuthService {
             // Best-effort: un refresh token ya expirado o malformado en el momento del
             // logout no debe impedir cerrar sesión (no hay fila que borrar de todas formas).
             try {
-                String jti = jwtService.extraerJti(refreshToken);
+                String jti = jwtService.extractJti(refreshToken);
                 if (jti != null) {
                     sesionUsuarioRepository.deleteByJti(jti);
                 }
@@ -475,7 +475,7 @@ public class AuthServiceImpl implements AuthService {
         try {
             usuarioRepository.restablecerContrasena(tokenHash, passwordEncoder.encode(request.getNuevaContrasena()));
         } catch (RuntimeException e) {
-            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
+            throw StoredProcedureExceptionTranslator.translate(e, HttpStatus.BAD_REQUEST);
         }
 
         return new MessageResponse("Contraseña reestablecida exitosamente");
@@ -485,7 +485,7 @@ public class AuthServiceImpl implements AuthService {
     private String getCurrentIp() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes != null && attributes.getRequest() != null) {
-            return ClientIpResolver.resolver(attributes.getRequest());
+            return ClientIpResolver.resolve(attributes.getRequest());
         }
         return null;
     }

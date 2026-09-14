@@ -52,24 +52,25 @@ public class PreAuth2faTicketService {
      * @param idUsuario identificador del usuario que completó el primer factor
      * @param correo correo del usuario, usado para la segunda validación (2FA)
      */
-    public record DatosTicket(Long idUsuario, String correo) {
+    public record TicketData(Long idUsuario, String correo) {
     }
 
-    /** Se llama únicamente tras validar la contraseña en login(). */
     /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     * Emite un ticket opaco de un solo uso tras validar la contraseña en el primer
+     * factor de login, guardando en Redis (con TTL de {@link #TTL}) los datos del
+     * usuario y un contador de intentos en cero, para que {@link #resolve(String)}
+     * pueda validarlo en el segundo factor sin volver a consultar la base de datos.
      *
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param correo direccion de correo electronico del actor o usuario principal
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idUsuario identificador del usuario que completó el primer factor
+     * @param correo correo del usuario, necesario para la segunda validación (2FA)
+     * @return el ticket en texto plano que el cliente debe reenviar al verificar el código 2FA
      */
-    public String emitir(Long idUsuario, String correo) {
+    public String issue(Long idUsuario, String correo) {
         byte[] bytes = new byte[LONGITUD_BYTES];
         secureRandom.nextBytes(bytes);
         String ticketPlano = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
 
-        String clave = construirClave(ticketPlano);
+        String clave = buildKey(ticketPlano);
         try {
             HashOperations<String, String, String> hashOps = redisTemplate.opsForHash();
             Map<String, String> valor = Map.of(
@@ -93,11 +94,11 @@ public class PreAuth2faTicketService {
      * inmediato y hay que rehacer el login. Vacío si el ticket no existe, ya
      * expiró, o se acaba de invalidar por exceso de intentos.
      */
-    public Optional<DatosTicket> resolver(String ticketPlano) {
+    public Optional<TicketData> resolve(String ticketPlano) {
         if (ticketPlano == null || ticketPlano.isBlank()) {
             return Optional.empty();
         }
-        String clave = construirClave(ticketPlano);
+        String clave = buildKey(ticketPlano);
         try {
             HashOperations<String, String, String> hashOps = redisTemplate.opsForHash();
             Map<String, String> valor = hashOps.entries(clave);
@@ -112,7 +113,7 @@ public class PreAuth2faTicketService {
                 return Optional.empty();
             }
 
-            return Optional.of(new DatosTicket(Long.valueOf(valor.get("idUsuario")), valor.get("correo")));
+            return Optional.of(new TicketData(Long.valueOf(valor.get("idUsuario")), valor.get("correo")));
         } catch (DataAccessException e) {
             log.error("No se pudo validar el ticket pre-auth de 2FA en Redis (fail-closed): {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
@@ -125,8 +126,8 @@ public class PreAuth2faTicketService {
      * de doble envío: {@code delete} devuelve true solo para quien de verdad
      * borró la clave, así que solo esa petición puede continuar y emitir tokens.
      */
-    public boolean consumir(String ticketPlano) {
-        String clave = construirClave(ticketPlano);
+    public boolean consume(String ticketPlano) {
+        String clave = buildKey(ticketPlano);
         try {
             return Boolean.TRUE.equals(redisTemplate.delete(clave));
         } catch (DataAccessException e) {
@@ -135,7 +136,7 @@ public class PreAuth2faTicketService {
         }
     }
 
-    private String construirClave(String ticketPlano) {
+    private String buildKey(String ticketPlano) {
         return PREFIJO_CLAVE + hashSha256(ticketPlano);
     }
 

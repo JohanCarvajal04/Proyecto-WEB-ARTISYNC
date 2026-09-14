@@ -20,14 +20,14 @@ public class AnswerBriefingRequest {
 
     @NotNull(message = "La lista de respuestas es obligatoria")
     @Valid
-    private List<RespuestaItem> respuestas;
+    private List<AnswerItem> respuestas;
 
     /** La respuesta a una pregunta puntual del briefing. */
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class RespuestaItem {
+    public static class AnswerItem {
 
         @NotNull(message = "El id de la pregunta es obligatorio")
         private Long idPregunta;

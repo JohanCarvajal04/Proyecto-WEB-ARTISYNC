@@ -36,7 +36,7 @@ public class VerificationScheduler {
      * REQUIRES_NEW).
      */
     @Scheduled(cron = "0 0 3 * * *")
-    public void expirarPendientesAntiguas() {
+    public void expireOldPending() {
         LocalDateTime limite = LocalDateTime.now().minusDays(DIAS_EXPIRACION);
         List<AiCertificate> vencidas = certificadoIaRepository
                 .findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore("PENDIENTE", limite);

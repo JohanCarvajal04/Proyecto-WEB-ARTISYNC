@@ -88,7 +88,7 @@ public class SecurityConfig {
                 // red social, sin datos sensibles.
                 .requestMatchers(HttpMethod.GET, "/api/v1/perfiles/*").permitAll()
                 // Contador de visitas del portafolio: sin lógica de autorización
-                // (PortafolioServicio#incrementarVisitas), así que abrirlo a
+                // (PortafolioServicio#incrementVisits), así que abrirlo a
                 // visitantes anónimos no cede nada que un usuario autenticado
                 // cualquiera no pudiera hacer ya.
                 .requestMatchers(HttpMethod.POST, "/api/v1/portafolios/*/visita").permitAll()

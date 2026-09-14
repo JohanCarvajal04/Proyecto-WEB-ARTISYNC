@@ -51,6 +51,7 @@ public class VerificationServiceImpl implements IVerificationService {
     private final ObjectMapper objectMapper;
     private final jakarta.persistence.EntityManager entityManager;
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     // Nunca el contenido ni el nombre del documento: REQ-F-006 exige
@@ -58,18 +59,6 @@ public class VerificationServiceImpl implements IVerificationService {
     @Auditable(accion = "VERIFICACION_SOLICITAR", modulo = AuditModule.PORTAFOLIO,
             entidad = "certificados_ia", idEntidad = "#resultado.idCertificado",
             detalle = "{tipoDocumento: #tipo}")
-    /**
-     * Sube un documento de identidad o certificado profesional para
-     * verificación, en estado {@code PENDIENTE}.
-     *
-     * @param idUsuarioSolicitante identificador del usuario que solicita la verificación
-     * @param tipo tipo de documento (identidad o certificado profesional)
-     * @param documento archivo del documento, validado contra el formato esperado
-     * @return la verificación creada, pendiente de análisis
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario ya tiene una
-     *         verificación pendiente, o si el documento no cumple el formato esperado
-     */
     public VerificationResponse upload(Long idUsuarioSolicitante, VerificationDocumentType tipo, MultipartFile documento) {
         User usuario = usuarioRepository.findById(idUsuarioSolicitante)
                 .orElseThrow(() -> new ResourceNotFoundException("User no encontrado: " + idUsuarioSolicitante));
@@ -100,19 +89,12 @@ public class VerificationServiceImpl implements IVerificationService {
 
         AiCertificate guardado = certificadoIaRepository.save(certificado);
         log.info("Verificación {} creada para usuario {} [tipo={}]", guardado.getIdCertificado(), idUsuarioSolicitante, tipo);
-        return mapearARespuesta(guardado);
+        return mapToResponse(guardado);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Lista la cola de verificaciones pendientes de revisión por un moderador.
-     *
-     * @param nombreEstado estado a filtrar (p. ej. "PENDIENTE")
-     * @param limite cantidad máxima de resultados
-     * @param offset posición inicial del resultado
-     * @return las verificaciones que cumplen el filtro
-     */
     public List<VerificationQueueResponse> listQueue(String nombreEstado, int limite, int offset) {
         return certificadoIaRepository.listQueue(nombreEstado, limite, offset).stream()
                 .map(fila -> VerificationQueueResponse.builder()
@@ -128,24 +110,16 @@ public class VerificationServiceImpl implements IVerificationService {
                 .toList();
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * @param idCertificado identificador de la verificación
-     * @param idUsuarioSolicitante identificador de quien consulta
-     * @param esRevisor {@code true} si quien consulta es un moderador (puede ver cualquier verificación)
-     * @return la verificación solicitada
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación no existe
-     * @throws org.springframework.security.access.AccessDeniedException si quien consulta no es
-     *         revisor ni dueño de la verificación
-     */
     public VerificationResponse getById(Long idCertificado, Long idUsuarioSolicitante, boolean esRevisor) {
         AiCertificate certificado = findById(idCertificado);
         boolean esDueno = certificado.getUsuario().getIdUsuario().equals(idUsuarioSolicitante);
         if (!esRevisor && !esDueno) {
             throw new AccessDeniedException("No tienes acceso a esta verificación.");
         }
-        return mapearARespuesta(certificado);
+        return mapToResponse(certificado);
     }
 
     /** {@inheritDoc} */
@@ -153,34 +127,24 @@ public class VerificationServiceImpl implements IVerificationService {
     @Transactional(readOnly = true)
     public byte[] getDocument(Long idCertificado) {
         AiCertificate certificado = findById(idCertificado);
-        return almacenamiento.leer(certificado.getUrlDocumentoS3());
+        return almacenamiento.read(certificado.getUrlDocumentoS3());
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
-    /**
-     * Envía el documento de una verificación a la IA para su análisis
-     * (identidad o certificado profesional) y registra el dictamen.
-     *
-     * @param idCertificado identificador de la verificación a analizar
-     * @return la verificación con el dictamen de IA ya registrado
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación no existe
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el documento ya fue eliminado
-     * @throws uteq.edu.ec.artisync.exception.AiServiceUnavailableException si el proveedor de IA no responde
-     *         tras el reintento (en fallos transitorios) o ante un fallo no transitorio
-     */
-    public VerificationResponse analizarConIa(Long idCertificado) {
+    public VerificationResponse analyzeWithAi(Long idCertificado) {
         AiCertificate certificado = findById(idCertificado);
 
         if (certificado.isDocumentoEliminado()) {
             throw new BusinessRuleException("El documento ya fue eliminado; no se puede reanalizar.");
         }
 
-        byte[] original = almacenamiento.leer(certificado.getUrlDocumentoS3());
+        byte[] original = almacenamiento.read(certificado.getUrlDocumentoS3());
         byte[] comprimido = preprocesador.comprimirParaIa(original);
         log.info("Documento {} comprimido a {} bytes para envío a IA", idCertificado, comprimido.length);
 
-        AiVerificationResponse dictamen = analizarConReintento(certificado, comprimido);
+        AiVerificationResponse dictamen = analyzeWithRetry(certificado, comprimido);
 
         certificado.setVeredictoIa(dictamen.isAprobado() ? "SUGIERE_APROBAR" : "SUGIERE_RECHAZAR");
         certificado.setPuntajeConfianzaIa(dictamen.getConfianza());
@@ -190,27 +154,15 @@ public class VerificationServiceImpl implements IVerificationService {
 
         AiCertificate guardado = certificadoIaRepository.save(certificado);
         log.info("Dictamen de IA registrado para verificación {}: {}", idCertificado, certificado.getVeredictoIa());
-        return mapearARespuesta(guardado);
+        return mapToResponse(guardado);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     @Auditable(accion = "VERIFICACION_DECIDIR", modulo = AuditModule.PORTAFOLIO,
             entidad = "certificados_ia", idEntidad = "#idCertificado",
             detalle = "{idNuevoEstado: #idNuevoEstado}")
-    /**
-     * Registra la decisión de un moderador sobre una verificación (aprobar,
-     * rechazar o pedir aclaración); el documento se elimina del almacenamiento
-     * si el nuevo estado es terminal (aprobado o rechazado).
-     *
-     * @param idCertificado identificador de la verificación a decidir
-     * @param idModerador identificador del moderador que decide
-     * @param idNuevoEstado nuevo estado de verificación a asignar
-     * @param notaModerador justificación de la decisión
-     * @return la verificación con la decisión ya registrada
-     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación o el
-     *         nuevo estado no existen
-     */
     public VerificationResponse recordDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador) {
         AiCertificate certificado = findById(idCertificado);
 
@@ -233,7 +185,7 @@ public class VerificationServiceImpl implements IVerificationService {
 
         log.info("Decisión registrada para verificación {}: estado={}, moderador={}",
                 idCertificado, certificado.getEstadoVerificacion().getNombreEstado(), idModerador);
-        return mapearARespuesta(certificado);
+        return mapToResponse(certificado);
     }
 
     /**
@@ -242,7 +194,7 @@ public class VerificationServiceImpl implements IVerificationService {
      * exactamente igual en el segundo intento y solo duplicarían la espera
      * del moderador, así que se propagan de inmediato.
      */
-    private AiVerificationResponse analizarConReintento(AiCertificate certificado, byte[] comprimido) {
+    private AiVerificationResponse analyzeWithRetry(AiCertificate certificado, byte[] comprimido) {
         boolean esCertificado = "CERTIFICADO".equals(certificado.getTipoDocumento());
         try {
             return esCertificado
@@ -300,23 +252,17 @@ public class VerificationServiceImpl implements IVerificationService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * @param idUsuario identificador del usuario
-     * @return {@code true} si el usuario tiene un documento de identidad aprobado
-     */
     public boolean isIdentityVerified(Long idUsuario) {
         return certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(
                 idUsuario, "IDENTIDAD", "APROBADO");
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * @param idUsuario identificador del usuario
-     * @return si la identidad del usuario está verificada, y el estado de su última solicitud
-     */
     public IdentityStatusResponse getIdentityStatus(Long idUsuario) {
         boolean verificado = isIdentityVerified(idUsuario);
         String estadoActual = certificadoIaRepository
@@ -329,7 +275,7 @@ public class VerificationServiceImpl implements IVerificationService {
                 .build();
     }
 
-    private VerificationResponse mapearARespuesta(AiCertificate c) {
+    private VerificationResponse mapToResponse(AiCertificate c) {
         return VerificationResponse.builder()
                 .idCertificado(c.getIdCertificado())
                 .idUsuario(c.getUsuario().getIdUsuario())

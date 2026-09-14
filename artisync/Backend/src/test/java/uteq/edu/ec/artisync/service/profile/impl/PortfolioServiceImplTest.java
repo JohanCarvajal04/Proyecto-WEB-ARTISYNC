@@ -227,25 +227,25 @@ class PortfolioServiceImplTest {
     }
 
     @Test
-    @DisplayName("incrementarVisitas suma una visita al total acumulado")
+    @DisplayName("incrementVisits suma una visita al total acumulado")
     void incrementarVisitas_suma() {
         given(portafolioRepository.findById(10L)).willReturn(Optional.of(portafolio));
         given(redisTemplate.opsForValue()).willReturn(valueOperations);
         given(valueOperations.setIfAbsent(any(String.class), any(String.class), any(Duration.class))).willReturn(true);
 
-        portafolioServicio.incrementarVisitas(10L, 1L);
+        portafolioServicio.incrementVisits(10L, 1L);
 
         assertThat(portafolio.getTotalVisitasAcumuladas()).isEqualTo(1);
         verify(portafolioRepository).save(portafolio);
     }
 
     @Test
-    @DisplayName("incrementarVisitas no repite una visita ya contada del mismo usuario en la ventana de dedup")
+    @DisplayName("incrementVisits no repite una visita ya contada del mismo usuario en la ventana de dedup")
     void incrementarVisitas_deduplicaPorUsuario() {
         given(redisTemplate.opsForValue()).willReturn(valueOperations);
         given(valueOperations.setIfAbsent(any(String.class), any(String.class), any(Duration.class))).willReturn(false);
 
-        portafolioServicio.incrementarVisitas(10L, 1L);
+        portafolioServicio.incrementVisits(10L, 1L);
 
         assertThat(portafolio.getTotalVisitasAcumuladas()).isEqualTo(0);
         verify(portafolioRepository, never()).findById(any());
@@ -253,13 +253,13 @@ class PortfolioServiceImplTest {
     }
 
     @Test
-    @DisplayName("incrementarVisitas lanza recurso no encontrado si no existe")
+    @DisplayName("incrementVisits lanza recurso no encontrado si no existe")
     void incrementarVisitas_inexistente() {
         given(portafolioRepository.findById(10L)).willReturn(Optional.empty());
         given(redisTemplate.opsForValue()).willReturn(valueOperations);
         given(valueOperations.setIfAbsent(any(String.class), any(String.class), any(Duration.class))).willReturn(true);
 
-        assertThatThrownBy(() -> portafolioServicio.incrementarVisitas(10L, 1L))
+        assertThatThrownBy(() -> portafolioServicio.incrementVisits(10L, 1L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 

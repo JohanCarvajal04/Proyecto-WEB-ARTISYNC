@@ -81,7 +81,7 @@ class AuthAttemptsServiceTest {
     @Test
     @DisplayName("limpiar — elimina la clave del ambito/identificador")
     void limpiar_eliminaClave() {
-        assertThatCode(() -> intentosAutenticacionService.limpiar("2fa-confirm", "ana@artisync.dev"))
+        assertThatCode(() -> intentosAutenticacionService.clear("2fa-confirm", "ana@artisync.dev"))
                 .doesNotThrowAnyException();
 
         verify(redisTemplate).delete(anyString());
@@ -92,7 +92,7 @@ class AuthAttemptsServiceTest {
     void limpiar_redisCaido_noPropaga() {
         given(redisTemplate.delete(anyString())).willThrow(new QueryTimeoutException("timeout"));
 
-        assertThatCode(() -> intentosAutenticacionService.limpiar("2fa-confirm", "ana@artisync.dev"))
+        assertThatCode(() -> intentosAutenticacionService.clear("2fa-confirm", "ana@artisync.dev"))
                 .doesNotThrowAnyException();
     }
 }

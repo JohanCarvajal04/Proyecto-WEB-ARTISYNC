@@ -96,7 +96,7 @@ public class SketchServiceImpl implements ISketchService {
 
         String referencia = boceto.getUrlImagen();
         return new DownloadedFile(
-                almacenamiento.leer(referencia),
+                almacenamiento.read(referencia),
                 "boceto-pedido-" + idPedido + extensionDe(referencia),
                 FileExtensions.contentTypeDe(referencia));
     }

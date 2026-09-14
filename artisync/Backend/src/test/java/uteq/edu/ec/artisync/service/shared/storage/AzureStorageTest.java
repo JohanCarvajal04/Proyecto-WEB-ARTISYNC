@@ -49,10 +49,10 @@ class AzureStorageTest {
     void leer_referenciaQueIntentaEscapar_esRechazadaAntesDeLlamarAAzure() {
         AzureStorage almacenamiento = almacenamientoConCuentaFicticia();
 
-        assertThrows(BusinessRuleException.class, () -> almacenamiento.leer("../otro-contenedor/secreto.jpg"));
-        assertThrows(BusinessRuleException.class, () -> almacenamiento.leer("/absoluto.jpg"));
-        assertThrows(BusinessRuleException.class, () -> almacenamiento.leer("  "));
-        assertThrows(BusinessRuleException.class, () -> almacenamiento.leer(null));
+        assertThrows(BusinessRuleException.class, () -> almacenamiento.read("../otro-contenedor/secreto.jpg"));
+        assertThrows(BusinessRuleException.class, () -> almacenamiento.read("/absoluto.jpg"));
+        assertThrows(BusinessRuleException.class, () -> almacenamiento.read("  "));
+        assertThrows(BusinessRuleException.class, () -> almacenamiento.read(null));
     }
 
     @Test

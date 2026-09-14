@@ -74,8 +74,8 @@ public class PdfGenerator implements ReportGenerator {
         }
         contexto.setVariable("filas", filas);
 
-        List<TotalConTexto> totales = modelo.getTotales().stream()
-                .map(t -> new TotalConTexto(t.etiqueta(), ValueFormatter.texto(t.valor(), t.tipo())))
+        List<TotalWithText> totales = modelo.getTotales().stream()
+                .map(t -> new TotalWithText(t.etiqueta(), ValueFormatter.texto(t.valor(), t.tipo())))
                 .toList();
         contexto.setVariable("totales", totales);
 
@@ -112,7 +112,7 @@ public class PdfGenerator implements ReportGenerator {
      * @param etiqueta nombre del total a mostrar
      * @param valorTexto valor ya formateado como moneda/texto, listo para la plantilla
      */
-    public record TotalConTexto(String etiqueta, String valorTexto) {
+    public record TotalWithText(String etiqueta, String valorTexto) {
     }
 
     /**
