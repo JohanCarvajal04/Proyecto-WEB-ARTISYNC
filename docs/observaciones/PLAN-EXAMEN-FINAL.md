@@ -12,6 +12,49 @@
 > `INFORME-BRECHAS-ENTREGA-FINAL.md`. Las cifras de 85,2 %, 89,7 % y 93,1 % que aparecen más
 > abajo (T-29, T-30) corresponden a cortes anteriores y no están vigentes.
 
+> ## 📌 Cierre de la evaluación del examen final sobre `a92629cd` (14-09-2026)
+>
+> Este plan (T-00…T-50) cubre el ciclo previo, cerrado el 11-09-2026 con la etiqueta `v1.1.0`. La
+> evaluación docente sobre el commit `a92629cd` de esa entrega calificó **5,92/10**, con 9 puntos de
+> rúbrica por debajo de "Completo" (P3, P6, P7, P8, P11, P12, E1, E2, E3). Ese cierre se trabajó en
+> la rama `examen-final-100`, con un commit por punto y confirmación previa de cada mensaje.
+>
+> Resultado al 14-09-2026, noche (verificable con `python scripts/auditoria-rubrica.py`):
+> - **P1, P2, P3** (tabla comparativa con 8 filas y DOI verificado), **P4, P5, P7** (cobertura
+>   JaCoCo, 0 de 48 paquetes con código ejecutable bajo el 70 %), **P8** (cabeceras + cookie
+>   `secure`), **P9, P10** (desplegado y verificado en vivo con navegador), **P11**
+>   (resumen/abstract 200–250 palabras), **P12** (0 de 47 etiquetas LaTeX huérfanas), **P13, P14**
+>   (diccionario de datos completado), **P15** (composición del equipo alineada en README,
+>   CONTRIBUTORS.md, CITATION.cff y portada), **E1** (nombres de código en inglés, ~0 % de métodos
+>   en español), **E2** (Javadoc en prácticamente el 100 % de los métodos públicos, `mvn
+>   javadoc:javadoc` en BUILD SUCCESS), **E3** (diagramas ER, secuencia de login, C4 nivel 3, clases
+>   y contexto traducidos a inglés, con los dos PNG embebidos en el informe regenerados) —
+>   **cerrados**.
+> - **P8, cookie en vivo:** `docs/mediciones/seguridad/cabeceras-produccion.md` §5 capturó el
+>   `Set-Cookie` real contra el backend desplegado (14-09-2026 06:24 UTC): confirma `Secure`,
+>   `HttpOnly`, `Path` y `Max-Age`, pero `SameSite=Lax` (no `Strict`) porque Render despliega
+>   `origin/main`, que sigue en el commit `a92629cd` evaluado por el docente — el cambio a
+>   `SameSite=Strict` vive solo en `examen-final-100`, que aún no se ha fusionado a `main` ni
+>   desplegado. El criterio literal de la rúbrica (punto 8) solo exige `secure`, que sí está
+>   confirmado en vivo.
+> - **P6** (procedimientos almacenados uniformes): **documentado, no cerrado**. Confirmado por
+>   TRES revisiones técnicas independientes (2026-09-05, 2026-09-14 con reproducción + bytecode, y
+>   2026-09-14 con reintento contra Hibernate 7.4.5.Final) que `@Procedure`/
+>   `@NamedStoredProcedureQuery` con parámetro de retorno rompe contra PostgreSQL
+>   (`ERROR: syntax error at or near "=>"`) en toda la familia Hibernate 7.4.x probada, no solo en
+>   7.4.1. Las 23 rutinas que devuelven valor siguen vía `@Query(nativeQuery = true)`, documentado
+>   como excepción arquitectónica (ADR-006) — ver `docs/basedatos/CATALOGO-SP.md` §14.
+>
+> **Pendiente crítico, fuera del alcance de esta sesión:** todo lo anterior vive en la rama local
+> `examen-final-100`, que no se ha empujado a `origin` ni fusionado a `main`. Mientras eso no
+> ocurra y Render no redespliegue, el repositorio público y el sistema en producción siguen
+> reflejando el commit `a92629cd` (el mismo que evaluó el docente con 5,92/10) — ninguna de las
+> correcciones de esta ronda cuenta para una nueva evaluación hasta que se fusione, empuje y
+> redespliegue.
+>
+> Detalle completo, decisiones descartadas y evidencia por punto: historial de commits de
+> `examen-final-100` y `docs/mediciones/jacoco/REPORTE-JACOCO.md`.
+
 ---
 
 ## §0. Cómo usar este plan
