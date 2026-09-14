@@ -15,6 +15,19 @@ las que se citan en el informe. La procedencia y las limitaciones de cada archiv
 | `participante` | Identificador seudonimizado del participante (`P01`–`P16`). No contiene datos personales; la correspondencia con personas reales no se conserva. | string | — | `P01`–`P16` |
 | `Q1` … `Q10` | Respuesta cruda a cada uno de los 10 ítems del instrumento SUS de Brooke, en el orden original del cuestionario. Los ítems impares son positivos y los pares negativos; la inversión de los pares se aplica al calcular el puntaje, no en este archivo. El enunciado literal de cada ítem está en las variables derivadas `sus_q1`–`sus_q10`. | int | puntos (Likert) | 1–5 |
 
+### 1.1bis `sus/Formulario de cuestionario SUS ddel sistema Artisync.csv` — export original de Google Forms
+
+Export crudo sin transformar, tal como lo entrega Google Forms (una fila por respuesta, una columna
+por pregunta con el enunciado literal como encabezado). `sus/sus-raw.csv` (§1.1) es la copia de
+trabajo derivada de este archivo — mismas 16 filas y mismos 10 valores por fila, renombrados a
+`Q1`–`Q10` y con el identificador seudonimizado `participante` en vez de la marca temporal. Ver
+`DATA-PROVENANCE.md` para la corrección de integridad aplicada sobre la copia de trabajo.
+
+| Variable | Descripción | Tipo | Unidad | Rango |
+|---|---|---|---|---|
+| `Marca temporal` | Fecha y hora de envío de la respuesta, generada por Google Forms. Se seudonimiza como `participante` (`P01`–`P16`, por orden de llegada) en `sus-raw.csv`; no se conserva en la copia de trabajo. | datetime | — | 2026-08-16 |
+| (10 columnas, una por ítem) | Enunciado literal del ítem correspondiente del instrumento SUS de Brooke en español, en el mismo orden que `Q1`–`Q10` de `sus-raw.csv` (ítems impares positivos, pares negativos). Codificación de origen: UTF-8 sin BOM tal como lo exporta Google Forms. | int | puntos (Likert) | 1–5 |
+
 ### 1.2 `sus/perfil-participantes.csv` — perfil demográfico de la muestra
 
 | Variable | Descripción | Tipo | Unidad | Rango/valores |
@@ -90,8 +103,8 @@ de interés. Es la fuente de `jacoco_lines_pct`, `jacoco_branches_pct` y `jacoco
 | lh_performance_mobile_localhost_2026-08-17 | (Histórico, ya no citado como evidencia de cumplimiento) Score Performance mobile, localhost, solo portada, 3 corridas | int | puntos (0-100) | `lighthouse/lhci-20260817-0315-mobile-run{1,2,3}.json` | ≥ 80 | 81 / 81 / 80 — reemplazado por `lh_performance_mobile` (T-P4, OBS-P4-01: exige URL pública y más de una ruta); se conserva el archivo, no se borra |
 | lh_performance_desktop_localhost_2026-08-17 | (Histórico, ya no citado como evidencia de cumplimiento) Score Performance desktop, localhost, solo portada, 3 corridas | int | puntos (0-100) | `lighthouse/lhci-20260817-0320-desktop-run{1,2,3}.json` | ≥ 80 | 100 / 100 / 100 — reemplazado por `lh_performance_desktop` |
 | lh_publico_20260904-1020_baseline | (Histórico, línea base pre-remediación — ya no citado como evidencia de cumplimiento) Scores de la primera corrida contra el despliegue público, antes de corregir CLS/LCP/accesibilidad | int | puntos (0-100) | `lighthouse/lhci-20260904-1020-{mobile,desktop}-prod-*-run{1,2,3}.report.json` | ≥80 perf / ≥90 resto | `/explorar` desktop perf **73/74/75** (falla), accessibility `/explorar` **89**/`/creadores` **87** (fallan) — reemplazado por `lh_performance_desktop`/`lh_accessibility` (corrida 1545); se conservan los archivos como evidencia del proceso, no se borran |
-| jacoco_lines_pct | Cobertura de líneas (global) | float | % | `jacoco/report.xml`, `jacoco/html/jacoco.csv` | ≥ 70 | **82.93** (2026-09-11, 1230 pruebas/129 clases, ronda 2 — cierre de la regresión de Controladores detectada en la ronda 1 del mismo día. Histórico: 81.69 ronda 1 del mismo día, 86.75/82.88 las dos rondas del 2026-09-05, 80.29 el 2026-09-04, 72.0/60.2 en las dos rondas de agosto, 23.0 Entrega 3, ver `jacoco/REPORTE-JACOCO.md`) |
-| jacoco_branches_pct | Cobertura de ramas (global) | float | % | `jacoco/report.xml`, `jacoco/html/jacoco.csv` | ≥ 70 en las tres capas (dominio/servicios/controladores) | **71.50** (2026-09-11, 1548/2165, ronda 2 — las tres capas superan el 70% de ramas; la ronda 1 del mismo día había detectado Controladores en 67.07%, bajo el umbral, por las funcionalidades V45-V48 sin pruebas propias — cerrado el mismo día. Histórico: 70.44 ronda 1 del mismo día, 75.03/70.10 las dos rondas del 2026-09-05, 66.44 el 2026-09-04, 62.5/50.3 en las dos rondas de agosto, 13.8 Entrega 3) |
+| jacoco_lines_pct | Cobertura de líneas (global) | float | % | `jacoco/report.xml`, `jacoco/html/jacoco.csv` | ≥ 70 en todos los paquetes | **92.88** (2026-09-14, 1441 pruebas, cierre de P7 — cero paquetes bajo el 70% de líneas. Histórico: 82.93 ronda 2 del 2026-09-11, 81.69 ronda 1 del mismo día, 86.75/82.88 las dos rondas del 2026-09-05, 80.29 el 2026-09-04, 72.0/60.2 en las dos rondas de agosto, 23.0 Entrega 3, ver `jacoco/REPORTE-JACOCO.md`) |
+| jacoco_branches_pct | Cobertura de ramas (global) | float | % | `jacoco/report.xml`, `jacoco/html/jacoco.csv` | ≥ 70 en todos los paquetes | **81.93** (2026-09-14, 1795/2191, cierre de P7 — cero de los 48 paquetes con código ejecutable quedan bajo el 70% de ramas, incluido `controller.catalog` en 78.57%. Histórico: 71.50 ronda 2 del 2026-09-11, 70.44 ronda 1 del mismo día, 75.03/70.10 las dos rondas del 2026-09-05, 66.44 el 2026-09-04, 62.5/50.3 en las dos rondas de agosto, 13.8 Entrega 3) |
 | jacoco_complexity_pct | Cobertura de complejidad ciclomática | float | % | `jacoco/report.xml` | — (no exigido por la guía) | **56.5** (Medición v1.0.0. Histórico Entrega 3: 16.8) |
 | owasp_a01_status | Resultado control A01 (control de acceso) | string (pass/fail) | — | `sec/owasp/a01-control-acceso.txt` | pass | pass |
 | owasp_a02_status | Resultado control A02 (TLS) | string (pass/fail) | — | `sec/owasp/a02-tls.txt` | pass | pass |
