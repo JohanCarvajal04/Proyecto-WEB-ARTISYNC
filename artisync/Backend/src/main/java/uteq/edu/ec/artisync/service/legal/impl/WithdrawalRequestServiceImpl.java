@@ -53,7 +53,11 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
     /** Restan del saldo disponible: pedido, en proceso o ya pagado (nunca se vuelve a contar). */
     private static final List<String> ESTADOS_DESCUENTAN_SALDO = List.of(ESTADO_PENDIENTE, ESTADO_APROBADO, ESTADO_PAGADO);
 
-    /** batch_status de PayPal que dejan la solicitud "en proceso": PayPal la resuelve más tarde (webhook o polling, fuera de alcance aquí). */
+    /**
+     * batch_status de PayPal que dejan la solicitud "en proceso" en esta
+     * llamada inicial. Si se queda así, WithdrawalPayoutReconciliationScheduler
+     * es quien vuelve a consultar el batch más tarde y decide Pagado/Fallido.
+     */
     private static final List<String> BATCH_STATUS_EN_PROCESO = List.of("PENDING", "UNCLAIMED", "PROCESSING");
 
     private final WithdrawalRequestRepository solicitudRetiroRepository;
@@ -323,6 +327,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
                 .put("email_subject", "Has recibido un pago de ARTISYNC");
 
         ObjectNode item = raiz.putArray("items").addObject();
+        item.put("recipient_type", "EMAIL");
         item.putObject("amount")
                 .put("value", solicitud.getMontoSolicitado().toPlainString())
                 .put("currency", "USD");
