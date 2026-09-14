@@ -3,13 +3,13 @@ package uteq.edu.ec.artisync.scheduler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.entity.respaldo.BackupStatus;
-import uteq.edu.ec.artisync.entity.respaldo.BackupOrigin;
-import uteq.edu.ec.artisync.entity.respaldo.Backup;
-import uteq.edu.ec.artisync.entity.respaldo.BackupSchedule;
-import uteq.edu.ec.artisync.entity.respaldo.BackupType;
-import uteq.edu.ec.artisync.repository.respaldo.BackupScheduleRepository;
-import uteq.edu.ec.artisync.repository.respaldo.BackupRepository;
+import uteq.edu.ec.artisync.entity.backup.BackupStatus;
+import uteq.edu.ec.artisync.entity.backup.BackupOrigin;
+import uteq.edu.ec.artisync.entity.backup.Backup;
+import uteq.edu.ec.artisync.entity.backup.BackupSchedule;
+import uteq.edu.ec.artisync.entity.backup.BackupType;
+import uteq.edu.ec.artisync.repository.backup.BackupScheduleRepository;
+import uteq.edu.ec.artisync.repository.backup.BackupRepository;
 
 import java.time.LocalDateTime;
 

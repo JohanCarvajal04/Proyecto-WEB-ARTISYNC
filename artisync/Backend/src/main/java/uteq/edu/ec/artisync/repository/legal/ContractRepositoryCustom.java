@@ -2,7 +2,7 @@ package uteq.edu.ec.artisync.repository.legal;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractReportRow;
+import uteq.edu.ec.artisync.dto.response.legal.ContractReportRow;
 
 import java.time.LocalDateTime;
 

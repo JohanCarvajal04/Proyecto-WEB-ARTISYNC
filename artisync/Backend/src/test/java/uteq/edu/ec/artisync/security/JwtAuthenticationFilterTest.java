@@ -1,12 +1,12 @@
 package uteq.edu.ec.artisync.security;
-import uteq.edu.ec.artisync.controller.seguridad.*;
-import uteq.edu.ec.artisync.repository.seguridad.*;
-import uteq.edu.ec.artisync.repository.perfil.*;
-import uteq.edu.ec.artisync.dto.seguridad.request.*;
-import uteq.edu.ec.artisync.dto.seguridad.response.*;
-import uteq.edu.ec.artisync.dto.respuesta.comun.*;
-import uteq.edu.ec.artisync.service.seguridad.*;
-import uteq.edu.ec.artisync.service.seguridad.impl.*;
+import uteq.edu.ec.artisync.controller.security.*;
+import uteq.edu.ec.artisync.repository.security.*;
+import uteq.edu.ec.artisync.repository.profile.*;
+import uteq.edu.ec.artisync.dto.security.request.*;
+import uteq.edu.ec.artisync.dto.security.response.*;
+import uteq.edu.ec.artisync.dto.response.comun.*;
+import uteq.edu.ec.artisync.service.security.*;
+import uteq.edu.ec.artisync.service.security.impl.*;
 import uteq.edu.ec.artisync.service.shared.*;
 
 import io.jsonwebtoken.Claims;

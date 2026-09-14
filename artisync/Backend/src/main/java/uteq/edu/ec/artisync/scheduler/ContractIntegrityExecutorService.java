@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.dto.respuesta.legal.IntegrityVerificationResponse;
+import uteq.edu.ec.artisync.dto.response.legal.IntegrityVerificationResponse;
 import uteq.edu.ec.artisync.service.legal.IContractService;
 
 /**

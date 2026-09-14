@@ -17,7 +17,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.service.auditoria.IAuditService;
+import uteq.edu.ec.artisync.service.audit.IAuditService;
 import uteq.edu.ec.artisync.service.shared.AuthenticatedActor;
 import uteq.edu.ec.artisync.service.shared.RequestContext;
 

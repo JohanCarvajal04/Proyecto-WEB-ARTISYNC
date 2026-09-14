@@ -1,9 +1,9 @@
 package uteq.edu.ec.artisync.service.legal;
 
-import uteq.edu.ec.artisync.dto.peticion.legal.UpdateOwnAgreementTemplateRequest;
-import uteq.edu.ec.artisync.dto.peticion.legal.CreateOwnAgreementTemplateRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractTemplateResponse;
+import uteq.edu.ec.artisync.dto.request.legal.UpdateOwnAgreementTemplateRequest;
+import uteq.edu.ec.artisync.dto.request.legal.CreateOwnAgreementTemplateRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.legal.ContractTemplateResponse;
 
 import java.util.List;
 

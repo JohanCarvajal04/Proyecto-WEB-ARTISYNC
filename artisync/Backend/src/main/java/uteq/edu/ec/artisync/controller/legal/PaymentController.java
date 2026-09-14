@@ -5,8 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import uteq.edu.ec.artisync.dto.peticion.legal.CancelPaymentRequest;
-import uteq.edu.ec.artisync.dto.respuesta.legal.PaymentResponse;
+import uteq.edu.ec.artisync.dto.request.legal.CancelPaymentRequest;
+import uteq.edu.ec.artisync.dto.response.legal.PaymentResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IPaymentService;
 

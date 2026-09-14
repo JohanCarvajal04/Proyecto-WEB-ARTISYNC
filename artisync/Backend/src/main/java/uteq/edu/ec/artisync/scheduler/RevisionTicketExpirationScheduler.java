@@ -5,8 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
-import uteq.edu.ec.artisync.repository.pedido.RevisionTicketRepository;
+import uteq.edu.ec.artisync.entity.order.RevisionTicket;
+import uteq.edu.ec.artisync.repository.order.RevisionTicketRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;

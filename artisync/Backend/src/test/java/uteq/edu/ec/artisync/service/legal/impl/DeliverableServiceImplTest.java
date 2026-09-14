@@ -8,26 +8,26 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
-import uteq.edu.ec.artisync.dto.respuesta.legal.DeliverableResponse;
-import uteq.edu.ec.artisync.entity.catalogo.Offering;
-import uteq.edu.ec.artisync.entity.catalogo.Workflow;
+import uteq.edu.ec.artisync.dto.response.legal.DeliverableResponse;
+import uteq.edu.ec.artisync.entity.catalog.Offering;
+import uteq.edu.ec.artisync.entity.catalog.Workflow;
 import uteq.edu.ec.artisync.entity.legal.FinalDeliverable;
-import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.pedido.OrderStatusHistory;
-import uteq.edu.ec.artisync.entity.pedido.WorkflowStage;
-import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
-import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.entity.order.OrderStatusHistory;
+import uteq.edu.ec.artisync.entity.order.WorkflowStage;
+import uteq.edu.ec.artisync.entity.profile.CreatorProfile;
+import uteq.edu.ec.artisync.entity.security.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContractRepository;
 import uteq.edu.ec.artisync.repository.legal.FinalDeliverableRepository;
 import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
-import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
-import uteq.edu.ec.artisync.repository.pedido.OrderStatusHistoryRepository;
-import uteq.edu.ec.artisync.repository.pedido.WorkflowStageConfigRepository;
+import uteq.edu.ec.artisync.repository.order.OrderRepository;
+import uteq.edu.ec.artisync.repository.order.OrderStatusHistoryRepository;
+import uteq.edu.ec.artisync.repository.order.WorkflowStageConfigRepository;
 import uteq.edu.ec.artisync.service.legal.IDeliverableService;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
+import uteq.edu.ec.artisync.service.shared.storage.DocumentStorage;
 
 import java.util.Optional;
 
@@ -54,8 +54,8 @@ class DeliverableServiceImplTest {
     @Mock private WorkflowStageConfigRepository flujoEtapaConfigRepository;
     @Mock private OrderStatusHistoryRepository historialEstadoPedidoRepository;
     @Mock private DocumentStorage almacenamiento;
-    @Mock private uteq.edu.ec.artisync.service.comunicacion.ChatService chatService;
-    @Mock private uteq.edu.ec.artisync.service.comunicacion.NotificationService notificacionService;
+    @Mock private uteq.edu.ec.artisync.service.communication.ChatService chatService;
+    @Mock private uteq.edu.ec.artisync.service.communication.NotificationService notificacionService;
 
     @InjectMocks private DeliverableServiceImpl servicio;
 

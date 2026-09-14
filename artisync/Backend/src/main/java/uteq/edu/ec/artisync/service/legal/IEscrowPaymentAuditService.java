@@ -2,10 +2,10 @@ package uteq.edu.ec.artisync.service.legal;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import uteq.edu.ec.artisync.dto.peticion.legal.EscrowPaymentFilter;
-import uteq.edu.ec.artisync.dto.respuesta.legal.EscrowPaymentResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.EscrowPaymentDetailResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.EscrowSummaryResponse;
+import uteq.edu.ec.artisync.dto.request.legal.EscrowPaymentFilter;
+import uteq.edu.ec.artisync.dto.response.legal.EscrowPaymentResponse;
+import uteq.edu.ec.artisync.dto.response.legal.EscrowPaymentDetailResponse;
+import uteq.edu.ec.artisync.dto.response.legal.EscrowSummaryResponse;
 
 import java.util.List;
 

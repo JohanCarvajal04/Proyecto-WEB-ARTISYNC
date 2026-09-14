@@ -12,7 +12,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
-import uteq.edu.ec.artisync.service.auditoria.IAuditService;
+import uteq.edu.ec.artisync.service.audit.IAuditService;
 
 import java.lang.reflect.Method;
 import java.util.List;

@@ -16,10 +16,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import uteq.edu.ec.artisync.dto.peticion.legal.ContractReportFilter;
+import uteq.edu.ec.artisync.dto.request.legal.ContractReportFilter;
 import uteq.edu.ec.artisync.service.legal.IContractReportService;
-import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
-import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.report.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.report.ReportFormat;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 import java.util.Arrays;
@@ -49,7 +49,7 @@ class ContractReportAuthorizationTest {
         IContractReportService reporteContratoServicio() {
             IContractReportService servicio = mock(IContractReportService.class);
             when(servicio.list(any(), anyInt(), anyInt())).thenReturn(
-                    PagedResponse.<uteq.edu.ec.artisync.dto.respuesta.legal.ContractReportRow>builder()
+                    PagedResponse.<uteq.edu.ec.artisync.dto.response.legal.ContractReportRow>builder()
                             .content(List.of()).pageNumber(0).pageSize(20).totalElements(0).totalPages(0).last(true)
                             .build());
             when(servicio.export(any(), any(), any()))

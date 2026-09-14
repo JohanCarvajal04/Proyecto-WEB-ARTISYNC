@@ -5,8 +5,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uteq.edu.ec.artisync.entity.perfil.AiCertificate;
-import uteq.edu.ec.artisync.repository.perfil.AiCertificateRepository;
+import uteq.edu.ec.artisync.entity.profile.AiCertificate;
+import uteq.edu.ec.artisync.repository.profile.AiCertificateRepository;
 
 import java.util.List;
 

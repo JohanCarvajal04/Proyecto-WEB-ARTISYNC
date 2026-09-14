@@ -7,11 +7,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
-import uteq.edu.ec.artisync.entity.seguridad.*;
-import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UserRoleRepository;
-import uteq.edu.ec.artisync.service.perfil.IVerificationService;
+import uteq.edu.ec.artisync.dto.security.response.UserResponse;
+import uteq.edu.ec.artisync.entity.security.*;
+import uteq.edu.ec.artisync.repository.security.TwoFactorAuthenticationRepository;
+import uteq.edu.ec.artisync.repository.security.UserRoleRepository;
+import uteq.edu.ec.artisync.service.profile.IVerificationService;
 
 import java.util.List;
 import java.util.Optional;

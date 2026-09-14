@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import uteq.edu.ec.artisync.dto.respuesta.legal.EscrowSummaryResponse;
+import uteq.edu.ec.artisync.dto.response.legal.EscrowSummaryResponse;
 import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
 
 import java.time.LocalDateTime;
@@ -38,7 +38,7 @@ public interface EscrowPaymentRepository extends JpaRepository<EscrowPayment, Lo
      *
      * @return un resumen por cada estado de fondos distinto que existe
      */
-    @Query("SELECT new uteq.edu.ec.artisync.dto.respuesta.legal.EscrowSummaryResponse(" +
+    @Query("SELECT new uteq.edu.ec.artisync.dto.response.legal.EscrowSummaryResponse(" +
             "p.estadoFondos, COUNT(p), COALESCE(SUM(p.montoRetenido), 0)) " +
             "FROM EscrowPayment p GROUP BY p.estadoFondos")
     List<EscrowSummaryResponse> resumenPorEstado();

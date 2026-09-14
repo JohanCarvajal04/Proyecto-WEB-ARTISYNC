@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.service.legal;
 
-import uteq.edu.ec.artisync.dto.respuesta.legal.PaymentResponse;
+import uteq.edu.ec.artisync.dto.response.legal.PaymentResponse;
 
 import java.math.BigDecimal;
 

@@ -2,16 +2,16 @@ package uteq.edu.ec.artisync.service.shared;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
-import uteq.edu.ec.artisync.entity.seguridad.TwoFactorAuthentication;
-import uteq.edu.ec.artisync.entity.seguridad.Permission;
-import uteq.edu.ec.artisync.entity.seguridad.User;
-import uteq.edu.ec.artisync.entity.seguridad.UserRole;
-import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UserRoleRepository;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.ProfilePhotoUrl;
+import uteq.edu.ec.artisync.dto.security.response.UserResponse;
+import uteq.edu.ec.artisync.entity.security.TwoFactorAuthentication;
+import uteq.edu.ec.artisync.entity.security.Permission;
+import uteq.edu.ec.artisync.entity.security.User;
+import uteq.edu.ec.artisync.entity.security.UserRole;
+import uteq.edu.ec.artisync.repository.security.TwoFactorAuthenticationRepository;
+import uteq.edu.ec.artisync.repository.security.UserRoleRepository;
+import uteq.edu.ec.artisync.service.shared.storage.ProfilePhotoUrl;
 
-import uteq.edu.ec.artisync.service.perfil.IVerificationService;
+import uteq.edu.ec.artisync.service.profile.IVerificationService;
 
 import java.util.HashSet;
 import java.util.List;

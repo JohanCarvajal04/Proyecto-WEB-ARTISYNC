@@ -1,0 +1,41 @@
+package uteq.edu.ec.artisync.dto.request.order;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import uteq.edu.ec.artisync.dto.request.communication.AnswerBriefingRequest;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+/** Datos para que un cliente cree un pedido sobre un servicio del catálogo. */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateOrderRequest {
+
+    @NotNull(message = "El ID del servicio es obligatorio")
+    private Long idServicio;
+
+    @DecimalMin(value = "0.01", message = "El precio ofrecido debe ser mayor a 0")
+    private BigDecimal precioOfrecido;
+
+    @Future(message = "La fecha de entrega debe ser una fecha futura")
+    private LocalDateTime fechaEntregaEstimada;
+
+    /**
+     * Obligatorio solo si el servicio tiene un cuestionario asignado
+     * (Offering.briefingPlantilla): debe traer una respuesta por cada
+     * pregunta de esa plantilla. Se valida en OrderServiceImpl.createOrder,
+     * no aquí, porque la obligatoriedad depende del servicio elegido.
+     */
+    @Valid
+    private List<AnswerBriefingRequest.RespuestaItem> respuestasBriefing;
+}

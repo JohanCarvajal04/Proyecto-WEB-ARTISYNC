@@ -1,8 +1,8 @@
 package uteq.edu.ec.artisync.service.legal;
 
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.SignatureStatusResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.IntegrityVerificationResponse;
+import uteq.edu.ec.artisync.dto.response.legal.ContractResponse;
+import uteq.edu.ec.artisync.dto.response.legal.SignatureStatusResponse;
+import uteq.edu.ec.artisync.dto.response.legal.IntegrityVerificationResponse;
 
 public interface IContractService {
 

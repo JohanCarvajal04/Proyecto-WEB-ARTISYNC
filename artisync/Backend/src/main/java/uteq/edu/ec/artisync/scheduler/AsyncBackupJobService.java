@@ -4,12 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.entity.respaldo.BackupStatus;
-import uteq.edu.ec.artisync.entity.respaldo.Backup;
-import uteq.edu.ec.artisync.entity.respaldo.BackupType;
-import uteq.edu.ec.artisync.repository.respaldo.BackupRepository;
-import uteq.edu.ec.artisync.service.respaldo.impl.IncrementalBackupExporter;
-import uteq.edu.ec.artisync.service.respaldo.impl.PgDumpExecutor;
+import uteq.edu.ec.artisync.entity.backup.BackupStatus;
+import uteq.edu.ec.artisync.entity.backup.Backup;
+import uteq.edu.ec.artisync.entity.backup.BackupType;
+import uteq.edu.ec.artisync.repository.backup.BackupRepository;
+import uteq.edu.ec.artisync.service.backup.impl.IncrementalBackupExporter;
+import uteq.edu.ec.artisync.service.backup.impl.PgDumpExecutor;
 
 import java.io.IOException;
 import java.nio.file.Files;

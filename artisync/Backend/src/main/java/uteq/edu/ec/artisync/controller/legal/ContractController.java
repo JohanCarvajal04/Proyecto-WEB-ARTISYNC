@@ -8,8 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractResponse;
-import uteq.edu.ec.artisync.dto.respuesta.legal.SignatureStatusResponse;
+import uteq.edu.ec.artisync.dto.response.legal.ContractResponse;
+import uteq.edu.ec.artisync.dto.response.legal.SignatureStatusResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IContractService;
 

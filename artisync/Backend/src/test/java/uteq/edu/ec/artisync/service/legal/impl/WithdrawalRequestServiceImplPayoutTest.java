@@ -16,13 +16,13 @@ import org.mockito.stubbing.OngoingStubbing;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpStatusCodeException;
-import uteq.edu.ec.artisync.dto.respuesta.legal.WithdrawalRequestResponse;
+import uteq.edu.ec.artisync.dto.response.legal.WithdrawalRequestResponse;
 import uteq.edu.ec.artisync.entity.legal.WithdrawalRequest;
-import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.security.User;
 import uteq.edu.ec.artisync.repository.legal.WithdrawalRequestRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
-import uteq.edu.ec.artisync.repository.perfil.CreatorPaymentDetailsRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
+import uteq.edu.ec.artisync.repository.profile.CreatorPaymentDetailsRepository;
+import uteq.edu.ec.artisync.repository.security.UserRepository;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
 import java.math.BigDecimal;

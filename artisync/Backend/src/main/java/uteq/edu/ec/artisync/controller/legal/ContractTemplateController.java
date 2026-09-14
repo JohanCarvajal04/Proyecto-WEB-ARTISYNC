@@ -7,7 +7,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractTemplateSummaryResponse;
+import uteq.edu.ec.artisync.dto.response.legal.ContractTemplateSummaryResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IContractTemplateAdminService;
 

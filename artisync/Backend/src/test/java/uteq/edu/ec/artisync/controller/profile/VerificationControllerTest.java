@@ -1,0 +1,124 @@
+package uteq.edu.ec.artisync.controller.profile;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import uteq.edu.ec.artisync.dto.request.profile.VerificationDecisionRequest;
+import uteq.edu.ec.artisync.dto.response.profile.VerificationQueueResponse;
+import uteq.edu.ec.artisync.dto.response.profile.VerificationResponse;
+import uteq.edu.ec.artisync.entity.profile.VerificationDocumentType;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.profile.IVerificationService;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class VerificationControllerTest {
+
+    @Mock private IVerificationService verificacionServicio;
+
+    @InjectMocks
+    private VerificationController controlador;
+
+    private CustomUserDetails usuarioRevisor() {
+        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("CERTIFICADO_REVISAR"));
+        return new CustomUserDetails(99L, "mod@test.dev", "x", true, true, true, true, authorities);
+    }
+
+    private CustomUserDetails usuarioCreador() {
+        return new CustomUserDetails(1L, "creador@test.dev", "x", true, true, true, true, List.of());
+    }
+
+    @Test
+    void subir_devuelveCreated() {
+        MockMultipartFile documento = new MockMultipartFile("documento", "c.jpg", "image/jpeg", "x".getBytes());
+        VerificationResponse respuesta = VerificationResponse.builder().idCertificado(1L).build();
+        when(verificacionServicio.upload(1L, VerificationDocumentType.IDENTIDAD, documento)).thenReturn(respuesta);
+
+        ResponseEntity<VerificationResponse> resultado =
+                controlador.upload(VerificationDocumentType.IDENTIDAD, documento, usuarioCreador());
+
+        assertThat(resultado.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    }
+
+    @Test
+    void listarCola_devuelveOk() {
+        when(verificacionServicio.listQueue("PENDIENTE", 20, 0)).thenReturn(List.of());
+
+        ResponseEntity<List<VerificationQueueResponse>> resultado = controlador.listQueue("PENDIENTE", 20, 0);
+
+        assertThat(resultado.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void analizarConIa_devuelveOk() {
+        VerificationResponse respuesta = VerificationResponse.builder().idCertificado(5L).build();
+        when(verificacionServicio.analizarConIa(5L)).thenReturn(respuesta);
+
+        ResponseEntity<VerificationResponse> resultado = controlador.analizarConIa(5L);
+
+        assertThat(resultado.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resultado.getBody().idCertificado()).isEqualTo(5L);
+    }
+
+    @Test
+    void registrarDecision_pasaElIdDelModeradorAutenticado() {
+        VerificationDecisionRequest peticion = new VerificationDecisionRequest(2L, "ok");
+        VerificationResponse respuesta = VerificationResponse.builder().idCertificado(7L).idModerador(99L).build();
+        when(verificacionServicio.recordDecision(7L, 99L, 2L, "ok")).thenReturn(respuesta);
+
+        ResponseEntity<VerificationResponse> resultado =
+                controlador.recordDecision(7L, peticion, usuarioRevisor());
+
+        assertThat(resultado.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resultado.getBody().idModerador()).isEqualTo(99L);
+    }
+
+    @Test
+    void obtenerMiEstadoIdentidad_devuelveOk() {
+        uteq.edu.ec.artisync.dto.response.profile.IdentityStatusResponse respuesta = 
+                new uteq.edu.ec.artisync.dto.response.profile.IdentityStatusResponse(true, "mensaje");
+        when(verificacionServicio.getIdentityStatus(1L)).thenReturn(respuesta);
+
+        ResponseEntity<uteq.edu.ec.artisync.dto.response.profile.IdentityStatusResponse> res = 
+                controlador.getMyIdentityStatus(usuarioCreador());
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void obtenerPorId_esRevisor_devuelveOk() {
+        VerificationResponse respuesta = VerificationResponse.builder().idCertificado(10L).build();
+        when(verificacionServicio.getById(10L, 99L, true)).thenReturn(respuesta);
+
+        ResponseEntity<VerificationResponse> res = controlador.getById(10L, usuarioRevisor());
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void obtenerPorId_noEsRevisor_devuelveOk() {
+        VerificationResponse respuesta = VerificationResponse.builder().idCertificado(10L).build();
+        when(verificacionServicio.getById(10L, 1L, false)).thenReturn(respuesta);
+
+        ResponseEntity<VerificationResponse> res = controlador.getById(10L, usuarioCreador());
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void obtenerDocumento_devuelveOk() {
+        byte[] doc = new byte[]{1,2};
+        when(verificacionServicio.getDocument(10L)).thenReturn(doc);
+
+        ResponseEntity<byte[]> res = controlador.getDocument(10L);
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+}

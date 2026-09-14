@@ -4,7 +4,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.report.GeneratedDocument;
 
 /**
  * Convierte un {@link GeneratedDocument} en la respuesta HTTP de descarga.

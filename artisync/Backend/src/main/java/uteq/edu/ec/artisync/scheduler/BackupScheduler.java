@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.entity.respaldo.BackupSchedule;
-import uteq.edu.ec.artisync.repository.respaldo.BackupScheduleRepository;
+import uteq.edu.ec.artisync.entity.backup.BackupSchedule;
+import uteq.edu.ec.artisync.repository.backup.BackupScheduleRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;

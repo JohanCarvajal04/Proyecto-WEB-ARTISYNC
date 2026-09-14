@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.service.legal;
 
-import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
+import uteq.edu.ec.artisync.entity.order.RevisionTicket;
 
 /** REQ-F-022b/c: pago del cargo adicional de un ticket de revisión que superó el límite del contrato. */
 public interface IRevisionTicketPaymentService {

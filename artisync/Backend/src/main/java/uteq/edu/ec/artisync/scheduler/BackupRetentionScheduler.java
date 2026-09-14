@@ -5,11 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import uteq.edu.ec.artisync.config.BackupProperties;
-import uteq.edu.ec.artisync.entity.respaldo.BackupStatus;
-import uteq.edu.ec.artisync.entity.respaldo.Backup;
-import uteq.edu.ec.artisync.entity.respaldo.BackupType;
-import uteq.edu.ec.artisync.repository.respaldo.BackupRepository;
-import uteq.edu.ec.artisync.service.respaldo.impl.BackupFileStorage;
+import uteq.edu.ec.artisync.entity.backup.BackupStatus;
+import uteq.edu.ec.artisync.entity.backup.Backup;
+import uteq.edu.ec.artisync.entity.backup.BackupType;
+import uteq.edu.ec.artisync.repository.backup.BackupRepository;
+import uteq.edu.ec.artisync.service.backup.impl.BackupFileStorage;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;

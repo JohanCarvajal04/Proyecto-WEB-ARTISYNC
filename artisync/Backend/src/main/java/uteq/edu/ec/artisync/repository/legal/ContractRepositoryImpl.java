@@ -11,12 +11,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractReportRow;
-import uteq.edu.ec.artisync.entity.catalogo.Offering;
+import uteq.edu.ec.artisync.dto.response.legal.ContractReportRow;
+import uteq.edu.ec.artisync.entity.catalog.Offering;
 import uteq.edu.ec.artisync.entity.legal.Contract;
-import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
-import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.entity.profile.CreatorProfile;
+import uteq.edu.ec.artisync.entity.security.User;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

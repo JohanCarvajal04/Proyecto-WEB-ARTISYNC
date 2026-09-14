@@ -1,0 +1,83 @@
+package uteq.edu.ec.artisync.controller.communication;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.response.communication.CommentResponse;
+import uteq.edu.ec.artisync.service.communication.PortfolioCommentService;
+
+/**
+ * Controlador de administración de comentarios de portafolio.
+ * COMENTARIO_MODERAR (o ADMIN) puede listar, ocultar y reactivar comentarios;
+ * el borrado definitivo queda reservado a ADMIN, igual que en portafolios.
+ */
+@Tag(name = "Admin — Comentarios", description = "Moderación de comentarios de portafolio")
+@RestController
+@RequestMapping("/api/v1/admin/comentarios")
+@RequiredArgsConstructor
+public class AdminCommentController {
+
+    private final PortfolioCommentService comentarioService;
+
+    /**
+     * Lista todos los comentarios del sistema de forma paginada para su moderación.
+     *
+     * @param pageable configuración de paginación
+     * @return página con los comentarios del sistema
+     */
+    @Operation(summary = "Listar todos los comentarios del sistema")
+    @GetMapping
+    @PreAuthorize("hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')")
+    public ResponseEntity<Page<CommentResponse>> listForModeration(
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(comentarioService.listForModeration(pageable));
+    }
+
+    /**
+     * Oculta un comentario como acción de moderación.
+     *
+     * @param idComentario identificador del comentario a ocultar
+     * @return el comentario con su estado de moderación actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
+     */
+    @Operation(summary = "Ocultar un comentario (moderación)")
+    @PatchMapping("/{idComentario}/ocultar")
+    @PreAuthorize("hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')")
+    public ResponseEntity<CommentResponse> hideComment(@PathVariable Long idComentario) {
+        return ResponseEntity.ok(comentarioService.hideComment(idComentario));
+    }
+
+    /**
+     * Reactiva un comentario previamente oculto.
+     *
+     * @param idComentario identificador del comentario a reactivar
+     * @return el comentario con su estado de moderación actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
+     */
+    @Operation(summary = "Reactivar un comentario previamente oculto")
+    @PatchMapping("/{idComentario}/reactivar")
+    @PreAuthorize("hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')")
+    public ResponseEntity<CommentResponse> reactivateComment(@PathVariable Long idComentario) {
+        return ResponseEntity.ok(comentarioService.reactivateComment(idComentario));
+    }
+
+    /**
+     * Elimina definitivamente un comentario del sistema como acción de moderación.
+     *
+     * @param idComentario identificador del comentario a eliminar
+     * @return respuesta vacía con estado 204
+     */
+    @Operation(summary = "Eliminar definitivamente un comentario (moderación)")
+    @DeleteMapping("/{idComentario}")
+    @PreAuthorize("hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteComment(@PathVariable Long idComentario) {
+        comentarioService.deleteComment(idComentario, null, true);
+        return ResponseEntity.noContent().build();
+    }
+}

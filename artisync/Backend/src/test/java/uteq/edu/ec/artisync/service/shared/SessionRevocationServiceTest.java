@@ -7,9 +7,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
-import uteq.edu.ec.artisync.repository.seguridad.RevokedSessionProjection;
-import uteq.edu.ec.artisync.repository.seguridad.UserSessionRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
+import uteq.edu.ec.artisync.repository.security.RevokedSessionProjection;
+import uteq.edu.ec.artisync.repository.security.UserSessionRepository;
+import uteq.edu.ec.artisync.repository.security.UserRepository;
 import uteq.edu.ec.artisync.security.JwtService;
 
 import java.time.Duration;

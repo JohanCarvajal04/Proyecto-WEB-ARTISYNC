@@ -1,7 +1,7 @@
 package uteq.edu.ec.artisync.service.legal;
 
 import org.springframework.web.multipart.MultipartFile;
-import uteq.edu.ec.artisync.dto.respuesta.legal.DeliverableResponse;
+import uteq.edu.ec.artisync.dto.response.legal.DeliverableResponse;
 
 public interface IDeliverableService {
 

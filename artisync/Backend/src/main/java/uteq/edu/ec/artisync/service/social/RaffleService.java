@@ -1,11 +1,11 @@
 package uteq.edu.ec.artisync.service.social;
 
-import uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest;
-import uteq.edu.ec.artisync.dto.peticion.social.CreateRaffleRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
-import uteq.edu.ec.artisync.dto.respuesta.social.WinnerResponse;
-import uteq.edu.ec.artisync.dto.respuesta.social.ParticipantResponse;
-import uteq.edu.ec.artisync.dto.respuesta.social.RaffleResponse;
+import uteq.edu.ec.artisync.dto.request.social.UpdateRaffleRequest;
+import uteq.edu.ec.artisync.dto.request.social.CreateRaffleRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.social.WinnerResponse;
+import uteq.edu.ec.artisync.dto.response.social.ParticipantResponse;
+import uteq.edu.ec.artisync.dto.response.social.RaffleResponse;
 
 import java.util.List;
 

@@ -1,0 +1,174 @@
+package uteq.edu.ec.artisync.controller.backup;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import uteq.edu.ec.artisync.dto.request.backup.BackupFilter;
+import uteq.edu.ec.artisync.dto.request.backup.UpdateScheduleRequest;
+import uteq.edu.ec.artisync.dto.request.backup.ChangeScheduleStatusRequest;
+import uteq.edu.ec.artisync.dto.request.backup.CreateScheduleRequest;
+import uteq.edu.ec.artisync.dto.request.backup.CreateBackupRequest;
+import uteq.edu.ec.artisync.dto.response.backup.ScheduleResponse;
+import uteq.edu.ec.artisync.dto.response.backup.BackupResponse;
+import uteq.edu.ec.artisync.entity.backup.BackupType;
+import uteq.edu.ec.artisync.service.backup.BackupFile;
+import uteq.edu.ec.artisync.service.backup.IBackupScheduleService;
+import uteq.edu.ec.artisync.service.backup.IBackupService;
+import uteq.edu.ec.artisync.util.PagedResponse;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class BackupControllerTest {
+
+    @Mock
+    private IBackupService respaldoServicio;
+
+    @Mock
+    private IBackupScheduleService programacionServicio;
+
+    @InjectMocks
+    private BackupController controlador;
+
+    @Test
+    void crear_DebeRetornarAceptadoConCorreoDelAutenticado() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("admin@artisync.dev");
+        CreateBackupRequest peticion = new CreateBackupRequest();
+        peticion.setTipoRespaldo(BackupType.FULL);
+        BackupResponse respuesta = BackupResponse.builder().idRespaldo(1L).build();
+        when(respaldoServicio.requestBackup(BackupType.FULL, "admin@artisync.dev")).thenReturn(respuesta);
+
+        ResponseEntity<BackupResponse> result = controlador.create(peticion, authentication);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+        assertThat(result.getBody().getIdRespaldo()).isEqualTo(1L);
+    }
+
+    @Test
+    void listar_DebeRetornarPaginaDelServicio() {
+        BackupFilter filtro = new BackupFilter();
+        Pageable pageable = PageRequest.of(0, 10);
+        PagedResponse<BackupResponse> pagina = PagedResponse.<BackupResponse>builder()
+                .content(List.of(BackupResponse.builder().idRespaldo(1L).build()))
+                .totalElements(1)
+                .build();
+        when(respaldoServicio.list(filtro, pageable)).thenReturn(pagina);
+
+        ResponseEntity<PagedResponse<BackupResponse>> result = controlador.list(filtro, pageable);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody().getContent()).hasSize(1);
+    }
+
+    @Test
+    void obtenerPorId_DebeRetornarElRespaldo() {
+        when(respaldoServicio.getById(5L)).thenReturn(BackupResponse.builder().idRespaldo(5L).build());
+
+        ResponseEntity<BackupResponse> result = controlador.getById(5L);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody().getIdRespaldo()).isEqualTo(5L);
+    }
+
+    @Test
+    void descargar_DebeExponerHeadersDeContenido() {
+        BackupFile archivo = new BackupFile(new ByteArrayResource("contenido".getBytes()), "backup.sql", 9L);
+        when(respaldoServicio.download(3L)).thenReturn(archivo);
+
+        ResponseEntity<org.springframework.core.io.Resource> result = controlador.download(3L);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getHeaders().getContentLength()).isEqualTo(9L);
+        assertThat(result.getHeaders().getContentDisposition().getFilename()).isEqualTo("backup.sql");
+    }
+
+    @Test
+    void eliminar_DebeRetornarSinContenido() {
+        ResponseEntity<Void> result = controlador.delete(2L);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        verify(respaldoServicio).delete(2L);
+    }
+
+    @Test
+    void crearProgramacion_DebeRetornarCreadaConCreadorDelAutenticado() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("admin@artisync.dev");
+        CreateScheduleRequest peticion = new CreateScheduleRequest();
+        ScheduleResponse respuesta = ScheduleResponse.builder().idProgramacion(1L).build();
+        when(programacionServicio.create(eq(peticion), eq("admin@artisync.dev"))).thenReturn(respuesta);
+
+        ResponseEntity<ScheduleResponse> result = controlador.createSchedule(peticion, authentication);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(result.getBody().getIdProgramacion()).isEqualTo(1L);
+    }
+
+    @Test
+    void listarProgramaciones_DebeRetornarListaDelServicio() {
+        when(programacionServicio.list()).thenReturn(List.of(ScheduleResponse.builder().idProgramacion(1L).build()));
+
+        ResponseEntity<List<ScheduleResponse>> result = controlador.listSchedules();
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).hasSize(1);
+    }
+
+    @Test
+    void obtenerProgramacion_DebeRetornarLaProgramacion() {
+        when(programacionServicio.getById(4L)).thenReturn(ScheduleResponse.builder().idProgramacion(4L).build());
+
+        ResponseEntity<ScheduleResponse> result = controlador.getSchedule(4L);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody().getIdProgramacion()).isEqualTo(4L);
+    }
+
+    @Test
+    void actualizarProgramacion_DebeRetornarLaProgramacionActualizada() {
+        UpdateScheduleRequest peticion = new UpdateScheduleRequest();
+        when(programacionServicio.update(eq(6L), eq(peticion)))
+                .thenReturn(ScheduleResponse.builder().idProgramacion(6L).build());
+
+        ResponseEntity<ScheduleResponse> result = controlador.updateSchedule(6L, peticion);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody().getIdProgramacion()).isEqualTo(6L);
+    }
+
+    @Test
+    void cambiarEstadoProgramacion_DebeDelegarElBooleanoAlServicio() {
+        ChangeScheduleStatusRequest peticion = new ChangeScheduleStatusRequest();
+        peticion.setActivo(Boolean.FALSE);
+        when(programacionServicio.changeStatus(7L, false))
+                .thenReturn(ScheduleResponse.builder().idProgramacion(7L).activo(false).build());
+
+        ResponseEntity<ScheduleResponse> result = controlador.changeScheduleStatus(7L, peticion);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody().getActivo()).isFalse();
+    }
+
+    @Test
+    void eliminarProgramacion_DebeRetornarSinContenido() {
+        ResponseEntity<Void> result = controlador.deleteSchedule(8L);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        verify(programacionServicio).delete(8L);
+    }
+}

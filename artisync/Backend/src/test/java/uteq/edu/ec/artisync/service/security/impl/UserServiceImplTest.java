@@ -1,0 +1,257 @@
+package uteq.edu.ec.artisync.service.security.impl;
+import uteq.edu.ec.artisync.controller.security.*;
+import uteq.edu.ec.artisync.service.security.*;
+import uteq.edu.ec.artisync.service.security.impl.*;
+import uteq.edu.ec.artisync.service.shared.*;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.dto.security.request.ChangePasswordRequest;
+import uteq.edu.ec.artisync.dto.security.request.UpdateUserRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.security.response.UserResponse;
+import uteq.edu.ec.artisync.entity.security.Country;
+import uteq.edu.ec.artisync.entity.security.User;
+import uteq.edu.ec.artisync.repository.security.CountryRepository;
+import uteq.edu.ec.artisync.repository.security.UserRepository;
+import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
+import uteq.edu.ec.artisync.service.shared.UserMapper;
+
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class UserServiceImplTest {
+
+    @Mock
+    private UserRepository usuarioRepository;
+    @Mock
+    private CountryRepository paisRepository;
+    @Mock
+    private PasswordEncoder passwordEncoder;
+    @Mock
+    private UserMapper usuarioMapper;
+    @Mock
+    private SessionRevocationService sessionRevocationService;
+
+    @InjectMocks
+    private UserServiceImpl userService;
+
+    private User usuario;
+    private UserResponse userResponse;
+
+    @BeforeEach
+    void setUp() {
+        usuario = User.builder()
+                .idUsuario(1L)
+                .correo("user@example.com")
+                .nombres("Ana")
+                .apellidos("Gomez")
+                .contrasenaHash("hash")
+                .build();
+
+        userResponse = UserResponse.builder()
+                .idUsuario(1L)
+                .correo("user@example.com")
+                .nombres("Ana")
+                .apellidos("Gomez")
+                .build();
+    }
+
+    @Test
+    void getCurrentUser_ShouldReturnProfile_WhenUserExists() {
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+        when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
+
+        UserResponse result = userService.getCurrentUser("user@example.com");
+
+        assertNotNull(result);
+        assertEquals("Ana", result.getNombres());
+        assertEquals("user@example.com", result.getCorreo());
+    }
+
+    @Test
+    void getCurrentUser_ShouldThrowNotFound_WhenUserDoesNotExist() {
+        when(usuarioRepository.findByCorreo("notfound@example.com")).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> userService.getCurrentUser("notfound@example.com"));
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    @Test
+    void updateCurrentUser_ShouldUpdateNamesAndCountry() {
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setNombres("Ana Maria");
+        request.setIdPais(5L);
+
+        Country pais = Country.builder().idPais(5L).nombrePais("Ecuador").build();
+
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+        when(paisRepository.findById(5L)).thenReturn(Optional.of(pais));
+        when(usuarioRepository.save(any(User.class))).thenReturn(usuario);
+        when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
+
+        UserResponse result = userService.updateCurrentUser("user@example.com", request);
+
+        assertNotNull(result);
+        verify(usuarioRepository).save(usuario);
+        assertEquals("Ana Maria", usuario.getNombres());
+        assertEquals(pais, usuario.getPais());
+    }
+
+    @Test
+    void updateCurrentUser_ShouldUpdateApellidosAndFechaNacimiento() {
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setApellidos("Gomez Ríos");
+        request.setFechaNacimiento(java.time.LocalDate.of(1995, 4, 20));
+
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(any(User.class))).thenReturn(usuario);
+        when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
+
+        userService.updateCurrentUser("user@example.com", request);
+
+        assertEquals("Gomez Ríos", usuario.getApellidos());
+        assertEquals(java.time.LocalDate.of(1995, 4, 20), usuario.getFechaNacimiento());
+        verify(paisRepository, never()).findById(any());
+    }
+
+    @Test
+    void updateCurrentUser_ShouldIgnoreBlankNombresYApellidos() {
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setNombres("   ");
+        request.setApellidos("");
+
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(any(User.class))).thenReturn(usuario);
+        when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
+
+        userService.updateCurrentUser("user@example.com", request);
+
+        assertEquals("Ana", usuario.getNombres());
+        assertEquals("Gomez", usuario.getApellidos());
+    }
+
+    @Test
+    void deleteOwnAccount_ShouldRevokeSessionsAndDeleteUser() {
+        // Fase 1 concurrencia: deleteOwnAccount delega la desactivacion +
+        // revocacion atomica en fn_cambiar_estado_cuenta (SessionRevocationService
+        // .cambiarEstadoCuenta), en vez de mutar la entidad y llamar a save() por
+        // separado de revocarSesionesUsuario.
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+
+        MessageResponse response = userService.deleteOwnAccount("user@example.com");
+
+        assertNotNull(response);
+        assertEquals("Cuenta desactivada exitosamente", response.getMessage());
+        verify(sessionRevocationService).changeAccountStatus(1L, false);
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    void updateCurrentUser_ShouldThrowBadRequest_WhenPaisNoExiste() {
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setIdPais(99L);
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+        when(paisRepository.findById(99L)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> userService.updateCurrentUser("user@example.com", request));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    @Test
+    // Fase 3 concurrencia: changePassword delega en fn_cambiar_contrasena
+    // (compare-and-swap sobre el hash actual), en vez de mutar la entidad y
+    // llamar a save() incondicionalmente (A7).
+    void changePassword_ShouldUpdateHash_WhenContrasenaActualCorrecta() {
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .contrasenaActual("actual").nuevaContrasena("NuevaClave123!").build();
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("actual", "hash")).thenReturn(true);
+        when(passwordEncoder.encode("NuevaClave123!")).thenReturn("nuevo-hash");
+        // sp_cambiar_contrasena es void (PROCEDURE, no FUNCTION): el exito se
+        // infiere de que no lance excepcion, no hace falta stubear un retorno.
+
+        MessageResponse respuesta = userService.changePassword("user@example.com", request);
+
+        assertNotNull(respuesta);
+        verify(usuarioRepository).cambiarContrasena(1L, "hash", "nuevo-hash");
+        verify(sessionRevocationService).revokeUserSessions(1L);
+    }
+
+    @Test
+    void changePassword_ShouldThrowConflict_WhenOtraSesionCambioLaContrasenaConcurrentemente() {
+        // fn_cambiar_contrasena lanza ERRCODE 40001 (serialization_failure) si
+        // el hash ya no coincidia con el verificado: otra sesion se adelanto.
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .contrasenaActual("actual").nuevaContrasena("NuevaClave123!").build();
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("actual", "hash")).thenReturn(true);
+        when(passwordEncoder.encode("NuevaClave123!")).thenReturn("nuevo-hash");
+        doThrow(new RuntimeException(new java.sql.SQLException(
+                        "La contrasena fue modificada por otra sesion. Vuelve a intentarlo.", "40001")))
+                .when(usuarioRepository).cambiarContrasena(1L, "hash", "nuevo-hash");
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> userService.changePassword("user@example.com", request));
+        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+        verify(sessionRevocationService, never()).revokeUserSessions(any());
+    }
+
+    @Test
+    void changePassword_ShouldThrowBadRequest_WhenContrasenaActualIncorrecta() {
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .contrasenaActual("mala").nuevaContrasena("NuevaClave123!").build();
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("mala", "hash")).thenReturn(false);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> userService.changePassword("user@example.com", request));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    void changePassword_ShouldThrowNotFound_WhenUsuarioNoExiste() {
+        ChangePasswordRequest request = ChangePasswordRequest.builder().contrasenaActual("x").nuevaContrasena("y").build();
+        when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> userService.changePassword("fantasma@example.com", request));
+    }
+
+    @Test
+    void deleteOwnAccount_ShouldThrowNotFound_WhenUsuarioNoExiste() {
+        when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> userService.deleteOwnAccount("fantasma@example.com"));
+    }
+
+    @Test
+    void revokeAllMySessions_ShouldRevoke() {
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+
+        MessageResponse respuesta = userService.revokeAllMySessions("user@example.com");
+
+        assertNotNull(respuesta);
+        verify(sessionRevocationService).revokeUserSessions(1L);
+    }
+
+    @Test
+    void revokeAllMySessions_ShouldThrowNotFound_WhenUsuarioNoExiste() {
+        when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> userService.revokeAllMySessions("fantasma@example.com"));
+    }
+}
+

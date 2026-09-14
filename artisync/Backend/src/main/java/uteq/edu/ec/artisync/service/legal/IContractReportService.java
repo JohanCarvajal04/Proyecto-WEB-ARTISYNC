@@ -1,9 +1,9 @@
 package uteq.edu.ec.artisync.service.legal;
 
-import uteq.edu.ec.artisync.dto.peticion.legal.ContractReportFilter;
-import uteq.edu.ec.artisync.dto.respuesta.legal.ContractReportRow;
-import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
-import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.dto.request.legal.ContractReportFilter;
+import uteq.edu.ec.artisync.dto.response.legal.ContractReportRow;
+import uteq.edu.ec.artisync.service.shared.report.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.report.ReportFormat;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 public interface IContractReportService {
