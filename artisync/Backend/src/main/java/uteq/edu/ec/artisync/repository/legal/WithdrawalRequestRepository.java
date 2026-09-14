@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.legal.WithdrawalRequest;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -55,5 +56,13 @@ public interface WithdrawalRequestRepository extends JpaRepository<WithdrawalReq
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM WithdrawalRequest s WHERE s.idSolicitud = :idSolicitud")
     Optional<WithdrawalRequest> findByIdParaActualizar(@Param("idSolicitud") Long idSolicitud);
+
+    /**
+     * Soporta WithdrawalPayoutReconciliationScheduler: solicitudes "Aprobado"
+     * (PayPal las dejó en PENDING/UNCLAIMED/PROCESSING) cuya decisión ya tiene
+     * más del umbral configurado sin que nadie haya vuelto a consultar su
+     * estado real en PayPal.
+     */
+    List<WithdrawalRequest> findByEstadoAndFechaDecisionBefore(String estado, LocalDateTime limite);
 }
 

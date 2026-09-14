@@ -43,7 +43,7 @@ url: "https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC"
 doi: "10.5281/zenodo.21978572"
 identifiers:
   - type: other
-    value: "sha256:cbe5e1639518ce04fb690180b63334343aababb08c19f3a770fd805afe015592"
+    value: "sha256:PENDIENTE-RECALCULAR-TRAS-MERGE"
     description: "Digest SHA-256 de docs/informe-final/Informe-Final-v1.0.0.pdf, para verificar la integridad del documento académico entregado."
 keywords:
   - web
