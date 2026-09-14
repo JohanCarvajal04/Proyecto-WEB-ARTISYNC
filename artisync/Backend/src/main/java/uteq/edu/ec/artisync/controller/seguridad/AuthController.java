@@ -182,12 +182,16 @@ public class AuthController {
     }
 
     private void escribirCookie(HttpServletResponse response, String nombre, String valor, int maxAgeSegundos) {
+        // SameSite=Strict (ADR-002): tanto en Docker Compose (nginx.conf) como en Render
+        // (nginx.render.conf.template) el navegador solo habla con el origen del frontend;
+        // nginx reenvía /api al backend por su hostname interno, así que la petición nunca
+        // es cross-site desde el punto de vista del navegador y Strict no rompe el flujo.
         ResponseCookie cookie = ResponseCookie.from(nombre, valor)
                 .httpOnly(true)
                 .secure(cookieSecure) // Configurable dinámicamente según entorno (HTTPS en producción)
                 .path("/api/v1/auth")
                 .maxAge(maxAgeSegundos)
-                .sameSite("Lax")
+                .sameSite("Strict")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }

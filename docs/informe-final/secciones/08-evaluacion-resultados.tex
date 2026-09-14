@@ -189,6 +189,16 @@ cobertura de seguridad consistente en ambas direcciones (top-down por
 control OWASP, bottom-up por herramienta automatizada), sin
 contradicciones entre ambas fuentes.
 
+\textbf{Cookie de refresh y cabeceras en producción.} Complementando A05,
+\texttt{docs/mediciones/seguridad/cabeceras-produccion.md} documenta las
+cinco propiedades de la cookie de refresh (\texttt{HttpOnly},
+\texttt{Secure}, \texttt{SameSite=Strict}, \texttt{Path} y \texttt{Max-Age})
+verificadas tanto a nivel de código (\texttt{AuthController}) como por
+pruebas automatizadas (\texttt{AuthControllerTest}, incluido el caso en el
+que \texttt{Secure} se desactiva en desarrollo local), y las cabeceras HSTS,
+CSP, X-Frame-Options y X-Content-Type-Options capturadas en vivo contra
+\texttt{artisync-frontend.onrender.com}.
+
 \section{Usabilidad (SUS) --- RQ1}
 
 \textbf{Métrica:} puntaje System Usability Scale
