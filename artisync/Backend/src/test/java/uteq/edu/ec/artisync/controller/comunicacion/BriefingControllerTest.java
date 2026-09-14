@@ -8,7 +8,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.CreateBriefingTemplateRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.BriefingResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.comunicacion.BriefingService;
@@ -73,10 +73,10 @@ class BriefingControllerTest {
     @Test
     void eliminarPlantilla_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        RespuestaMensaje respuesta = new RespuestaMensaje("Ok");
+        MessageResponse respuesta = new MessageResponse("Ok");
         when(briefingService.deleteTemplate(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<RespuestaMensaje> res = controlador.deleteTemplate(10L, user);
+        ResponseEntity<MessageResponse> res = controlador.deleteTemplate(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }

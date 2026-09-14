@@ -32,7 +32,7 @@ class VerificationSchedulerTest {
 
         scheduler.expirarPendientesAntiguas();
 
-        verify(verificacionExpiracionServicio).expirarCertificado(vencida);
+        verify(verificacionExpiracionServicio).expireCertificate(vencida);
     }
 
     @Test
@@ -51,14 +51,14 @@ class VerificationSchedulerTest {
         AiCertificate b = AiCertificate.builder().idCertificado(2L).urlDocumentoS3("b.jpg").build();
         when(certificadoIaRepository.findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore(eq("PENDIENTE"), any()))
                 .thenReturn(List.of(a, b));
-        doThrow(new RuntimeException("fallo simulado")).when(verificacionExpiracionServicio).expirarCertificado(a);
+        doThrow(new RuntimeException("fallo simulado")).when(verificacionExpiracionServicio).expireCertificate(a);
 
         scheduler.expirarPendientesAntiguas();
 
         // El fallo en 'a' no debe impedir que 'b' se procese: cada uno vive
         // en su propia transacción (REQUIRES_NEW), así que un error aislado
         // no debe abortar el resto del lote.
-        verify(verificacionExpiracionServicio).expirarCertificado(a);
-        verify(verificacionExpiracionServicio).expirarCertificado(b);
+        verify(verificacionExpiracionServicio).expireCertificate(a);
+        verify(verificacionExpiracionServicio).expireCertificate(b);
     }
 }

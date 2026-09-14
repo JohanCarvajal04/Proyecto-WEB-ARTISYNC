@@ -13,7 +13,7 @@ import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditContext;
 import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.ViolationResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.entity.comunicacion.MessageViolation;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
@@ -140,13 +140,13 @@ public class ViolationServiceImpl implements ViolationService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje revertSuspension(Long idUsuario) {
+    public MessageResponse revertSuspension(Long idUsuario) {
         User usuario = usuarioRepo.findById(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException("User no encontrado: " + idUsuario));
         usuario.setEstadoCuenta(true);
         usuarioRepo.save(usuario);
         log.info("Suspensión revertida para usuario {} por admin", idUsuario);
-        return new RespuestaMensaje("Cuenta del usuario " + usuario.getCorreo() + " reactivada correctamente");
+        return new MessageResponse("Cuenta del usuario " + usuario.getCorreo() + " reactivada correctamente");
     }
 
     // -------------------------------------------------------------------------

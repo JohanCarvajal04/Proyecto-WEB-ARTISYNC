@@ -47,7 +47,7 @@ public interface IPortfolioItemService {
 
     /**
      * Edita el título y la descripción de una obra. El archivo no cambia: para
-     * reemplazarlo hay que eliminar la obra y upload una nueva.
+     * reemplazarlo hay que eliminar la obra y subir una nueva.
      *
      * @param idItem    id de la obra a editar
      * @param idUsuario id del usuario que edita, debe ser el dueño del portafolio
@@ -67,7 +67,7 @@ public interface IPortfolioItemService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público y el solicitante no es su dueño
      */
-    ArchivoItem downloadFile(Long idItem, Long idUsuario);
+    DownloadedFile downloadFile(Long idItem, Long idUsuario);
 
     /**
      * Elimina una obra del portafolio, junto con su archivo almacenado.
@@ -79,6 +79,6 @@ public interface IPortfolioItemService {
      */
     void deleteItem(Long idItem, Long idUsuario);
 
-    record ArchivoItem(byte[] contenido, String nombreSugerido, String contentType) {
+    record DownloadedFile(byte[] contenido, String nombreSugerido, String contentType) {
     }
 }

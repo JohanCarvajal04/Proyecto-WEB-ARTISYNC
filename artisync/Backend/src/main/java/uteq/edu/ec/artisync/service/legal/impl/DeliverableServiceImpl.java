@@ -67,8 +67,8 @@ public class DeliverableServiceImpl implements IDeliverableService {
     @Transactional
     public DeliverableResponse uploadDeliverable(Long idPedido, Long idCreador,
                                                 MultipartFile versionMarcaAgua, MultipartFile versionLimpia) {
-        FilePolicy.ENTREGABLE.validar(versionMarcaAgua);
-        FilePolicy.ENTREGABLE.validar(versionLimpia);
+        FilePolicy.ENTREGABLE.validate(versionMarcaAgua);
+        FilePolicy.ENTREGABLE.validate(versionLimpia);
 
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
@@ -91,9 +91,9 @@ public class DeliverableServiceImpl implements IDeliverableService {
         String anteriorLimpia = entregable.getUrlVersionLimpia();
 
         entregable.setUrlVersionMarcaAgua(
-                almacenamiento.guardar(versionMarcaAgua, StoragePrefix.ENTREGABLES));
+                almacenamiento.save(versionMarcaAgua, StoragePrefix.ENTREGABLES));
         entregable.setUrlVersionLimpia(
-                almacenamiento.guardar(versionLimpia, StoragePrefix.ENTREGABLES));
+                almacenamiento.save(versionLimpia, StoragePrefix.ENTREGABLES));
 
         entregable = entregableRepository.save(entregable);
         deleteIfExists(anteriorMarcaAgua);
@@ -113,7 +113,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
             return;
         }
         try {
-            almacenamiento.eliminar(referencia);
+            almacenamiento.delete(referencia);
         } catch (RuntimeException e) {
             log.warn("No se pudo eliminar el entregable reemplazado {}: {}", referencia, e.getMessage());
         }
@@ -248,7 +248,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ArchivoDescargado downloadCleanVersion(Long idPedido, Long idCliente) {
+    public DownloadedFile downloadCleanVersion(Long idPedido, Long idCliente) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
 
@@ -269,7 +269,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
         }
 
         log.info("Descarga de version limpia para pedido {}", idPedido);
-        return new ArchivoDescargado(
+        return new DownloadedFile(
                 almacenamiento.leer(referencia),
                 "entregable-pedido-" + idPedido + extensionDe(referencia),
                 FileExtensions.contentTypeDe(referencia));
@@ -285,7 +285,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ArchivoDescargado downloadWatermarkedVersion(Long idPedido, Long idUsuario) {
+    public DownloadedFile downloadWatermarkedVersion(Long idPedido, Long idUsuario) {
         FinalDeliverable entregable = entregableRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("No hay entregable para este pedido"));
 
@@ -302,7 +302,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
             throw new ResourceNotFoundException("El entregable no tiene version con marca de agua");
         }
 
-        return new ArchivoDescargado(
+        return new DownloadedFile(
                 almacenamiento.leer(referencia),
                 "vista-previa-pedido-" + idPedido + extensionDe(referencia),
                 FileExtensions.contentTypeDe(referencia));

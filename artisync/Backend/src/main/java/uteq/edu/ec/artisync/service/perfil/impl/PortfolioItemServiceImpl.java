@@ -53,7 +53,7 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
     @Transactional
     public PortfolioItemResponse uploadItem(Long idPortafolio, Long idUsuario,
                                               CreatePortfolioItemRequest peticion, MultipartFile archivo) {
-        FilePolicy.PORTAFOLIO.validar(archivo);
+        FilePolicy.PORTAFOLIO.validate(archivo);
 
         Portfolio portafolio = portafolioRepository.findById(idPortafolio)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -66,7 +66,7 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
                     "El portafolio alcanzó el máximo de " + MAX_ITEMS_POR_PORTAFOLIO + " obras.");
         }
 
-        String referencia = almacenamiento.guardar(archivo, StoragePrefix.PORTAFOLIO);
+        String referencia = almacenamiento.save(archivo, StoragePrefix.PORTAFOLIO);
 
         PortfolioItem item = PortfolioItem.builder()
                 .portafolio(portafolio)
@@ -136,12 +136,12 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público
      *         y quien descarga no es su dueño
      */
-    public ArchivoItem downloadFile(Long idItem, Long idUsuario) {
+    public DownloadedFile downloadFile(Long idItem, Long idUsuario) {
         PortfolioItem item = findItem(idItem);
         exigirVisibilidad(item.getPortafolio(), idUsuario);
 
         String referencia = item.getUrlArchivoMultimedia();
-        return new ArchivoItem(
+        return new DownloadedFile(
                 almacenamiento.leer(referencia),
                 "obra-" + idItem + extensionDe(referencia),
                 FileExtensions.contentTypeDe(referencia));
@@ -206,7 +206,7 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
 
     /** Un portafolio privado solo lo ve su dueño; uno público, cualquiera. */
     private void exigirVisibilidad(Portfolio portafolio, Long idUsuario) {
-        // REQ-NF-018 (ajuste de seguimiento): una cuenta desactivada (soft-delete
+        // REQ-NF-018 (ajuste de seguimiento): una cuenta desactivada (soft-eliminar
         // o supresión real) nunca es visible, sin importar esPublico ni idUsuario
         // — el propio dueño, si su cuenta está desactivada, tampoco puede haberse
         // autenticado para pedirlo con su propio id.
@@ -236,7 +236,7 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
             return;
         }
         try {
-            almacenamiento.eliminar(referencia);
+            almacenamiento.delete(referencia);
         } catch (RuntimeException e) {
             log.warn("No se pudo eliminar el archivo {}: {}", referencia, e.getMessage());
         }

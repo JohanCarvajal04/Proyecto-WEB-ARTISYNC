@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.FollowedCreatorUpdateResponse;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.FollowStatusResponse;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.FollowerResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.comunicacion.IFollowerService;
 
@@ -104,7 +104,7 @@ class FollowerControllerTest {
     @Test
     void actualizarPortadaYTitulo_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        ResponseEntity<RespuestaMensaje> res = controlador.updateCoverAndTitle("url", "titulo", user);
+        ResponseEntity<MessageResponse> res = controlador.updateCoverAndTitle("url", "titulo", user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(seguidorServicio).updateCoverAndTitle(1L, "url", "titulo");
     }

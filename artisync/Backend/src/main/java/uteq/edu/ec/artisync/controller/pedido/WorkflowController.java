@@ -11,7 +11,7 @@ import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.dto.peticion.pedido.CreateWorkflowRequest;
 import uteq.edu.ec.artisync.dto.peticion.pedido.StageConfigRequest;
 import uteq.edu.ec.artisync.dto.peticion.pedido.SwapStagesRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.WorkflowResponse;
 import uteq.edu.ec.artisync.service.pedido.IWorkflowService;
 
@@ -178,12 +178,12 @@ public class WorkflowController {
      */
     @DeleteMapping("/{id}/etapas/{etapaId}")
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> deleteStage(
+    public ResponseEntity<MessageResponse> deleteStage(
             @PathVariable Long id,
             @PathVariable Long etapaId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         flujoTrabajoServicio.deleteStage(id, etapaId, userDetails.getIdUsuario(), puedeVerTodos(userDetails));
-        return ResponseEntity.ok(new RespuestaMensaje("Etapa eliminada exitosamente del flujo de trabajo"));
+        return ResponseEntity.ok(new MessageResponse("Etapa eliminada exitosamente del flujo de trabajo"));
     }
 
     private boolean puedeVerTodos(CustomUserDetails userDetails) {

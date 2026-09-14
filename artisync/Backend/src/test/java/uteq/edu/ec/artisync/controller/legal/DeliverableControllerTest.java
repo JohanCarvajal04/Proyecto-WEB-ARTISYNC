@@ -9,7 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.legal.DeliverableResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IDeliverableService;
@@ -64,16 +64,16 @@ class DeliverableControllerTest {
     void aprobarEntrega_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
 
-        ResponseEntity<RespuestaMensaje> res = controlador.approveDelivery(10L, user);
+        ResponseEntity<MessageResponse> res = controlador.approveDelivery(10L, user);
         verify(entregableServicio).approveDelivery(10L, 1L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(res.getBody().getMensaje()).contains("aprobada exitosamente");
+        assertThat(res.getBody().getMessage()).contains("aprobada exitosamente");
     }
 
     @Test
     void descargarVersionLimpia_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        IDeliverableService.ArchivoDescargado archivo = new IDeliverableService.ArchivoDescargado(
+        IDeliverableService.DownloadedFile archivo = new IDeliverableService.DownloadedFile(
                 new byte[]{1, 2}, "limpia.png", "image/png"
         );
         when(entregableServicio.downloadCleanVersion(10L, 1L)).thenReturn(archivo);
@@ -87,7 +87,7 @@ class DeliverableControllerTest {
     @Test
     void descargarVersionMarcaAgua_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        IDeliverableService.ArchivoDescargado archivo = new IDeliverableService.ArchivoDescargado(
+        IDeliverableService.DownloadedFile archivo = new IDeliverableService.DownloadedFile(
                 new byte[]{3, 4}, "marca.jpg", "image/jpeg"
         );
         when(entregableServicio.downloadWatermarkedVersion(10L, 1L)).thenReturn(archivo);

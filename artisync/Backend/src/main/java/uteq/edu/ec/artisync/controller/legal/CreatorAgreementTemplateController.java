@@ -9,7 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.legal.UpdateOwnAgreementTemplateRequest;
 import uteq.edu.ec.artisync.dto.peticion.legal.CreateOwnAgreementTemplateRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.legal.ContractTemplateResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.ICreatorAgreementTemplateService;
@@ -82,7 +82,7 @@ public class CreatorAgreementTemplateController {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe o no pertenece a este creador
      */
     @PatchMapping("/{id}/desactivar")
-    public ResponseEntity<RespuestaMensaje> deactivate(
+    public ResponseEntity<MessageResponse> deactivate(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(plantillaAcuerdoCreadorServicio.deactivate(userDetails.getIdUsuario(), id));

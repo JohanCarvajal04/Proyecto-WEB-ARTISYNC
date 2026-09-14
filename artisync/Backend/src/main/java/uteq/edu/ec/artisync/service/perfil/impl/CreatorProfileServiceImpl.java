@@ -99,7 +99,7 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
 
     /**
      * REQ-NF-018 (ajuste de seguimiento): oculta el perfil público de un
-     * creador con la cuenta desactivada (soft-delete o supresión real) —
+     * creador con la cuenta desactivada (soft-eliminar o supresión real) —
      * mismo criterio que ya aplica {@code listActiveProfiles()}, sin
      * excepción para ningún llamante: esta ruta está marcada permitAll() en
      * SecurityConfig y no distingue admin de público. Se responde igual que

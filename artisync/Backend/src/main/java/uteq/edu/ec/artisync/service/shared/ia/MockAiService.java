@@ -27,8 +27,8 @@ public class MockAiService extends AbstractAiService implements AiService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public IaVerificacionResponse verificarIdentidad(byte[] imagenBytes, String mimeType) {
-        return IaVerificacionResponse.builder()
+    public AiVerificationResponse verifyIdentity(byte[] imagenBytes, String mimeType) {
+        return AiVerificationResponse.builder()
                 .aprobado(true)
                 .confianza(new BigDecimal("0.92"))
                 .tipoDocumento("cedula")
@@ -48,8 +48,8 @@ public class MockAiService extends AbstractAiService implements AiService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public IaVerificacionResponse analizarCertificado(byte[] imagenBytes, String mimeType) {
-        return IaVerificacionResponse.builder()
+    public AiVerificationResponse analyzeCertificate(byte[] imagenBytes, String mimeType) {
+        return AiVerificationResponse.builder()
                 .aprobado(true)
                 .confianza(new BigDecimal("0.88"))
                 .tipoDocumento("titulo_universitario")
@@ -84,9 +84,9 @@ public class MockAiService extends AbstractAiService implements AiService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public IaClasificacionResponse clasificarServicio(String titulo, String descripcion, List<String> categoriasDisponibles) {
+    public AiClassificationResponse classifyOffering(String titulo, String descripcion, List<String> categoriasDisponibles) {
         String categoria = categoriasDisponibles.isEmpty() ? "General" : categoriasDisponibles.get(0);
-        return IaClasificacionResponse.builder()
+        return AiClassificationResponse.builder()
                 .categoriaSugerida(categoria).subcategoriaSugerida("General")
                 .etiquetasSugeridas(List.of("diseño", "creativo"))
                 .confianza(new BigDecimal("0.80")).build();
@@ -115,8 +115,8 @@ public class MockAiService extends AbstractAiService implements AiService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public IaResenaResponse analizarResena(String textoResena, int estrellas) {
-        return IaResenaResponse.builder()
+    public AiReviewResponse analyzeReview(String textoResena, int estrellas) {
+        return AiReviewResponse.builder()
                 .sentimiento(estrellas >= 4 ? "positivo" : "neutro")
                 .esCoherenteConEstrellas(true).esSpam(false).esInapropiado(false)
                 .confianza(new BigDecimal("0.90")).build();

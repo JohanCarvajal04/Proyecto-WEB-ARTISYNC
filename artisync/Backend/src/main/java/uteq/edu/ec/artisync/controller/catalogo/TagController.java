@@ -8,7 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.CreateTagRequest;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.TagResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.service.catalogo.ITagService;
 
 import java.util.List;
@@ -68,8 +68,8 @@ public class TagController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> deleteTag(@PathVariable Long id) {
+    public ResponseEntity<MessageResponse> deleteTag(@PathVariable Long id) {
         etiquetaServicio.deleteTag(id);
-        return ResponseEntity.ok(new RespuestaMensaje("Tag eliminada exitosamente"));
+        return ResponseEntity.ok(new MessageResponse("Tag eliminada exitosamente"));
     }
 }

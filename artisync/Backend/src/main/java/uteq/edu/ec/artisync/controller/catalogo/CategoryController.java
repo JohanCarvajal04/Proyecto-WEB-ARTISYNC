@@ -12,7 +12,7 @@ import uteq.edu.ec.artisync.dto.peticion.catalogo.CreateCategoryRequest;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.CreateSubcategoryRequest;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.CategoryResponse;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.SubcategoryResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.catalogo.ICategoryService;
 
@@ -103,11 +103,11 @@ public class CategoryController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> deleteCategory(
+    public ResponseEntity<MessageResponse> deleteCategory(
             @PathVariable Long id,
             @RequestParam(required = false) String motivo) {
         categoriaServicio.deleteCategory(id, motivo);
-        return ResponseEntity.ok(new RespuestaMensaje("Category eliminada exitosamente"));
+        return ResponseEntity.ok(new MessageResponse("Category eliminada exitosamente"));
     }
 
     /**

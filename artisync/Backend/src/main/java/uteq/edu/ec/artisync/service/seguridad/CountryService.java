@@ -3,7 +3,7 @@ import uteq.edu.ec.artisync.repository.seguridad.*;
 import uteq.edu.ec.artisync.repository.perfil.*;
 
 import uteq.edu.ec.artisync.dto.seguridad.request.CountryRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.CountryResponse;
 
 import java.util.List;
@@ -58,6 +58,6 @@ public interface CountryService {
      * @return mensaje indicando si el país quedó activado o desactivado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el país no existe
      */
-    RespuestaMensaje deleteCountry(Long id);
+    MessageResponse deleteCountry(Long id);
 }
 

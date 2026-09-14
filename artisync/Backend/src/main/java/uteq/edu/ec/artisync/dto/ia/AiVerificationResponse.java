@@ -20,7 +20,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class IaVerificacionResponse {
+public class AiVerificationResponse {
     private boolean aprobado;
     private BigDecimal confianza;
     private String tipoDocumento;

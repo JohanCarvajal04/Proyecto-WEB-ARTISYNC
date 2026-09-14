@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.pedido.AdvanceStageRequest;
 import uteq.edu.ec.artisync.dto.peticion.pedido.CreateOrderRequest;
 import uteq.edu.ec.artisync.dto.peticion.pedido.CreateTermsProposalRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.StatusHistoryResponse;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.OrderResponse;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.OrderSummaryResponse;
@@ -269,9 +269,9 @@ public class OrderController {
      * @return respuesta con estado 403 (Forbidden) y un mensaje explicativo
      */
     @DeleteMapping("/{id}/historial")
-    public ResponseEntity<RespuestaMensaje> blockDeleteHistory(@PathVariable Long id) {
+    public ResponseEntity<MessageResponse> blockDeleteHistory(@PathVariable Long id) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new RespuestaMensaje("Operacion no permitida sobre registros de auditoria"));
+                .body(new MessageResponse("Operacion no permitida sobre registros de auditoria"));
     }
 
     /**
@@ -281,8 +281,8 @@ public class OrderController {
      * @return respuesta con estado 403 (Forbidden) y un mensaje explicativo
      */
     @PatchMapping("/{id}/historial")
-    public ResponseEntity<RespuestaMensaje> blockPatchHistory(@PathVariable Long id) {
+    public ResponseEntity<MessageResponse> blockPatchHistory(@PathVariable Long id) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new RespuestaMensaje("Operacion no permitida sobre registros de auditoria"));
+                .body(new MessageResponse("Operacion no permitida sobre registros de auditoria"));
     }
 }

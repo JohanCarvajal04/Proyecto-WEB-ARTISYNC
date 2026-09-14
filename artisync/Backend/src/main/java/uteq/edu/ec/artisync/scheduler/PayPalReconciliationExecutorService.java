@@ -78,7 +78,7 @@ public class PayPalReconciliationExecutorService {
 
         String estado = orden.path("status").asText();
         switch (estado) {
-            case "COMPLETED" -> confirmarPago(pago, "reconciliación: la orden ya estaba COMPLETED en PayPal");
+            case "COMPLETED" -> confirmPayment(pago, "reconciliación: la orden ya estaba COMPLETED en PayPal");
             case "APPROVED" -> capturarYConfirmar(pago);
             case "VOIDED" -> log.warn(
                     "[PayPalReconciliationExecutorService] Orden {} (pago {}) VOIDED en PayPal; sigue Pendiente, "
@@ -98,14 +98,14 @@ public class PayPalReconciliationExecutorService {
                     HttpMethod.POST, objectMapper.createObjectNode());
             String estadoCaptura = respuesta.path("status").asText();
             if ("COMPLETED".equals(estadoCaptura)) {
-                confirmarPago(pago, "reconciliación: orden APPROVED capturada de forma proactiva");
+                confirmPayment(pago, "reconciliación: orden APPROVED capturada de forma proactiva");
             } else {
                 log.error("[PayPalReconciliationExecutorService] Captura de la orden {} devolvió estado {}",
                         pago.getIdOrdenPaypal(), estadoCaptura);
             }
         } catch (HttpStatusCodeException e) {
             if (e.getResponseBodyAsString().contains("ORDER_ALREADY_CAPTURED")) {
-                confirmarPago(pago, "reconciliación: la orden ya estaba capturada");
+                confirmPayment(pago, "reconciliación: la orden ya estaba capturada");
                 return;
             }
             log.error("[PayPalReconciliationExecutorService] Error capturando la orden {}: {}",
@@ -116,7 +116,7 @@ public class PayPalReconciliationExecutorService {
         }
     }
 
-    private void confirmarPago(EscrowPayment pago, String motivo) {
+    private void confirmPayment(EscrowPayment pago, String motivo) {
         pago.setEstadoFondos(FONDOS_RETENIDO);
         pagoGarantiaRepository.save(pago);
 

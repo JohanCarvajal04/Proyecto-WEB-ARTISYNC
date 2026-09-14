@@ -10,7 +10,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.entity.seguridad.*;
 import uteq.edu.ec.artisync.repository.seguridad.*;
@@ -105,7 +105,7 @@ public class UserServiceImpl implements UserService {
      *         400 si la contraseña actual no coincide, o 409 si otra sesión cambió la contraseña
      *         concurrentemente (compare-and-swap de {@code sp_cambiar_contrasena})
      */
-    public RespuestaMensaje changePassword(String correo, ChangePasswordRequest request) {
+    public MessageResponse changePassword(String correo, ChangePasswordRequest request) {
         User usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
@@ -128,29 +128,29 @@ public class UserServiceImpl implements UserService {
 
         sessionRevocationService.revokeUserSessions(usuario.getIdUsuario());
 
-        return new RespuestaMensaje("Contraseña cambiada exitosamente. Vuelve a iniciar sesión.");
+        return new MessageResponse("Contraseña cambiada exitosamente. Vuelve a iniciar sesión.");
     }
 
     @Override
     @Transactional
     /**
-     * Desactiva (soft delete) la cuenta del usuario autenticado y revoca sus
+     * Desactiva (soft eliminar) la cuenta del usuario autenticado y revoca sus
      * sesiones activas de forma atómica.
      *
      * @param correo correo electrónico del usuario autenticado
      * @return mensaje de confirmación
      * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
      */
-    public RespuestaMensaje deleteOwnAccount(String correo) {
+    public MessageResponse deleteOwnAccount(String correo) {
         User usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
         // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
-        // fn_cambiar_estado_cuenta desactiva la cuenta (soft delete) y revoca
+        // fn_cambiar_estado_cuenta desactiva la cuenta (soft eliminar) y revoca
         // sus sesiones atomicamente, bajo SELECT FOR UPDATE.
         sessionRevocationService.changeAccountStatus(usuario.getIdUsuario(), false);
 
-        return new RespuestaMensaje("Cuenta desactivada exitosamente");
+        return new MessageResponse("Cuenta desactivada exitosamente");
     }
 
     @Override
@@ -160,11 +160,11 @@ public class UserServiceImpl implements UserService {
      * @return mensaje de confirmación
      * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
      */
-    public RespuestaMensaje revokeAllMySessions(String correo) {
+    public MessageResponse revokeAllMySessions(String correo) {
         User usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
         sessionRevocationService.revokeUserSessions(usuario.getIdUsuario());
-        return new RespuestaMensaje("Todas las sesiones activas han sido cerradas.");
+        return new MessageResponse("Todas las sesiones activas han sido cerradas.");
     }
 
     @Override
@@ -179,20 +179,20 @@ public class UserServiceImpl implements UserService {
      * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
      */
     public UserResponse uploadProfilePicture(String correo, MultipartFile file) {
-        FilePolicy.PERFIL.validar(file);
+        FilePolicy.PERFIL.validate(file);
 
         User usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
         if (usuario.getUrlFotoPerfil() != null) {
             try {
-                almacenamientoDocumentos.eliminar(usuario.getUrlFotoPerfil());
+                almacenamientoDocumentos.delete(usuario.getUrlFotoPerfil());
             } catch (Exception e) {
-                // Ignore failure to delete old picture
+                // Ignore failure to eliminar old picture
             }
         }
         
-        String nuevaReferencia = almacenamientoDocumentos.guardar(file, StoragePrefix.PERFILES);
+        String nuevaReferencia = almacenamientoDocumentos.save(file, StoragePrefix.PERFILES);
         usuario.setUrlFotoPerfil(nuevaReferencia);
         usuarioRepository.save(usuario);
         

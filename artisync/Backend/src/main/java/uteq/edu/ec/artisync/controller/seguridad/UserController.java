@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.TwoFactorConfirmRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
@@ -73,7 +73,7 @@ public class UserController {
      */
     @Operation(summary = "Cambiar la contraseña del usuario autenticado actual")
     @PutMapping("/me/password")
-    public ResponseEntity<RespuestaMensaje> changePassword(Principal principal, @Valid @RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<MessageResponse> changePassword(Principal principal, @Valid @RequestBody ChangePasswordRequest request) {
         return ResponseEntity.ok(userService.changePassword(principal.getName(), request));
     }
 
@@ -85,7 +85,7 @@ public class UserController {
      */
     @Operation(summary = "Desactivar la cuenta del usuario autenticado actual")
     @DeleteMapping("/me")
-    public ResponseEntity<RespuestaMensaje> deleteOwnAccount(Principal principal) {
+    public ResponseEntity<MessageResponse> deleteOwnAccount(Principal principal) {
         return ResponseEntity.ok(userService.deleteOwnAccount(principal.getName()));
     }
 
@@ -108,7 +108,7 @@ public class UserController {
      */
     @Operation(summary = "Solicitar la supresión (anonimización) de los datos personales del usuario actual")
     @PostMapping("/me/solicitud-supresion")
-    public ResponseEntity<RespuestaMensaje> requestDataErasure(
+    public ResponseEntity<MessageResponse> requestDataErasure(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody(required = false) TwoFactorConfirmRequest request) {
         String codigo = request != null ? request.getCodigo() : null;
@@ -123,7 +123,7 @@ public class UserController {
      */
     @Operation(summary = "Cerrar todas las sesiones activas del usuario actual")
     @DeleteMapping("/me/sesiones")
-    public ResponseEntity<RespuestaMensaje> revokeAllMySessions(Principal principal) {
+    public ResponseEntity<MessageResponse> revokeAllMySessions(Principal principal) {
         return ResponseEntity.ok(userService.revokeAllMySessions(principal.getName()));
     }
 

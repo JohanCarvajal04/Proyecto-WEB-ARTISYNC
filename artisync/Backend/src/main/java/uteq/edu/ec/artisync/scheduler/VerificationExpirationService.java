@@ -30,8 +30,8 @@ public class VerificationExpirationService {
      * @param certificado certificado cuyo documento ya venció
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void expirarCertificado(AiCertificate certificado) {
-        almacenamiento.eliminar(certificado.getUrlDocumentoS3());
+    public void expireCertificate(AiCertificate certificado) {
+        almacenamiento.delete(certificado.getUrlDocumentoS3());
         certificado.setDocumentoEliminado(true);
         certificadoIaRepository.save(certificado);
     }

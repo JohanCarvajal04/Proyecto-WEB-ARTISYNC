@@ -9,7 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditContext;
 import uteq.edu.ec.artisync.audit.AuditModule;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.entity.legal.Contract;
 import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
 import uteq.edu.ec.artisync.entity.pedido.OrderStatusHistory;
@@ -119,18 +119,18 @@ public class PrivacyServiceImpl implements PrivacyService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje requestOwnErasure(Long idUsuario, String codigo) {
+    public MessageResponse requestOwnErasure(Long idUsuario, String codigo) {
         User usuario = usuarioRepository.findByIdParaAnonimizar(idUsuario)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
         if (isAnonymized(usuario)) {
-            return new RespuestaMensaje(MENSAJE_YA_ANONIMIZADO);
+            return new MessageResponse(MENSAJE_YA_ANONIMIZADO);
         }
 
         requireSecondFactorIfEnabled(usuario, codigo);
 
         if (hasOrderInProgress(idUsuario)) {
-            return new RespuestaMensaje(MENSAJE_PEDIDO_EN_CURSO);
+            return new MessageResponse(MENSAJE_PEDIDO_EN_CURSO);
         }
 
         List<String> excepciones = anonymize(usuario);
@@ -179,7 +179,7 @@ public class PrivacyServiceImpl implements PrivacyService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje anonymizeUserAsAdmin(Long idUsuario, Long idAdminActual) {
+    public MessageResponse anonymizeUserAsAdmin(Long idUsuario, Long idAdminActual) {
         if (idUsuario.equals(idAdminActual)) {
             throw new BusinessRuleException("No puedes suprimir tus propios datos desde el panel administrativo; usa la opción de autoservicio.");
         }
@@ -250,7 +250,7 @@ public class PrivacyServiceImpl implements PrivacyService {
     private void anonymizeUserData(User usuario) {
         if (usuario.getUrlFotoPerfil() != null) {
             try {
-                almacenamientoDocumentos.eliminar(usuario.getUrlFotoPerfil());
+                almacenamientoDocumentos.delete(usuario.getUrlFotoPerfil());
             } catch (Exception e) {
                 // La foto ya podría no existir en el proveedor; no bloquear la supresión por esto.
             }
@@ -278,7 +278,7 @@ public class PrivacyServiceImpl implements PrivacyService {
         }
 
         // fn_cambiar_estado_cuenta desactiva la cuenta y revoca sus sesiones
-        // atómicamente (mismo mecanismo que el soft-delete existente).
+        // atómicamente (mismo mecanismo que el soft-eliminar existente).
         sessionRevocationService.changeAccountStatus(usuario.getIdUsuario(), false);
     }
 
@@ -287,7 +287,7 @@ public class PrivacyServiceImpl implements PrivacyService {
         for (AiCertificate certificado : certificados) {
             if (!certificado.isDocumentoEliminado() && certificado.getUrlDocumentoS3() != null) {
                 try {
-                    almacenamientoDocumentos.eliminar(certificado.getUrlDocumentoS3());
+                    almacenamientoDocumentos.delete(certificado.getUrlDocumentoS3());
                 } catch (Exception e) {
                     // El documento ya podría no existir; no bloquear la supresión por esto.
                 }
@@ -338,11 +338,11 @@ public class PrivacyServiceImpl implements PrivacyService {
         return false;
     }
 
-    private RespuestaMensaje buildMessage(List<String> excepciones) {
+    private MessageResponse buildMessage(List<String> excepciones) {
         if (excepciones.isEmpty()) {
-            return new RespuestaMensaje("Datos personales suprimidos exitosamente.");
+            return new MessageResponse("Datos personales suprimidos exitosamente.");
         }
-        return new RespuestaMensaje(
+        return new MessageResponse(
                 "Datos personales suprimidos, con las siguientes excepciones legales: " + String.join(" | ", excepciones));
     }
 }

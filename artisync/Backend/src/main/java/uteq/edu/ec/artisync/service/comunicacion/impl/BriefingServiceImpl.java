@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.CreateBriefingTemplateRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.BriefingResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.entity.comunicacion.*;
 import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
@@ -131,7 +131,7 @@ public class BriefingServiceImpl implements BriefingService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje deleteTemplate(Long idPlantilla, Long idUsuario) {
+    public MessageResponse deleteTemplate(Long idPlantilla, Long idUsuario) {
         CreatorProfile perfil = resolveOwnProfile(idUsuario);
         BriefingTemplate plantilla = plantillaRepo.findById(idPlantilla)
                 .orElseThrow(() -> new ResourceNotFoundException("Plantilla no encontrada: " + idPlantilla));
@@ -142,7 +142,7 @@ public class BriefingServiceImpl implements BriefingService {
 
         plantillaRepo.delete(plantilla);
         log.info("Plantilla {} eliminada", idPlantilla);
-        return new RespuestaMensaje("Plantilla eliminada correctamente");
+        return new MessageResponse("Plantilla eliminada correctamente");
     }
 
     /**

@@ -45,8 +45,8 @@ public class LocalStorage implements DocumentStorage {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public String guardar(MultipartFile archivo) {
-        return guardar(archivo, "");
+    public String save(MultipartFile archivo) {
+        return save(archivo, "");
     }
 
     @Override
@@ -58,7 +58,7 @@ public class LocalStorage implements DocumentStorage {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public String guardar(MultipartFile archivo, String prefijo) {
+    public String save(MultipartFile archivo, String prefijo) {
         asegurarDirectorio();
         String nombre = StoragePrefix.componer(
                 prefijo, UUID.randomUUID() + FileExtensions.desde(archivo.getContentType()));
@@ -103,7 +103,7 @@ public class LocalStorage implements DocumentStorage {
      * @param referencia parametro requerido para la correcta ejecucion del procedimiento
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void eliminar(String referencia) {
+    public void delete(String referencia) {
         Path ruta = resolverDentroDeBase(referencia);
         try {
             Files.deleteIfExists(ruta);

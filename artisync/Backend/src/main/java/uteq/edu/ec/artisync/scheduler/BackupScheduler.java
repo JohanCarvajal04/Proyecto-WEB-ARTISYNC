@@ -33,7 +33,7 @@ public class BackupScheduler {
      * procesa en su propio try/catch para que un fallo no bloquee el resto.
      */
     @Scheduled(fixedRate = 60_000)
-    public void procesarProgramacionesPendientes() {
+    public void processPendingSchedules() {
         List<BackupSchedule> pendientes =
                 programacionRepository.findByActivoTrueAndProximaEjecucionLessThanEqual(LocalDateTime.now());
 
@@ -45,7 +45,7 @@ public class BackupScheduler {
 
         for (BackupSchedule programacion : pendientes) {
             try {
-                respaldoEjecutorServicio.iniciarDesdeProgramacion(programacion);
+                respaldoEjecutorServicio.startFromSchedule(programacion);
             } catch (Exception e) {
                 log.error("[BackupScheduler] Error al iniciar la programación {}: {}",
                         programacion.getIdProgramacion(), e.getMessage(), e);

@@ -46,7 +46,7 @@ public class EmailService {
      * @param tokenPlano parametro requerido para la correcta ejecucion del procedimiento
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void enviarCorreoRecuperacion(String destinatario, String nombres, String tokenPlano) {
+    public void sendRecoveryEmail(String destinatario, String nombres, String tokenPlano) {
         try {
             MimeMessage mensaje = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mensaje, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());

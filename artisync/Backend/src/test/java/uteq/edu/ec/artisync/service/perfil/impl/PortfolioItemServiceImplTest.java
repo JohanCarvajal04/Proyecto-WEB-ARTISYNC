@@ -84,7 +84,7 @@ class PortfolioItemServiceImplTest {
     void subirItem_guardaBajoElPrefijoDePortafolioYPersisteLaReferencia() {
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
         when(itemRepository.countByPortafolioIdPortafolio(ID_PORTAFOLIO)).thenReturn(0L);
-        when(almacenamiento.guardar(any(), eq("portafolio"))).thenReturn("portafolio/abc.png");
+        when(almacenamiento.save(any(), eq("portafolio"))).thenReturn("portafolio/abc.png");
         when(itemRepository.save(any())).thenAnswer(inv -> {
             PortfolioItem guardado = inv.getArgument(0);
             guardado.setIdItemPortafolio(ID_ITEM);
@@ -95,7 +95,7 @@ class PortfolioItemServiceImplTest {
         PortfolioItemResponse respuesta = servicio.uploadItem(
                 ID_PORTAFOLIO, ID_DUENIO, datos(), imagen());
 
-        verify(almacenamiento).guardar(any(), eq("portafolio"));
+        verify(almacenamiento).save(any(), eq("portafolio"));
         assertThat(respuesta.tituloObra()).isEqualTo("Mi obra");
         assertThat(respuesta.urlArchivo()).isEqualTo("/api/v1/portafolios/items/11/archivo");
     }
@@ -107,7 +107,7 @@ class PortfolioItemServiceImplTest {
         assertThrows(BusinessRuleException.class,
                 () -> servicio.uploadItem(ID_PORTAFOLIO, ID_OTRO, datos(), imagen()));
 
-        verify(almacenamiento, never()).guardar(any(), anyString());
+        verify(almacenamiento, never()).save(any(), anyString());
     }
 
     @Test
@@ -129,7 +129,7 @@ class PortfolioItemServiceImplTest {
         assertThrows(BusinessRuleException.class,
                 () -> servicio.uploadItem(ID_PORTAFOLIO, ID_DUENIO, datos(), imagen()));
 
-        verify(almacenamiento, never()).guardar(any(), anyString());
+        verify(almacenamiento, never()).save(any(), anyString());
     }
 
     /** Sin esto el archivo queda subido y facturándose sin fila que lo apunte. */
@@ -137,13 +137,13 @@ class PortfolioItemServiceImplTest {
     void subirItem_siFallaGuardarLaFila_borraElArchivoYaSubido() {
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
         when(itemRepository.countByPortafolioIdPortafolio(ID_PORTAFOLIO)).thenReturn(0L);
-        when(almacenamiento.guardar(any(), eq("portafolio"))).thenReturn("portafolio/huerfano.png");
+        when(almacenamiento.save(any(), eq("portafolio"))).thenReturn("portafolio/huerfano.png");
         when(itemRepository.save(any())).thenThrow(new RuntimeException("fallo de base"));
 
         assertThrows(RuntimeException.class,
                 () -> servicio.uploadItem(ID_PORTAFOLIO, ID_DUENIO, datos(), imagen()));
 
-        verify(almacenamiento).eliminar("portafolio/huerfano.png");
+        verify(almacenamiento).delete("portafolio/huerfano.png");
     }
 
     @Test
@@ -218,7 +218,7 @@ class PortfolioItemServiceImplTest {
         when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(item("portafolio/obra.mp4")));
         when(almacenamiento.leer("portafolio/obra.mp4")).thenReturn("video".getBytes());
 
-        IPortfolioItemService.ArchivoItem archivo = servicio.downloadFile(ID_ITEM, null);
+        IPortfolioItemService.DownloadedFile archivo = servicio.downloadFile(ID_ITEM, null);
 
         assertThat(archivo.contenido()).isEqualTo("video".getBytes());
         assertThat(archivo.contentType()).isEqualTo("video/mp4");
@@ -271,7 +271,7 @@ class PortfolioItemServiceImplTest {
         servicio.deleteItem(ID_ITEM, ID_DUENIO);
 
         verify(itemRepository).delete(existente);
-        verify(almacenamiento).eliminar("portafolio/obra.png");
+        verify(almacenamiento).delete("portafolio/obra.png");
     }
 
     @Test
@@ -281,7 +281,7 @@ class PortfolioItemServiceImplTest {
         assertThrows(BusinessRuleException.class, () -> servicio.deleteItem(ID_ITEM, ID_OTRO));
 
         verify(itemRepository, never()).delete(any());
-        verify(almacenamiento, never()).eliminar(anyString());
+        verify(almacenamiento, never()).delete(anyString());
     }
 
     /** Un huérfano en el almacenamiento es preferible a fallar el borrado entero. */
@@ -289,7 +289,7 @@ class PortfolioItemServiceImplTest {
     void eliminarItem_siFallaBorrarElArchivo_laFilaIgualSeElimina() {
         PortfolioItem existente = item("portafolio/obra.png");
         when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(existente));
-        doThrow(new BusinessRuleException("Azure caido")).when(almacenamiento).eliminar(anyString());
+        doThrow(new BusinessRuleException("Azure caido")).when(almacenamiento).delete(anyString());
 
         servicio.deleteItem(ID_ITEM, ID_DUENIO);
 

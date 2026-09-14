@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.perfil.CreateAiCertificateRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.AiCertificateResponse;
 import uteq.edu.ec.artisync.service.perfil.IAiCertificateService;
 
@@ -97,8 +97,8 @@ public class AiCertificateController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> deleteCertificate(@PathVariable Long id) {
+    public ResponseEntity<MessageResponse> deleteCertificate(@PathVariable Long id) {
         certificadoServicio.deleteCertificate(id);
-        return ResponseEntity.ok(new RespuestaMensaje("Certificado de IA eliminado exitosamente"));
+        return ResponseEntity.ok(new MessageResponse("Certificado de IA eliminado exitosamente"));
     }
 }

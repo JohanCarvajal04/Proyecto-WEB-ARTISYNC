@@ -10,7 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.ViolationResponse;
 import uteq.edu.ec.artisync.entity.comunicacion.MessageViolation;
 import uteq.edu.ec.artisync.entity.pedido.Order;
@@ -155,10 +155,10 @@ class ViolationServiceImplTest {
         User usuario = User.builder().idUsuario(1L).correo("juan@example.com").estadoCuenta(false).build();
         when(usuarioRepo.findById(1L)).thenReturn(Optional.of(usuario));
 
-        RespuestaMensaje respuesta = infraccionService.revertSuspension(1L);
+        MessageResponse respuesta = infraccionService.revertSuspension(1L);
 
         assertThat(usuario.getEstadoCuenta()).isTrue();
-        assertThat(respuesta.getMensaje()).isEqualTo("Cuenta del usuario juan@example.com reactivada correctamente");
+        assertThat(respuesta.getMessage()).isEqualTo("Cuenta del usuario juan@example.com reactivada correctamente");
         verify(usuarioRepo).save(usuario);
     }
 

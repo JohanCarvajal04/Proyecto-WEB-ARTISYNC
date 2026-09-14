@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.CreateTagRequest;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.TagResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.service.catalogo.ITagService;
 
 import java.util.List;
@@ -62,9 +62,9 @@ class TagControllerTest {
 
     @Test
     void eliminarEtiqueta_DebeRetornarMensajeDeConfirmacion() {
-        ResponseEntity<RespuestaMensaje> result = controlador.deleteTag(2L);
+        ResponseEntity<MessageResponse> result = controlador.deleteTag(2L);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(result.getBody().getMensaje()).contains("eliminada");
+        assertThat(result.getBody().getMessage()).contains("eliminada");
     }
 }

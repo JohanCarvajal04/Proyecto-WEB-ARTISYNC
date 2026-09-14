@@ -11,7 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.seguridad.request.CountryRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.CountryResponse;
 import uteq.edu.ec.artisync.service.seguridad.CountryService;
 
@@ -50,8 +50,8 @@ class CountryControllerTest {
 
     @Test
     void deletePais_ShouldReturnOk() {
-        when(paisService.deleteCountry(1L)).thenReturn(new RespuestaMensaje("Eliminado"));
-        ResponseEntity<RespuestaMensaje> result = paisController.deleteCountry(1L);
+        when(paisService.deleteCountry(1L)).thenReturn(new MessageResponse("Eliminado"));
+        ResponseEntity<MessageResponse> result = paisController.deleteCountry(1L);
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
 }

@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChangeEstadoRequest {
+public class ChangeAccountStatusRequest {
 
     @NotNull(message = "El estado de la cuenta es obligatorio")
     private Boolean estadoCuenta;

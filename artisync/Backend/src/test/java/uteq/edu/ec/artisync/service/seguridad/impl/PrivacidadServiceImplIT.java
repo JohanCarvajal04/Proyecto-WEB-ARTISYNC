@@ -251,7 +251,7 @@ class PrivacidadServiceImplIT {
         var respuesta = privacidadService.anonymizeUserAsAdmin(ID_CREADOR, ID_ADMIN);
         entityManager.flush();
 
-        assertThat(respuesta.getMensaje()).contains("excepciones legales");
+        assertThat(respuesta.getMessage()).contains("excepciones legales");
 
         // usuarios y certificados_ia SI se anonimizan; solo datos_pago_creador se conserva.
         String correo = jdbcTemplate.queryForObject(
@@ -270,7 +270,7 @@ class PrivacidadServiceImplIT {
         privacidadService.requestOwnErasure(ID_CREADOR, null);
         var segundaRespuesta = privacidadService.requestOwnErasure(ID_CREADOR, null);
 
-        assertThat(segundaRespuesta.getMensaje())
+        assertThat(segundaRespuesta.getMessage())
                 .isEqualTo("Tus datos personales ya fueron suprimidos anteriormente.");
     }
 }

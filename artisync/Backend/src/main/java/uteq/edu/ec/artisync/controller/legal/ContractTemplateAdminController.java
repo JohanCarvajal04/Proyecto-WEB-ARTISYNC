@@ -8,7 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.legal.UpdateContractTemplateRequest;
 import uteq.edu.ec.artisync.dto.peticion.legal.CreateContractTemplateRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.legal.ContractTemplateResponse;
 import uteq.edu.ec.artisync.service.legal.IContractTemplateAdminService;
 
@@ -73,7 +73,7 @@ public class ContractTemplateAdminController {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la plantilla no puede desactivarse en su estado actual
      */
     @PatchMapping("/{id}/desactivar")
-    public ResponseEntity<RespuestaMensaje> deactivate(@PathVariable Long id) {
+    public ResponseEntity<MessageResponse> deactivate(@PathVariable Long id) {
         return ResponseEntity.ok(plantillaContratoAdminServicio.deactivate(id));
     }
 }

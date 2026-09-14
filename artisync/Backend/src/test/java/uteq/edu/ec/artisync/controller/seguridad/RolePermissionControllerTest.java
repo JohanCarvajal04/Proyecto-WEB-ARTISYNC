@@ -12,7 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.seguridad.request.CreateRoleRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateRoleRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.RoleResponse;
 import uteq.edu.ec.artisync.service.seguridad.RolePermissionService;
 
@@ -74,10 +74,10 @@ class RolePermissionControllerTest {
 
     @Test
     void deleteRole_Success() {
-        ResponseEntity<RespuestaMensaje> response = controller.deleteRole(5L);
+        ResponseEntity<MessageResponse> response = controller.deleteRole(5L);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Role eliminado exitosamente", response.getBody().getMensaje());
+        assertEquals("Role eliminado exitosamente", response.getBody().getMessage());
         verify(service).deleteRole(5L);
     }
 }

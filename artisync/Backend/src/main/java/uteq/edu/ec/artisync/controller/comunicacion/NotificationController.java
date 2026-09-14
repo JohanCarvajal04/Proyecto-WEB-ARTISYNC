@@ -10,7 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.NotificationResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 
@@ -72,10 +72,10 @@ public class NotificationController {
     @Operation(summary = "Marcar todas las notificaciones como leídas")
     @PutMapping("/leer-todas")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaMensaje> markAllAsRead(
+    public ResponseEntity<MessageResponse> markAllAsRead(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         int count = notificacionService.markAllAsRead(userDetails.getIdUsuario());
-        return ResponseEntity.ok(new RespuestaMensaje(count + " notificaciones marcadas como leídas"));
+        return ResponseEntity.ok(new MessageResponse(count + " notificaciones marcadas como leídas"));
     }
 
     /**

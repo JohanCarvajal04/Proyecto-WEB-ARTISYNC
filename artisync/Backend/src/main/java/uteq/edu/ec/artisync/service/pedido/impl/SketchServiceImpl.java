@@ -31,8 +31,8 @@ public class SketchServiceImpl implements ISketchService {
 
     @Override
     @Transactional
-    public SketchResponse subirBoceto(Long idPedido, Long idCreador, MultipartFile imagen) {
-        FilePolicy.BOCETO.validar(imagen);
+    public SketchResponse uploadSketch(Long idPedido, Long idCreador, MultipartFile imagen) {
+        FilePolicy.BOCETO.validate(imagen);
 
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
@@ -49,9 +49,9 @@ public class SketchServiceImpl implements ISketchService {
         // referencia anterior quedaría sin nadie que la apunte, y en Azure se
         // seguiría facturando.
         String anterior = boceto.getUrlImagen();
-        boceto.setUrlImagen(almacenamiento.guardar(imagen, StoragePrefix.BOCETOS));
+        boceto.setUrlImagen(almacenamiento.save(imagen, StoragePrefix.BOCETOS));
         boceto = bocetoRepository.save(boceto);
-        eliminarSiExiste(anterior);
+        deleteIfExists(anterior);
 
         log.info("Boceto subido para pedido {} por creador {}", idPedido, idCreador);
 
@@ -61,12 +61,12 @@ public class SketchServiceImpl implements ISketchService {
         return mapToRespuesta(boceto);
     }
 
-    private void eliminarSiExiste(String referencia) {
+    private void deleteIfExists(String referencia) {
         if (referencia == null || referencia.isBlank()) {
             return;
         }
         try {
-            almacenamiento.eliminar(referencia);
+            almacenamiento.delete(referencia);
         } catch (RuntimeException e) {
             log.warn("No se pudo eliminar el boceto reemplazado {}: {}", referencia, e.getMessage());
         }
@@ -74,32 +74,32 @@ public class SketchServiceImpl implements ISketchService {
 
     @Override
     @Transactional(readOnly = true)
-    public SketchResponse obtenerBoceto(Long idPedido, Long idUsuario) {
+    public SketchResponse getSketch(Long idPedido, Long idUsuario) {
         Sketch boceto = bocetoRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("No hay boceto para este pedido"));
 
-        validarAcceso(boceto.getPedido(), idUsuario);
+        validateAccess(boceto.getPedido(), idUsuario);
 
         return mapToRespuesta(boceto);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ArchivoDescargado descargarBoceto(Long idPedido, Long idUsuario) {
+    public DownloadedFile downloadSketch(Long idPedido, Long idUsuario) {
         Sketch boceto = bocetoRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("No hay boceto para este pedido"));
 
-        validarAcceso(boceto.getPedido(), idUsuario);
+        validateAccess(boceto.getPedido(), idUsuario);
 
         String referencia = boceto.getUrlImagen();
-        return new ArchivoDescargado(
+        return new DownloadedFile(
                 almacenamiento.leer(referencia),
                 "boceto-pedido-" + idPedido + extensionDe(referencia),
                 FileExtensions.contentTypeDe(referencia));
     }
 
     /** La ve el cliente que da seguimiento y el creador que lo subió; nadie más. */
-    private void validarAcceso(Order pedido, Long idUsuario) {
+    private void validateAccess(Order pedido, Long idUsuario) {
         boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuario);
         boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuario);
         if (!esCliente && !esCreador) {
@@ -117,12 +117,12 @@ public class SketchServiceImpl implements ISketchService {
         return SketchResponse.builder()
                 .idBoceto(boceto.getIdBoceto())
                 .idPedido(idPedido)
-                .urlImagen(urlDescarga(boceto.getUrlImagen(), "/api/v1/pedidos/" + idPedido + "/boceto/descargar"))
+                .urlImagen(downloadUrl(boceto.getUrlImagen(), "/api/v1/pedidos/" + idPedido + "/boceto/descargar"))
                 .fechaSubida(boceto.getFechaSubida())
                 .build();
     }
 
-    private String urlDescarga(String referencia, String rutaProxy) {
+    private String downloadUrl(String referencia, String rutaProxy) {
         if (referencia == null || referencia.isBlank()) {
             return null;
         }

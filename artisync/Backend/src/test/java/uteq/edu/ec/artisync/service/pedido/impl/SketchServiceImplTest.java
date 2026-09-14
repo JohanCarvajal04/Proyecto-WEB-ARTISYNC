@@ -77,54 +77,54 @@ class SketchServiceImplTest {
     // ── Subida ───────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("subirBoceto crea un registro nuevo cuando el pedido no tiene boceto todavia")
+    @DisplayName("uploadSketch crea un registro nuevo cuando el pedido no tiene boceto todavia")
     void subirBoceto_sinBocetoPrevio_creaUno() {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
         when(bocetoRepository.findByPedidoIdPedido(ID_PEDIDO)).thenReturn(Optional.empty());
-        when(almacenamiento.guardar(any(), eq("bocetos"))).thenReturn("bocetos/nuevo.png");
+        when(almacenamiento.save(any(), eq("bocetos"))).thenReturn("bocetos/nuevo.png");
         when(bocetoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
 
-        SketchResponse respuesta = servicio.subirBoceto(ID_PEDIDO, ID_CREADOR, imagen("boceto"));
+        SketchResponse respuesta = servicio.uploadSketch(ID_PEDIDO, ID_CREADOR, imagen("boceto"));
 
         assertThat(respuesta.getIdPedido()).isEqualTo(ID_PEDIDO);
-        verify(almacenamiento, never()).eliminar(anyString());
+        verify(almacenamiento, never()).delete(anyString());
     }
 
     @Test
-    @DisplayName("subirBoceto reemplaza el boceto existente y borra la referencia anterior")
+    @DisplayName("uploadSketch reemplaza el boceto existente y borra la referencia anterior")
     void subirBoceto_sobreUnoExistente_borraLaReferenciaAnterior() {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
         when(bocetoRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(bocetoGuardado("bocetos/vieja.png")));
-        when(almacenamiento.guardar(any(), eq("bocetos"))).thenReturn("bocetos/nueva.png");
+        when(almacenamiento.save(any(), eq("bocetos"))).thenReturn("bocetos/nueva.png");
         when(bocetoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
 
-        servicio.subirBoceto(ID_PEDIDO, ID_CREADOR, imagen("boceto"));
+        servicio.uploadSketch(ID_PEDIDO, ID_CREADOR, imagen("boceto"));
 
-        verify(almacenamiento).eliminar("bocetos/vieja.png");
+        verify(almacenamiento).delete("bocetos/vieja.png");
     }
 
     @Test
-    @DisplayName("subirBoceto rechaza a un usuario que no es el creador del servicio")
+    @DisplayName("uploadSketch rechaza a un usuario que no es el creador del servicio")
     void subirBoceto_usuarioQueNoEsElCreador_esRechazado() {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
 
         assertThrows(BusinessRuleException.class,
-                () -> servicio.subirBoceto(ID_PEDIDO, ID_TERCERO, imagen("boceto")));
+                () -> servicio.uploadSketch(ID_PEDIDO, ID_TERCERO, imagen("boceto")));
 
-        verify(almacenamiento, never()).guardar(any(), anyString());
+        verify(almacenamiento, never()).save(any(), anyString());
     }
 
     @Test
-    @DisplayName("subirBoceto rechaza un formato no permitido antes de tocar la base")
+    @DisplayName("uploadSketch rechaza un formato no permitido antes de tocar la base")
     void subirBoceto_formatoNoPermitido_seRechazaAntesDeTocarLaBase() {
         MockMultipartFile ejecutable = new MockMultipartFile(
                 "imagen", "virus.exe", "application/x-msdownload", "MZ".getBytes());
 
         assertThrows(BusinessRuleException.class,
-                () -> servicio.subirBoceto(ID_PEDIDO, ID_CREADOR, ejecutable));
+                () -> servicio.uploadSketch(ID_PEDIDO, ID_CREADOR, ejecutable));
 
         verifyNoInteractions(pedidoRepository, almacenamiento);
     }
@@ -132,58 +132,58 @@ class SketchServiceImplTest {
     // ── Consulta ─────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("obtenerBoceto lanza recurso no encontrado si el pedido no tiene boceto")
+    @DisplayName("getSketch lanza recurso no encontrado si el pedido no tiene boceto")
     void obtenerBoceto_sinBoceto_lanzaRecursoNoEncontrado() {
         when(bocetoRepository.findByPedidoIdPedido(ID_PEDIDO)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
-                () -> servicio.obtenerBoceto(ID_PEDIDO, ID_CLIENTE));
+                () -> servicio.getSketch(ID_PEDIDO, ID_CLIENTE));
     }
 
     @Test
-    @DisplayName("obtenerBoceto rechaza a un tercero sin relacion con el pedido")
+    @DisplayName("getSketch rechaza a un tercero sin relacion con el pedido")
     void obtenerBoceto_terceroSinRelacionConElPedido_esRechazado() {
         when(bocetoRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(bocetoGuardado("bocetos/b.png")));
 
         assertThrows(BusinessRuleException.class,
-                () -> servicio.obtenerBoceto(ID_PEDIDO, ID_TERCERO));
+                () -> servicio.getSketch(ID_PEDIDO, ID_TERCERO));
     }
 
     @Test
-    @DisplayName("obtenerBoceto permite verlo tanto al cliente como al creador")
+    @DisplayName("getSketch permite verlo tanto al cliente como al creador")
     void obtenerBoceto_clienteYCreadorPuedenVerlo() {
         when(bocetoRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(bocetoGuardado("bocetos/b.png")));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
 
-        assertThat(servicio.obtenerBoceto(ID_PEDIDO, ID_CLIENTE)).isNotNull();
-        assertThat(servicio.obtenerBoceto(ID_PEDIDO, ID_CREADOR)).isNotNull();
+        assertThat(servicio.getSketch(ID_PEDIDO, ID_CLIENTE)).isNotNull();
+        assertThat(servicio.getSketch(ID_PEDIDO, ID_CREADOR)).isNotNull();
     }
 
     // ── Descarga ─────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("descargarBoceto devuelve los bytes reales y su content-type")
+    @DisplayName("downloadSketch devuelve los bytes reales y su content-type")
     void descargarBoceto_devuelveBytesRealesYSuContentType() {
         when(bocetoRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(bocetoGuardado("bocetos/b.png")));
         when(almacenamiento.leer("bocetos/b.png")).thenReturn("png".getBytes());
 
-        ISketchService.ArchivoDescargado archivo = servicio.descargarBoceto(ID_PEDIDO, ID_CLIENTE);
+        ISketchService.DownloadedFile archivo = servicio.downloadSketch(ID_PEDIDO, ID_CLIENTE);
 
         assertThat(archivo.contenido()).isEqualTo("png".getBytes());
         assertThat(archivo.contentType()).isEqualTo("image/png");
     }
 
     @Test
-    @DisplayName("descargarBoceto rechaza a un tercero sin relacion con el pedido")
+    @DisplayName("downloadSketch rechaza a un tercero sin relacion con el pedido")
     void descargarBoceto_terceroSinRelacionConElPedido_esRechazado() {
         when(bocetoRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(bocetoGuardado("bocetos/b.png")));
 
         assertThrows(BusinessRuleException.class,
-                () -> servicio.descargarBoceto(ID_PEDIDO, ID_TERCERO));
+                () -> servicio.downloadSketch(ID_PEDIDO, ID_TERCERO));
 
         verify(almacenamiento, never()).leer(anyString());
     }

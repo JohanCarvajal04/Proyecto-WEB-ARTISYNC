@@ -72,7 +72,7 @@ class BackupServiceImplTest {
     void solicitarRespaldo_SinRespaldoEnProgreso_DebeIniciarUnoNuevo() {
         when(respaldoRepository.existsByEstadoRespaldo(BackupStatus.EN_PROGRESO)).thenReturn(false);
         Backup creado = respaldoBase(1L);
-        when(respaldoEjecutorServicio.iniciarManual(BackupType.FULL, "admin@artisync.dev")).thenReturn(creado);
+        when(respaldoEjecutorServicio.startManual(BackupType.FULL, "admin@artisync.dev")).thenReturn(creado);
 
         BackupResponse resultado = servicio.requestBackup(BackupType.FULL, "admin@artisync.dev");
 
@@ -85,7 +85,7 @@ class BackupServiceImplTest {
 
         assertThatThrownBy(() -> servicio.requestBackup(BackupType.FULL, "admin@artisync.dev"))
                 .isInstanceOf(BusinessRuleException.class);
-        verify(respaldoEjecutorServicio, never()).iniciarManual(any(), any());
+        verify(respaldoEjecutorServicio, never()).startManual(any(), any());
     }
 
     @Test
@@ -181,7 +181,7 @@ class BackupServiceImplTest {
     void eliminar_ConIncrementalesDependientes_DebeRechazar() {
         Backup respaldo = respaldoBase(1L);
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldo));
-        when(retencionScheduler.esSeguroEliminar(respaldo)).thenReturn(false);
+        when(retencionScheduler.isSafeToDelete(respaldo)).thenReturn(false);
 
         assertThatThrownBy(() -> servicio.delete(1L))
                 .isInstanceOf(BusinessRuleException.class);
@@ -193,7 +193,7 @@ class BackupServiceImplTest {
         Backup respaldo = respaldoBase(1L);
         respaldo.setRutaArchivo(null);
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldo));
-        when(retencionScheduler.esSeguroEliminar(respaldo)).thenReturn(true);
+        when(retencionScheduler.isSafeToDelete(respaldo)).thenReturn(true);
 
         servicio.delete(1L);
 
@@ -207,7 +207,7 @@ class BackupServiceImplTest {
         Backup respaldo = respaldoBase(1L);
         respaldo.setRutaArchivo(archivo.toString());
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldo));
-        when(retencionScheduler.esSeguroEliminar(respaldo)).thenReturn(true);
+        when(retencionScheduler.isSafeToDelete(respaldo)).thenReturn(true);
 
         servicio.delete(1L);
 

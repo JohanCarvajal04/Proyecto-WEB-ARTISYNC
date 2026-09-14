@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
 import uteq.edu.ec.artisync.entity.seguridad.TwoFactorAuthentication;
 import uteq.edu.ec.artisync.entity.seguridad.User;
@@ -112,7 +112,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         // Fase 3 concurrencia (§7): fn_configurar_2fa hace el upsert del
         // secreto TOTP + el reemplazo completo de los codigos de respaldo en
         // UNA transaccion atomica, en vez de los 10 pasos no atomicos
-        // anteriores (upsert manual + delete + 8 save() individuales), que
+        // anteriores (upsert manual + eliminar + 8 save() individuales), que
         // dejaban al usuario con un secreto nuevo y codigos incompletos si el
         // proceso fallaba a mitad del bucle.
         autenticacionDosFactoresRepository.configurar2Fa(usuario.getIdUsuario(), secreto, hashes);
@@ -137,7 +137,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje confirm2Fa(String correo, String codigo) {
+    public MessageResponse confirm2Fa(String correo, String codigo) {
         User usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
@@ -154,7 +154,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         dosFactores.setEstaHabilitado(true);
         autenticacionDosFactoresRepository.save(dosFactores);
 
-        return new RespuestaMensaje("Autenticación de dos factores activada exitosamente");
+        return new MessageResponse("Autenticación de dos factores activada exitosamente");
     }
 
     @Override
@@ -168,7 +168,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje disable2Fa(String correo, String codigo) {
+    public MessageResponse disable2Fa(String correo, String codigo) {
         User usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
@@ -191,7 +191,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         // UPDATE + DELETE separados anteriores.
         autenticacionDosFactoresRepository.desactivar2Fa(usuario.getIdUsuario());
 
-        return new RespuestaMensaje("Autenticación de dos factores desactivada exitosamente");
+        return new MessageResponse("Autenticación de dos factores desactivada exitosamente");
     }
 
     @Override

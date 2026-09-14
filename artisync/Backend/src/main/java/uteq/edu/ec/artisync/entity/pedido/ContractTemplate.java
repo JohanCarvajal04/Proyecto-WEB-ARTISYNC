@@ -39,7 +39,7 @@ public class ContractTemplate {
     @Column(name = "es_predeterminada", nullable = false)
     private Boolean esPredeterminada = false;
 
-    /** Soft delete: no se borra físicamente porque Contract.plantilla la referencia con FK. */
+    /** Soft eliminar: no se borra físicamente porque Contract.plantilla la referencia con FK. */
     @Builder.Default
     @Column(name = "activa", nullable = false)
     private Boolean activa = true;

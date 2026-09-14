@@ -51,7 +51,7 @@ public class ReportChartGenerator {
     /**
      * Genera una gráfica moderna tipo Donut de usuarios agrupados por rol.
      */
-    public byte[] generarGraficaRol(Map<String, Long> datosRol) {
+    public byte[] generateRoleChart(Map<String, Long> datosRol) {
         BufferedImage imagen = new BufferedImage(ANCHO, ALTO, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = configurarGraphics(imagen);
 
@@ -60,8 +60,8 @@ public class ReportChartGenerator {
 
             long total = datosRol.values().stream().mapToLong(Long::longValue).sum();
             if (total == 0) {
-                dibujarMensajeSinDatos(g);
-                return convertirAPng(imagen);
+                drawNoDataMessage(g);
+                return convertToPng(imagen);
             }
 
             // Dimensiones y posición del Donut
@@ -138,7 +138,7 @@ public class ReportChartGenerator {
                 // Nombre del rol
                 g.setColor(COLOR_TEXTO_TITULO);
                 g.setFont(new Font("SansSerif", Font.BOLD, 11));
-                String nombreLegible = formatearNombreRol(entry.getKey());
+                String nombreLegible = formatRoleName(entry.getKey());
                 g.drawString(nombreLegible, leyendaX + 18, yFila + 10);
 
                 // Conteo y porcentaje
@@ -151,7 +151,7 @@ public class ReportChartGenerator {
                 colorIdx++;
             }
 
-            return convertirAPng(imagen);
+            return convertToPng(imagen);
         } finally {
             g.dispose();
         }
@@ -160,7 +160,7 @@ public class ReportChartGenerator {
     /**
      * Genera una gráfica moderna de barras horizontales de usuarios agrupados por país.
      */
-    public byte[] generarGraficaPais(Map<String, Long> datosPais) {
+    public byte[] generateCountryChart(Map<String, Long> datosPais) {
         BufferedImage imagen = new BufferedImage(ANCHO, ALTO, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = configurarGraphics(imagen);
 
@@ -169,8 +169,8 @@ public class ReportChartGenerator {
 
             long total = datosPais.values().stream().mapToLong(Long::longValue).sum();
             if (total == 0) {
-                dibujarMensajeSinDatos(g);
-                return convertirAPng(imagen);
+                drawNoDataMessage(g);
+                return convertToPng(imagen);
             }
 
             // Ordenar por cantidad descendente
@@ -236,7 +236,7 @@ public class ReportChartGenerator {
                 fila++;
             }
 
-            return convertirAPng(imagen);
+            return convertToPng(imagen);
         } finally {
             g.dispose();
         }
@@ -280,7 +280,7 @@ public class ReportChartGenerator {
         g.drawLine(16, 62, ANCHO - 16, 62);
     }
 
-    private void dibujarMensajeSinDatos(Graphics2D g) {
+    private void drawNoDataMessage(Graphics2D g) {
         g.setColor(COLOR_TEXTO_MUTED);
         g.setFont(new Font("SansSerif", Font.ITALIC, 12));
         String msg = "No hay datos suficientes para graficar.";
@@ -288,7 +288,7 @@ public class ReportChartGenerator {
         g.drawString(msg, (ANCHO - fm.stringWidth(msg)) / 2, ALTO / 2);
     }
 
-    private String formatearNombreRol(String rol) {
+    private String formatRoleName(String rol) {
         if (rol == null) return "Sin Role";
         return switch (rol.toUpperCase()) {
             case "ADMIN", "ROLE_ADMIN" -> "Administrador";
@@ -301,7 +301,7 @@ public class ReportChartGenerator {
         };
     }
 
-    private byte[] convertirAPng(BufferedImage imagen) {
+    private byte[] convertToPng(BufferedImage imagen) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             ImageIO.write(imagen, "png", baos);
             return baos.toByteArray();

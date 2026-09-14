@@ -54,7 +54,7 @@ public class ContractReportServiceImpl implements IContractReportService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public PagedResponse<ContractReportRow> list(ContractReportFilter filtro, int page, int size) {
-        Page<ContractReportRow> resultado = contratoRepository.buscarParaReporte(
+        Page<ContractReportRow> resultado = contratoRepository.findForReport(
                 filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),
                 PageRequest.of(page, size));
         return PagedResponseBuilder.build(resultado);
@@ -82,7 +82,7 @@ public class ContractReportServiceImpl implements IContractReportService {
 
         if (page != null) {
             int pageSize = (size != null && size > 0 && size <= formato.topeFilas()) ? size : formato.topeFilas();
-            pagina = contratoRepository.buscarParaReporte(
+            pagina = contratoRepository.findForReport(
                     filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),
                     PageRequest.of(page, pageSize, Sort.by(Sort.Direction.DESC, "fechaFormalizacion")));
             int parte = page + 1;
@@ -91,7 +91,7 @@ public class ContractReportServiceImpl implements IContractReportService {
             subtitulo = "Reporte de contratos formalizados — Parte " + parte + " de " + totalPartes
                     + " (" + pagina.getTotalElements() + " contratos en total)";
         } else {
-            pagina = contratoRepository.buscarParaReporte(
+            pagina = contratoRepository.findForReport(
                     filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),
                     PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.DESC, "fechaFormalizacion")));
 

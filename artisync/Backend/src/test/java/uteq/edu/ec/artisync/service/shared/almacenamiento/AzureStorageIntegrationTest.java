@@ -65,12 +65,12 @@ class AzureStorageIntegrationTest {
         MockMultipartFile archivo = new MockMultipartFile(
                 "documento", "cedula.jpg", "image/jpeg", contenido);
 
-        String referencia = azure.guardar(archivo);
+        String referencia = azure.save(archivo);
 
         assertThat(referencia).endsWith(".jpg");
         assertThat(azure.leer(referencia)).isEqualTo(contenido);
 
-        azure.eliminar(referencia);
+        azure.delete(referencia);
 
         assertThrows(ResourceNotFoundException.class, () -> azure.leer(referencia));
     }
@@ -79,9 +79,9 @@ class AzureStorageIntegrationTest {
     void guardar_asignaLaExtensionSegunElTipoReal() {
         AzureStorage azure = almacenamiento();
 
-        String pdf = azure.guardar(new MockMultipartFile(
+        String pdf = azure.save(new MockMultipartFile(
                 "documento", "contrato.pdf", "application/pdf", "%PDF-1.4".getBytes(StandardCharsets.UTF_8)));
-        String video = azure.guardar(new MockMultipartFile(
+        String video = azure.save(new MockMultipartFile(
                 "documento", "demo.mp4", "video/mp4", new byte[] {0, 0, 0, 24}));
 
         assertThat(pdf).endsWith(".pdf");
@@ -91,7 +91,7 @@ class AzureStorageIntegrationTest {
     @Test
     void urlTemporal_devuelveUnaUrlFirmadaHaciaElBlob() {
         AzureStorage azure = almacenamiento();
-        String referencia = azure.guardar(new MockMultipartFile(
+        String referencia = azure.save(new MockMultipartFile(
                 "documento", "titulo.png", "image/png", "png".getBytes(StandardCharsets.UTF_8)));
 
         String url = azure.urlTemporal(referencia).orElseThrow();
@@ -104,7 +104,7 @@ class AzureStorageIntegrationTest {
         AzureStorage azure = almacenamiento();
         byte[] contenido = "obra de portafolio".getBytes(StandardCharsets.UTF_8);
 
-        String referencia = azure.guardar(new MockMultipartFile(
+        String referencia = azure.save(new MockMultipartFile(
                 "archivo", "obra.mp4", "video/mp4", contenido), StoragePrefix.PORTAFOLIO);
 
         assertThat(referencia).startsWith("portafolio/").endsWith(".mp4");

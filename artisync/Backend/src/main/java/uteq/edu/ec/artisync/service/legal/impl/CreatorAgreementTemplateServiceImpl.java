@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.dto.peticion.legal.UpdateOwnAgreementTemplateRequest;
 import uteq.edu.ec.artisync.dto.peticion.legal.CreateOwnAgreementTemplateRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.legal.ContractTemplateResponse;
 import uteq.edu.ec.artisync.entity.pedido.ContractTemplate;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
@@ -107,12 +107,12 @@ public class CreatorAgreementTemplateServiceImpl implements ICreatorAgreementTem
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje deactivate(Long idUsuarioCreador, Long idPlantilla) {
+    public MessageResponse deactivate(Long idUsuarioCreador, Long idPlantilla) {
         ContractTemplate plantilla = getOwnOrFail(idUsuarioCreador, idPlantilla);
         plantilla.setActiva(false);
         plantillaContratoRepository.save(plantilla);
         log.info("Plantilla de acuerdo propia {} desactivada por el usuario {}", idPlantilla, idUsuarioCreador);
-        return new RespuestaMensaje("Plantilla desactivada correctamente");
+        return new MessageResponse("Plantilla desactivada correctamente");
     }
 
     /** Mismo criterio "no encontrado" (no "prohibido") que resolverBriefingPlantillaPropia/resolverFlujoPropio: no revela si el recurso existe a nombre de otro. */

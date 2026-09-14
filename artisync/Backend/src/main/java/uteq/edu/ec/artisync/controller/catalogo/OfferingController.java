@@ -17,7 +17,7 @@ import uteq.edu.ec.artisync.dto.peticion.catalogo.CreateOfferingRequest;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.AttributeResponse;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.OfferingResponse;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.OfferingSummaryResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaUrl;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.service.catalogo.IOfferingCatalogService;
@@ -93,9 +93,9 @@ public class OfferingController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> deleteOffering(@PathVariable Long id) {
+    public ResponseEntity<MessageResponse> deleteOffering(@PathVariable Long id) {
         servicioCatalogoServicio.deleteOffering(id);
-        return ResponseEntity.ok(new RespuestaMensaje("Offering eliminado exitosamente"));
+        return ResponseEntity.ok(new MessageResponse("Offering eliminado exitosamente"));
     }
 
     /**
@@ -173,11 +173,11 @@ public class OfferingController {
      */
     @DeleteMapping("/{id}/atributos/{idAtributo}")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> deleteAttribute(
+    public ResponseEntity<MessageResponse> deleteAttribute(
             @PathVariable Long id,
             @PathVariable Long idAtributo) {
         servicioCatalogoServicio.deleteAttribute(id, idAtributo);
-        return ResponseEntity.ok(new RespuestaMensaje("Atributo eliminado exitosamente del servicio"));
+        return ResponseEntity.ok(new MessageResponse("Atributo eliminado exitosamente del servicio"));
     }
 
     /**

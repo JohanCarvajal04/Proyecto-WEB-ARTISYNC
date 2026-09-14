@@ -32,7 +32,7 @@ public class VerificationScheduler {
      * elemento no la libera, así que los certificados siguientes fallarían
      * en cascada y, al no poder confirmar el método, Spring revertiría
      * también los ya procesados con éxito. Cada certificado se expira en su
-     * propia transacción (VerificationExpirationService.expirarCertificado,
+     * propia transacción (VerificationExpirationService.expireCertificate,
      * REQUIRES_NEW).
      */
     @Scheduled(cron = "0 0 3 * * *")
@@ -48,7 +48,7 @@ public class VerificationScheduler {
         log.info("[VerificationScheduler] Expirando {} solicitud(es) PENDIENTE de más de {} días", vencidas.size(), DIAS_EXPIRACION);
         for (AiCertificate certificado : vencidas) {
             try {
-                verificacionExpiracionServicio.expirarCertificado(certificado);
+                verificacionExpiracionServicio.expireCertificate(certificado);
             } catch (Exception e) {
                 log.error("[VerificationScheduler] Error al expirar verificación {}: {}",
                         certificado.getIdCertificado(), e.getMessage(), e);

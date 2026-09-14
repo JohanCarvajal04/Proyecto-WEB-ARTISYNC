@@ -3,7 +3,7 @@ import uteq.edu.ec.artisync.repository.seguridad.*;
 import uteq.edu.ec.artisync.repository.perfil.*;
 
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.TokenResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 
@@ -50,7 +50,7 @@ public interface AuthService {
      * @param refreshToken refresh token a revocar, o {@code null}
      * @return mensaje de confirmación
      */
-    RespuestaMensaje logout(String tokenHeader, String refreshToken);
+    MessageResponse logout(String tokenHeader, String refreshToken);
 
     /**
      * Inicia el flujo de recuperación de contraseña enviando un correo con un token de un solo uso,
@@ -60,7 +60,7 @@ public interface AuthService {
      * @param request correo de la cuenta a recuperar
      * @return mensaje de confirmación, indistinguible entre cuenta existente o no
      */
-    RespuestaMensaje forgotPassword(ForgotPasswordRequest request);
+    MessageResponse forgotPassword(ForgotPasswordRequest request);
 
     /**
      * Restablece la contraseña de una cuenta a partir de un token de recuperación válido y no expirado.
@@ -68,6 +68,6 @@ public interface AuthService {
      * @param request token de recuperación y nueva contraseña
      * @return mensaje de confirmación
      */
-    RespuestaMensaje resetPassword(ResetPasswordRequest request);
+    MessageResponse resetPassword(ResetPasswordRequest request);
 }
 

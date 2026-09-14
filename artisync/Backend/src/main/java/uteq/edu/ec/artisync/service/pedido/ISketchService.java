@@ -17,7 +17,7 @@ public interface ISketchService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el creador del servicio
      */
-    SketchResponse subirBoceto(Long idPedido, Long idCreador, MultipartFile imagen);
+    SketchResponse uploadSketch(Long idPedido, Long idCreador, MultipartFile imagen);
 
     /**
      * Obtiene el boceto vigente de un pedido.
@@ -28,7 +28,7 @@ public interface ISketchService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene boceto
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no tiene acceso al pedido
      */
-    SketchResponse obtenerBoceto(Long idPedido, Long idUsuario);
+    SketchResponse getSketch(Long idPedido, Long idUsuario);
 
     /**
      * Descarga la imagen del boceto vigente.
@@ -39,8 +39,8 @@ public interface ISketchService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene boceto
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no tiene acceso al pedido
      */
-    ArchivoDescargado descargarBoceto(Long idPedido, Long idUsuario);
+    DownloadedFile downloadSketch(Long idPedido, Long idUsuario);
 
-    record ArchivoDescargado(byte[] contenido, String nombreSugerido, String contentType) {
+    record DownloadedFile(byte[] contenido, String nombreSugerido, String contentType) {
     }
 }

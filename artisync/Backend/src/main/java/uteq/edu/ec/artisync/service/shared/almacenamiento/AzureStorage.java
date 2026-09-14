@@ -26,7 +26,7 @@ import java.util.UUID;
  * Persistencia de documentos en Azure Blob Storage. Se activa con
  * "documentos.proveedor=azure"; en su ausencia manda LocalStorage.
  *
- * <p>La referencia que devuelve guardar() es el nombre del blob, no su URL: el
+ * <p>La referencia que devuelve save() es el nombre del blob, no su URL: el
  * contenedor es privado porque guarda cédulas y títulos, así que una URL directa
  * no sirve para nada. Para exponer un archivo al frontend sin proxearlo por el
  * backend está generarUrlTemporal(), que firma un SAS de vigencia corta.
@@ -89,8 +89,8 @@ public class AzureStorage implements DocumentStorage {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public String guardar(MultipartFile archivo) {
-        return guardar(archivo, "");
+    public String save(MultipartFile archivo) {
+        return save(archivo, "");
     }
 
     @Override
@@ -102,7 +102,7 @@ public class AzureStorage implements DocumentStorage {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public String guardar(MultipartFile archivo, String prefijo) {
+    public String save(MultipartFile archivo, String prefijo) {
         asegurarContenedor();
         String nombreBlob = StoragePrefix.componer(
                 prefijo, UUID.randomUUID() + FileExtensions.desde(archivo.getContentType()));
@@ -121,7 +121,7 @@ public class AzureStorage implements DocumentStorage {
 
     @Override
     public byte[] leer(String referencia) {
-        validarReferencia(referencia);
+        validateReference(referencia);
         asegurarContenedor();
         BlobClient blob = contenedor.getBlobClient(referencia);
         ByteArrayOutputStream salida = new ByteArrayOutputStream();
@@ -143,8 +143,8 @@ public class AzureStorage implements DocumentStorage {
      * @param referencia parametro requerido para la correcta ejecucion del procedimiento
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void eliminar(String referencia) {
-        validarReferencia(referencia);
+    public void delete(String referencia) {
+        validateReference(referencia);
         asegurarContenedor();
         BlobClient blob = contenedor.getBlobClient(referencia);
         try {
@@ -161,7 +161,7 @@ public class AzureStorage implements DocumentStorage {
      */
     @Override
     public Optional<String> urlTemporal(String referencia) {
-        validarReferencia(referencia);
+        validateReference(referencia);
         asegurarContenedor();
         BlobClient blob = contenedor.getBlobClient(referencia);
         BlobServiceSasSignatureValues valores = new BlobServiceSasSignatureValues(
@@ -174,7 +174,7 @@ public class AzureStorage implements DocumentStorage {
      * Un blob no es una ruta de disco, pero la referencia llega desde la base de
      * datos y no tiene por qué escaparse del prefijo que le corresponde.
      */
-    private void validarReferencia(String referencia) {
+    private void validateReference(String referencia) {
         if (referencia == null || referencia.isBlank()
                 || referencia.startsWith("/")
                 || referencia.contains("..")) {

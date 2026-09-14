@@ -12,8 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter;
-import uteq.edu.ec.artisync.dto.seguridad.request.ChangeEstadoRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.seguridad.request.ChangeAccountStatusRequest;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
@@ -76,10 +76,10 @@ class AdminUserControllerTest {
 
     @Test
     void changeEstado_ShouldReturnOk() {
-        ChangeEstadoRequest request = new ChangeEstadoRequest();
+        ChangeAccountStatusRequest request = new ChangeAccountStatusRequest();
         UserResponse userResponse = UserResponse.builder().estadoCuenta(false).build();
         CustomUserDetails admin = new CustomUserDetails(99L, "admin@test.dev", "x", true, true, true, true, List.of());
-        when(adminUserService.changeStatus(eq(1L), any(ChangeEstadoRequest.class), eq(99L))).thenReturn(userResponse);
+        when(adminUserService.changeStatus(eq(1L), any(ChangeAccountStatusRequest.class), eq(99L))).thenReturn(userResponse);
 
         ResponseEntity<UserResponse> result = adminUserController.changeStatus(1L, request, admin);
 
@@ -114,10 +114,10 @@ class AdminUserControllerTest {
     @Test
     void anonimizarUsuario_ShouldDelegateToPrivacyServiceAndReturnOk() {
         CustomUserDetails admin = new CustomUserDetails(99L, "admin@test.dev", "x", true, true, true, true, List.of());
-        RespuestaMensaje mensaje = new RespuestaMensaje("Datos del usuario suprimidos.");
+        MessageResponse mensaje = new MessageResponse("Datos del usuario suprimidos.");
         when(privacidadService.anonymizeUserAsAdmin(1L, 99L)).thenReturn(mensaje);
 
-        ResponseEntity<RespuestaMensaje> result = adminUserController.anonymizeUser(1L, admin);
+        ResponseEntity<MessageResponse> result = adminUserController.anonymizeUser(1L, admin);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         verify(privacidadService).anonymizeUserAsAdmin(1L, 99L);

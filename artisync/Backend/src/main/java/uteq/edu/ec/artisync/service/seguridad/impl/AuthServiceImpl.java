@@ -20,7 +20,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.TokenResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
@@ -393,7 +393,7 @@ public class AuthServiceImpl implements AuthService {
      * @param refreshToken refresh token de la cookie, si lo hay
      * @return mensaje de confirmación
      */
-    public RespuestaMensaje logout(String tokenHeader, String refreshToken) {
+    public MessageResponse logout(String tokenHeader, String refreshToken) {
         sessionRevocationService.revokeTokenFromHeader(tokenHeader);
         if (refreshToken != null && !refreshToken.isBlank()) {
             sessionRevocationService.revokeToken(refreshToken);
@@ -408,7 +408,7 @@ public class AuthServiceImpl implements AuthService {
                 log.debug("No se pudo extraer el jti del refresh token en logout (probablemente expirado o inválido): {}", e.getMessage());
             }
         }
-        return new RespuestaMensaje("Sesión cerrada exitosamente");
+        return new MessageResponse("Sesión cerrada exitosamente");
     }
 
     @Override
@@ -426,7 +426,7 @@ public class AuthServiceImpl implements AuthService {
      * @throws uteq.edu.ec.artisync.exception.QuotaExceededException si se supera el límite de
      *         solicitudes de recuperación por cuenta en la ventana configurada
      */
-    public RespuestaMensaje forgotPassword(ForgotPasswordRequest request) {
+    public MessageResponse forgotPassword(ForgotPasswordRequest request) {
         // Incondicional (a diferencia de login): aquí no hay noción de "fallo", toda
         // llamada implica el mismo costo de abuso (correo potencialmente enviado)
         // exista o no la cuenta — mail-bombing a una víctima, cuota SMTP agotada.
@@ -447,9 +447,9 @@ public class AuthServiceImpl implements AuthService {
             JsonNode resultado = parseJson(resultadoJson, "Error al interpretar la solicitud de recuperación");
             String nombres = resultado.get("nombres").asText();
             log.debug("Generado token de recuperación para usuario ID: {}", resultado.get("idUsuario").asLong());
-            emailService.enviarCorreoRecuperacion(request.getCorreo(), nombres, tokenPlain);
+            emailService.sendRecoveryEmail(request.getCorreo(), nombres, tokenPlain);
         }
-        return new RespuestaMensaje("Si el correo se encuentra registrado, recibirás un enlace de recuperación");
+        return new MessageResponse("Si el correo se encuentra registrado, recibirás un enlace de recuperación");
     }
 
     @Override
@@ -466,7 +466,7 @@ public class AuthServiceImpl implements AuthService {
      * @throws org.springframework.web.server.ResponseStatusException 400 si el token no existe,
      *         ya fue usado o expiró
      */
-    public RespuestaMensaje resetPassword(ResetPasswordRequest request) {
+    public MessageResponse resetPassword(ResetPasswordRequest request) {
         // REQ-F-005: sp_restablecer_contrasena valida (con FOR UPDATE) que el
         // token exista, no este usado y no haya expirado, y actualiza usuarios +
         // tokens_recuperacion de forma atomica, evitando la ventana de doble uso
@@ -478,7 +478,7 @@ public class AuthServiceImpl implements AuthService {
             throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
         }
 
-        return new RespuestaMensaje("Contraseña reestablecida exitosamente");
+        return new MessageResponse("Contraseña reestablecida exitosamente");
     }
 
     /** OBS-08 (A09 OWASP): IP del solicitante actual, usada tanto en el registro de sesión como en el log de auditoría de login. */

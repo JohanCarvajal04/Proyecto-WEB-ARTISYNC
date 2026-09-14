@@ -4,7 +4,7 @@ import uteq.edu.ec.artisync.repository.perfil.*;
 
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 
 public interface UserService {
@@ -37,7 +37,7 @@ public interface UserService {
      * @throws org.springframework.web.server.ResponseStatusException {@code NOT_FOUND} si el usuario no existe;
      *         {@code BAD_REQUEST} si la contraseña actual es incorrecta
      */
-    RespuestaMensaje changePassword(String correo, ChangePasswordRequest request);
+    MessageResponse changePassword(String correo, ChangePasswordRequest request);
 
     /**
      * Elimina la cuenta del usuario autenticado.
@@ -46,7 +46,7 @@ public interface UserService {
      * @return mensaje de confirmación
      * @throws org.springframework.web.server.ResponseStatusException {@code NOT_FOUND} si el usuario no existe
      */
-    RespuestaMensaje deleteOwnAccount(String correo);
+    MessageResponse deleteOwnAccount(String correo);
 
     /**
      * Revoca todas las sesiones activas del usuario autenticado, en todos los dispositivos.
@@ -55,7 +55,7 @@ public interface UserService {
      * @return mensaje de confirmación
      * @throws org.springframework.web.server.ResponseStatusException {@code NOT_FOUND} si el usuario no existe
      */
-    RespuestaMensaje revokeAllMySessions(String correo);
+    MessageResponse revokeAllMySessions(String correo);
 
     /**
      * Sube o reemplaza la foto de perfil del usuario autenticado.

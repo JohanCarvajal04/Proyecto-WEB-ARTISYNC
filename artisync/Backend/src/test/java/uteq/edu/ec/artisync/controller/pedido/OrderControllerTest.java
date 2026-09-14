@@ -11,7 +11,7 @@ import org.springframework.security.core.Authentication;
 import uteq.edu.ec.artisync.dto.peticion.pedido.AdvanceStageRequest;
 import uteq.edu.ec.artisync.dto.peticion.pedido.CreateOrderRequest;
 import uteq.edu.ec.artisync.dto.peticion.pedido.CreateTermsProposalRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.StatusHistoryResponse;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.OrderResponse;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.OrderSummaryResponse;
@@ -206,13 +206,13 @@ class OrderControllerTest {
 
     @Test
     void bloquearDeleteHistorial_devuelveForbidden() {
-        ResponseEntity<RespuestaMensaje> res = controlador.blockDeleteHistory(1L);
+        ResponseEntity<MessageResponse> res = controlador.blockDeleteHistory(1L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
     void bloquearPatchHistorial_devuelveForbidden() {
-        ResponseEntity<RespuestaMensaje> res = controlador.blockPatchHistory(1L);
+        ResponseEntity<MessageResponse> res = controlador.blockPatchHistory(1L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 }

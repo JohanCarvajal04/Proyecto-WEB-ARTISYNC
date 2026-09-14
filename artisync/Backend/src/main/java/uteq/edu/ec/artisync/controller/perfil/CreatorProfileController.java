@@ -10,7 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.perfil.CreateProfileRequest;
 import uteq.edu.ec.artisync.dto.peticion.perfil.UpdateProfileRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.ProfileResponse;
 import uteq.edu.ec.artisync.service.perfil.ICreatorProfileService;
 
@@ -106,9 +106,9 @@ public class CreatorProfileController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('USUARIO_ELIMINAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> deleteProfile(@PathVariable Long id) {
+    public ResponseEntity<MessageResponse> deleteProfile(@PathVariable Long id) {
         perfilServicio.deleteProfile(id);
-        return ResponseEntity.ok(new RespuestaMensaje("Perfil de creador eliminado exitosamente"));
+        return ResponseEntity.ok(new MessageResponse("Perfil de creador eliminado exitosamente"));
     }
 
     /**

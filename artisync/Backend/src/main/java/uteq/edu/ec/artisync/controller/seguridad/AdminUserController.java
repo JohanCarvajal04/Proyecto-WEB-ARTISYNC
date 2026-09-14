@@ -16,7 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
@@ -136,7 +136,7 @@ public class AdminUserController {
     @Operation(summary = "Activar o desactivar cuenta de un usuario (Soft Delete / Suspensión)")
     @PatchMapping("/{id}/estado")
     @PreAuthorize("hasAuthority('USUARIO_SUSPENDER') or hasAuthority('USUARIO_ELIMINAR') or hasAuthority('USUARIO_EDITAR') or hasRole('ADMIN')")
-    public ResponseEntity<UserResponse> changeStatus(@PathVariable Long id, @Valid @RequestBody ChangeEstadoRequest request,
+    public ResponseEntity<UserResponse> changeStatus(@PathVariable Long id, @Valid @RequestBody ChangeAccountStatusRequest request,
                                                       @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(adminUserService.changeStatus(id, request, userDetails.getIdUsuario()));
     }
@@ -167,12 +167,12 @@ public class AdminUserController {
     @Operation(summary = "Revocar inmediatamente todas las sesiones activas de un usuario")
     @DeleteMapping("/{id}/sesiones")
     @PreAuthorize("hasAuthority('SESION_REVOCAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> revokeUserSessions(@PathVariable Long id) {
+    public ResponseEntity<MessageResponse> revokeUserSessions(@PathVariable Long id) {
         return ResponseEntity.ok(adminUserService.revokeUserSessions(id));
     }
 
     /**
-     * Elimina lógicamente a un usuario (soft delete).
+     * Elimina lógicamente a un usuario (soft eliminar).
      *
      * @param id identificador del usuario a eliminar
      * @param userDetails administrador autenticado que solicita la eliminación
@@ -202,7 +202,7 @@ public class AdminUserController {
     @Operation(summary = "Suprimir (anonymize) los datos personales de un usuario, en nombre del titular")
     @PostMapping("/{id}/supresion")
     @PreAuthorize("hasAuthority('USUARIO_ELIMINAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> anonymizeUser(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<MessageResponse> anonymizeUser(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(privacidadService.anonymizeUserAsAdmin(id, userDetails.getIdUsuario()));
     }
 }

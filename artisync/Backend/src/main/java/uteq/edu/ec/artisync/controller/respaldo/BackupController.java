@@ -107,7 +107,7 @@ public class BackupController {
 
     /**
      * Elimina el registro y el archivo físico de un respaldo del sistema.
-     * @param idRespaldo identificador del respaldo a delete
+     * @param idRespaldo identificador del respaldo a eliminar
      * @return respuesta sin contenido confirmando la eliminación exitosa
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si es un respaldo FULL y existen respaldos INCREMENTALES que dependen de él
      */

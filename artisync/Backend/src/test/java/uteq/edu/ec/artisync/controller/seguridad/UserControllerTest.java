@@ -11,7 +11,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
@@ -68,10 +68,10 @@ class UserControllerTest {
     void changePassword_devuelveOk() {
         when(principal.getName()).thenReturn("test@test.com");
         ChangePasswordRequest request = new ChangePasswordRequest();
-        RespuestaMensaje response = new RespuestaMensaje("Ok");
+        MessageResponse response = new MessageResponse("Ok");
         when(userService.changePassword("test@test.com", request)).thenReturn(response);
 
-        ResponseEntity<RespuestaMensaje> res = userController.changePassword(principal, request);
+        ResponseEntity<MessageResponse> res = userController.changePassword(principal, request);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(response);
     }
@@ -79,10 +79,10 @@ class UserControllerTest {
     @Test
     void deleteOwnAccount_devuelveOk() {
         when(principal.getName()).thenReturn("test@test.com");
-        RespuestaMensaje response = new RespuestaMensaje("Ok");
+        MessageResponse response = new MessageResponse("Ok");
         when(userService.deleteOwnAccount("test@test.com")).thenReturn(response);
 
-        ResponseEntity<RespuestaMensaje> res = userController.deleteOwnAccount(principal);
+        ResponseEntity<MessageResponse> res = userController.deleteOwnAccount(principal);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(response);
     }
@@ -90,10 +90,10 @@ class UserControllerTest {
     @Test
     void revokeAllMySessions_devuelveOk() {
         when(principal.getName()).thenReturn("test@test.com");
-        RespuestaMensaje response = new RespuestaMensaje("Ok");
+        MessageResponse response = new MessageResponse("Ok");
         when(userService.revokeAllMySessions("test@test.com")).thenReturn(response);
 
-        ResponseEntity<RespuestaMensaje> res = userController.revokeAllMySessions(principal);
+        ResponseEntity<MessageResponse> res = userController.revokeAllMySessions(principal);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(response);
     }

@@ -9,7 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uteq.edu.ec.artisync.dto.peticion.legal.UpdateContractTemplateRequest;
 import uteq.edu.ec.artisync.dto.peticion.legal.CreateContractTemplateRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.legal.ContractTemplateResponse;
 import uteq.edu.ec.artisync.entity.pedido.ContractTemplate;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
@@ -110,7 +110,7 @@ class ContractTemplateAdminServiceImplTest {
                 .esPredeterminada(false).activa(true).build();
         given(plantillaContratoRepository.findById(2L)).willReturn(Optional.of(otra));
 
-        RespuestaMensaje respuesta = servicio.deactivate(2L);
+        MessageResponse respuesta = servicio.deactivate(2L);
 
         assertThat(respuesta.getMessage()).contains("desactivada");
         assertThat(otra.getActiva()).isFalse();

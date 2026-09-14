@@ -21,7 +21,7 @@ class GlobalExceptionHandlerTest {
         AiServiceUnavailableException ex =
                 new AiServiceUnavailableException("NVIDIA no respondió", new RuntimeException("timeout"));
 
-        ResponseEntity<ProblemDetail> respuesta = manejador.manejarExcepcionServicioIaNoDisponible(ex, peticion);
+        ResponseEntity<ProblemDetail> respuesta = manejador.handleAiServiceUnavailableException(ex, peticion);
 
         assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
         assertThat(respuesta.getBody().getDetail()).isEqualTo("NVIDIA no respondió");

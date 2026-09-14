@@ -70,7 +70,7 @@ public class IncrementalBackupExporter {
                 String sql = buildCopyStatement(tabla, columnaFecha, respaldo.getFechaDesdeIncremental());
 
                 zip.putNextEntry(new ZipEntry(tabla + ".csv"));
-                long filas = copyManager.copyOut(sql, new FlujoSinCierre(zip));
+                long filas = copyManager.copyOut(sql, new NonClosingOutputStream(zip));
                 zip.closeEntry();
 
                 manifiestoTablas.add(new ManifiestoTabla(tabla, columnaFecha, filas));
@@ -103,10 +103,10 @@ public class IncrementalBackupExporter {
     }
 
     /** OutputStream que no cierra el ZipOutputStream subyacente al terminar cada COPY. */
-    private static final class FlujoSinCierre extends OutputStream {
+    private static final class NonClosingOutputStream extends OutputStream {
         private final OutputStream delegado;
 
-        FlujoSinCierre(OutputStream delegado) {
+        NonClosingOutputStream(OutputStream delegado) {
             this.delegado = delegado;
         }
 

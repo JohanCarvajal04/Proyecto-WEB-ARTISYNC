@@ -2,7 +2,7 @@ package uteq.edu.ec.artisync.service.comunicacion;
 
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.CreateBriefingTemplateRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.BriefingResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 
 import java.util.List;
 
@@ -60,7 +60,7 @@ public interface BriefingService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el dueño de la plantilla
      */
-    RespuestaMensaje deleteTemplate(Long idPlantilla, Long idUsuario);
+    MessageResponse deleteTemplate(Long idPlantilla, Long idUsuario);
 
     /**
      * Obtiene el briefing respondido de un pedido (solo lectura). Solo el

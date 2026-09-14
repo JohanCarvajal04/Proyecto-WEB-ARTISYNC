@@ -59,7 +59,7 @@ public record FilePolicy(Set<String> tiposPermitidos, long maxBytes, String desc
      * @param archivo objeto binario multipart representando el documento o medio fisico
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void validar(MultipartFile archivo) {
+    public void validate(MultipartFile archivo) {
         if (archivo == null || archivo.isEmpty()) {
             throw new BusinessRuleException("El archivo está vacío.");
         }

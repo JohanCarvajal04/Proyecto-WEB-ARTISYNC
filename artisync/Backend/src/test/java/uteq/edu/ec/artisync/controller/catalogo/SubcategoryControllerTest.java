@@ -11,7 +11,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.CreateSubcategoryRequest;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.SubcategoryResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.catalogo.ICategoryService;
 
@@ -79,15 +79,15 @@ class SubcategoryControllerTest {
 
     @Test
     void eliminarSubcategoria_ConMotivo_DebeDelegarAlServicio() {
-        ResponseEntity<RespuestaMensaje> result = controlador.deleteSubcategory(1L, "duplicada");
+        ResponseEntity<MessageResponse> result = controlador.deleteSubcategory(1L, "duplicada");
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(result.getBody().getMensaje()).contains("eliminada");
+        assertThat(result.getBody().getMessage()).contains("eliminada");
     }
 
     @Test
     void eliminarSubcategoria_SinMotivo_DebeDelegarAlServicio() {
-        ResponseEntity<RespuestaMensaje> result = controlador.deleteSubcategory(1L, null);
+        ResponseEntity<MessageResponse> result = controlador.deleteSubcategory(1L, null);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
     }

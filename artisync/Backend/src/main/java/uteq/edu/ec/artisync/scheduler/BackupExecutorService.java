@@ -27,15 +27,15 @@ public class BackupExecutorService {
     private final AsyncBackupJobService trabajoAsincronoServicio;
 
     /** Disparo manual (admin autenticado, sin programación asociada). */
-    public Backup iniciarManual(BackupType tipo, String correoSolicitante) {
-        Backup respaldo = crearRespaldo(tipo, BackupOrigin.MANUAL, null, correoSolicitante);
+    public Backup startManual(BackupType tipo, String correoSolicitante) {
+        Backup respaldo = createBackup(tipo, BackupOrigin.MANUAL, null, correoSolicitante);
         trabajoAsincronoServicio.execute(respaldo.getIdRespaldo());
         return respaldo;
     }
 
     /** Disparo desde BackupScheduler. */
-    public void iniciarDesdeProgramacion(BackupSchedule programacion) {
-        Backup respaldo = crearRespaldo(
+    public void startFromSchedule(BackupSchedule programacion) {
+        Backup respaldo = createBackup(
                 programacion.getTipoRespaldo(), BackupOrigin.PROGRAMADO, programacion, "sistema:scheduler");
 
         // proxima_ejecucion se recalcula YA, no al terminar: si el respaldo
@@ -50,7 +50,7 @@ public class BackupExecutorService {
         trabajoAsincronoServicio.execute(respaldo.getIdRespaldo());
     }
 
-    private Backup crearRespaldo(BackupType tipo, BackupOrigin origen,
+    private Backup createBackup(BackupType tipo, BackupOrigin origen,
                                     BackupSchedule programacion, String correoSolicitante) {
         Backup.BackupBuilder builder = Backup.builder()
                 .tipoRespaldo(tipo)

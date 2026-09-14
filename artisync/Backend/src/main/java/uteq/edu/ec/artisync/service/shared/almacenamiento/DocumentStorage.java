@@ -11,20 +11,20 @@ import java.util.Optional;
  */
 public interface DocumentStorage {
 
-    /** Guarda en la raíz. Equivale a guardar(archivo, ""). */
-    String guardar(MultipartFile archivo);
+    /** Guarda en la raíz. Equivale a save(archivo, ""). */
+    String save(MultipartFile archivo);
 
     /**
      * Guarda bajo un prefijo lógico ("verificacion", "portafolio",
      * "entregables"), que separa por caso de uso lo que de otro modo sería un
      * único espacio plano. La referencia devuelta ya lo incluye, así que leer()
-     * y eliminar() la reciben tal cual salió de aquí.
+     * y delete() la reciben tal cual salió de aquí.
      */
-    String guardar(MultipartFile archivo, String prefijo);
+    String save(MultipartFile archivo, String prefijo);
 
     byte[] leer(String referencia);
 
-    void eliminar(String referencia);
+    void delete(String referencia);
 
     /**
      * URL firmada y de vigencia corta para que el cliente descargue el archivo

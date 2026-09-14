@@ -6,11 +6,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Objeto de transferencia de datos (DTO) utilizado como carga útil de respuesta (Response).
  * 
- * Propósito: Respuesta de la IA procesando o resumiendo resenas de usuarios.
+ * Propósito: Respuesta de la IA para la clasificacion automatizada de contenido.
  * 
  * Este DTO se encarga de serializar la información hacia el cliente, enmascarando 
  * el modelo de dominio interno (Entidades JPA) y exponiendo estrictamente los 
@@ -20,13 +21,11 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class IaResenaResponse {
-    private String sentimiento;
-    private boolean esCoherenteConEstrellas;
-    private boolean esSpam;
-    private boolean esInapropiado;
+public class AiClassificationResponse {
+    private String categoriaSugerida;
+    private String subcategoriaSugerida;
+    private List<String> etiquetasSugeridas;
     private BigDecimal confianza;
-    private String razon;
 }
 
 

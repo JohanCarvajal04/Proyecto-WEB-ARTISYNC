@@ -38,7 +38,7 @@ public class BackupServiceImpl implements IBackupService {
 
     /**
      * Sin @Transactional a propósito: el INSERT que hace
-     * BackupExecutorService.iniciarManual debe quedar comprometido antes
+     * BackupExecutorService.startManual debe quedar comprometido antes
      * de que el hilo @Async (con su propia conexión) intente leer esa misma
      * fila -- si este método llevara @Transactional, el hilo async podría
      * arrancar antes de que el commit sea visible.
@@ -59,7 +59,7 @@ public class BackupServiceImpl implements IBackupService {
         if (respaldoRepository.existsByEstadoRespaldo(BackupStatus.EN_PROGRESO)) {
             throw new BusinessRuleException("Ya hay un respaldo en progreso. Espere a que termine antes de iniciar otro.");
         }
-        Backup respaldo = respaldoEjecutorServicio.iniciarManual(tipo, correoSolicitante);
+        Backup respaldo = respaldoEjecutorServicio.startManual(tipo, correoSolicitante);
         return toResponse(respaldo);
     }
 
@@ -129,11 +129,11 @@ public class BackupServiceImpl implements IBackupService {
     public void delete(Long idRespaldo) {
         Backup respaldo = getOrFail(idRespaldo);
         if (respaldo.getEstadoRespaldo() == BackupStatus.EN_PROGRESO) {
-            throw new BusinessRuleException("No se puede delete un respaldo en progreso.");
+            throw new BusinessRuleException("No se puede eliminar un respaldo en progreso.");
         }
-        if (!retencionScheduler.esSeguroEliminar(respaldo)) {
+        if (!retencionScheduler.isSafeToDelete(respaldo)) {
             throw new BusinessRuleException(
-                    "No se puede delete: existen respaldos incrementales que dependen de este FULL. Elimínelos primero.");
+                    "No se puede eliminar: existen respaldos incrementales que dependen de este FULL. Elimínelos primero.");
         }
         if (respaldo.getRutaArchivo() != null) {
             try {

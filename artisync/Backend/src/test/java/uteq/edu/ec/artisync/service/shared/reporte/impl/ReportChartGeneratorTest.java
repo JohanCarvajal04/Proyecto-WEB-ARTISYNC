@@ -21,7 +21,7 @@ class ReportChartGeneratorTest {
         datos.put("ADMIN", 2L);
         datos.put("MODERADOR", 1L);
 
-        byte[] png = generador.generarGraficaRol(datos);
+        byte[] png = generador.generateRoleChart(datos);
 
         assertThat(png).isNotEmpty();
         // Firma de archivo PNG: 89 50 4E 47 0D 0A 1A 0A
@@ -41,7 +41,7 @@ class ReportChartGeneratorTest {
         datos.put("México", 3L);
         datos.put("Perú", 2L);
 
-        byte[] png = generador.generarGraficaPais(datos);
+        byte[] png = generador.generateCountryChart(datos);
 
         assertThat(png).isNotEmpty();
         assertThat(png[0]).isEqualTo((byte) 0x89);
@@ -53,8 +53,8 @@ class ReportChartGeneratorTest {
     @Test
     @DisplayName("Maneja datos vacíos sin lanzar excepción")
     void generarGraficas_DatosVacios_RetornaPngValido() {
-        byte[] pngRol = generador.generarGraficaRol(Map.of());
-        byte[] pngPais = generador.generarGraficaPais(Map.of());
+        byte[] pngRol = generador.generateRoleChart(Map.of());
+        byte[] pngPais = generador.generateCountryChart(Map.of());
 
         assertThat(pngRol).isNotEmpty();
         assertThat(pngPais).isNotEmpty();

@@ -27,7 +27,7 @@ class SecurityPurgeSchedulerTest {
 
     @Test
     void purgarDatosSeguridad_invocaElProcedureConElTamanoDeLoteConfigurado() {
-        scheduler.purgarDatosSeguridad();
+        scheduler.purgeSecurityData();
 
         verify(jdbcTemplate).update("CALL sp_purgar_datos_seguridad(?)", 1000);
     }
@@ -40,7 +40,7 @@ class SecurityPurgeSchedulerTest {
         doThrow(new TransientDataAccessResourceException("simulado: conexión no disponible"))
                 .when(jdbcTemplate).update(anyString(), any(Object[].class));
 
-        scheduler.purgarDatosSeguridad();
+        scheduler.purgeSecurityData();
 
         verify(jdbcTemplate).update(anyString(), any(Object[].class));
     }

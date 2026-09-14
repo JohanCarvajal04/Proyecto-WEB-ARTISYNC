@@ -11,7 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.NotificationResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 
@@ -65,7 +65,7 @@ class NotificationControllerTest {
         CustomUserDetails user = mockUserDetails();
         when(notificacionService.markAllAsRead(1L)).thenReturn(5);
 
-        ResponseEntity<RespuestaMensaje> res = controlador.markAllAsRead(user);
+        ResponseEntity<MessageResponse> res = controlador.markAllAsRead(user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().mensaje()).isEqualTo("5 notificaciones marcadas como leídas");
     }

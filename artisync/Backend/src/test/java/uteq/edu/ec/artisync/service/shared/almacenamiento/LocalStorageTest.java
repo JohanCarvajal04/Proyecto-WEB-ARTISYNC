@@ -32,7 +32,7 @@ class LocalStorageTest {
         MockMultipartFile archivo = new MockMultipartFile(
                 "documento", "cedula.jpg", "image/jpeg", "contenido-de-prueba".getBytes());
 
-        String referencia = almacenamiento.guardar(archivo);
+        String referencia = almacenamiento.save(archivo);
         byte[] leido = almacenamiento.leer(referencia);
 
         assertThat(referencia).endsWith(".jpg");
@@ -53,9 +53,9 @@ class LocalStorageTest {
     void eliminar_referenciaExistente_laBorra() {
         MockMultipartFile archivo = new MockMultipartFile(
                 "documento", "titulo.png", "image/png", "otro-contenido".getBytes());
-        String referencia = almacenamiento.guardar(archivo);
+        String referencia = almacenamiento.save(archivo);
 
-        almacenamiento.eliminar(referencia);
+        almacenamiento.delete(referencia);
 
         assertThrows(ResourceNotFoundException.class, () -> almacenamiento.leer(referencia));
     }
@@ -65,7 +65,7 @@ class LocalStorageTest {
         MockMultipartFile archivo = new MockMultipartFile(
                 "archivo", "obra.mp4", "video/mp4", "video-de-prueba".getBytes());
 
-        String referencia = almacenamiento.guardar(archivo, StoragePrefix.PORTAFOLIO);
+        String referencia = almacenamiento.save(archivo, StoragePrefix.PORTAFOLIO);
 
         assertThat(referencia).startsWith("portafolio/").endsWith(".mp4");
         assertThat(new String(almacenamiento.leer(referencia))).isEqualTo("video-de-prueba");
@@ -76,8 +76,8 @@ class LocalStorageTest {
         MockMultipartFile archivo = new MockMultipartFile(
                 "archivo", "doc.pdf", "application/pdf", "contenido".getBytes());
 
-        String enPortafolio = almacenamiento.guardar(archivo, StoragePrefix.PORTAFOLIO);
-        String enEntregables = almacenamiento.guardar(archivo, StoragePrefix.ENTREGABLES);
+        String enPortafolio = almacenamiento.save(archivo, StoragePrefix.PORTAFOLIO);
+        String enEntregables = almacenamiento.save(archivo, StoragePrefix.ENTREGABLES);
 
         assertThat(enPortafolio).isNotEqualTo(enEntregables);
         assertThat(almacenamiento.leer(enPortafolio)).isNotEmpty();
@@ -89,13 +89,13 @@ class LocalStorageTest {
         MockMultipartFile archivo = new MockMultipartFile(
                 "archivo", "doc.pdf", "application/pdf", "contenido".getBytes());
 
-        assertThrows(BusinessRuleException.class, () -> almacenamiento.guardar(archivo, "../escape"));
+        assertThrows(BusinessRuleException.class, () -> almacenamiento.save(archivo, "../escape"));
     }
 
     /** El almacenamiento local no firma URLs; el consumidor debe servir los bytes. */
     @Test
     void urlTemporal_noEstaDisponibleEnLocal() {
-        String referencia = almacenamiento.guardar(new MockMultipartFile(
+        String referencia = almacenamiento.save(new MockMultipartFile(
                 "documento", "cedula.jpg", "image/jpeg", "contenido".getBytes()));
 
         assertThat(almacenamiento.urlTemporal(referencia)).isEmpty();

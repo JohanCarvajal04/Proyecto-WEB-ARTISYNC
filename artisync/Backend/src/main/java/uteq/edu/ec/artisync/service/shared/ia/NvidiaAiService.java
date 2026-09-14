@@ -51,10 +51,10 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
      * @throws uteq.edu.ec.artisync.exception.AiServiceUnavailableException si NVIDIA rechaza la
      *         solicitud, responde con error, o la respuesta no puede interpretarse
      */
-    public IaVerificacionResponse verificarIdentidad(byte[] imagenBytes, String mimeType) {
-        String prompt = cargarPrompt("prompt_verificacion_identidad.md");
-        String respuesta = llamarNvidiaConImagen(prompt, imagenBytes, mimeType);
-        return parsearVerificacionEstricto(respuesta, true);
+    public AiVerificationResponse verifyIdentity(byte[] imagenBytes, String mimeType) {
+        String prompt = loadPrompt("prompt_verificacion_identidad.md");
+        String respuesta = callNvidiaWithImage(prompt, imagenBytes, mimeType);
+        return parseStrictVerification(respuesta, true);
     }
 
     @Override
@@ -67,10 +67,10 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
      * @throws uteq.edu.ec.artisync.exception.AiServiceUnavailableException si NVIDIA rechaza la
      *         solicitud, responde con error, o la respuesta no puede interpretarse
      */
-    public IaVerificacionResponse analizarCertificado(byte[] imagenBytes, String mimeType) {
-        String prompt = cargarPrompt("prompt_verificacion_certificado.md");
-        String respuesta = llamarNvidiaConImagen(prompt, imagenBytes, mimeType);
-        return parsearVerificacionEstricto(respuesta, false);
+    public AiVerificationResponse analyzeCertificate(byte[] imagenBytes, String mimeType) {
+        String prompt = loadPrompt("prompt_verificacion_certificado.md");
+        String respuesta = callNvidiaWithImage(prompt, imagenBytes, mimeType);
+        return parseStrictVerification(respuesta, false);
     }
 
     @Override
@@ -82,7 +82,7 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
      * @return si es apropiado, categoría de infracción detectada y nivel de confianza
      */
     public IaModeracionResponse moderarContenido(String textoMensaje) {
-        String prompt = cargarPrompt("prompt_moderacion_mensaje.md", sanitizarParaPrompt(textoMensaje));
+        String prompt = loadPrompt("prompt_moderacion_mensaje.md", sanitizarParaPrompt(textoMensaje));
         try {
             JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
             return IaModeracionResponse.builder()
@@ -109,15 +109,15 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public IaClasificacionResponse clasificarServicio(String titulo, String descripcion, List<String> categoriasDisponibles) {
+    public AiClassificationResponse classifyOffering(String titulo, String descripcion, List<String> categoriasDisponibles) {
         String categorias = String.join(", ", categoriasDisponibles);
-        String prompt = cargarPrompt("prompt_clasificacion_servicio.md", categorias,
+        String prompt = loadPrompt("prompt_clasificacion_servicio.md", categorias,
                 sanitizarParaPrompt(titulo), sanitizarParaPrompt(descripcion));
         try {
             JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
             List<String> etiquetas = new ArrayList<>();
             nodo.path("etiquetas_sugeridas").forEach(e -> etiquetas.add(e.asString()));
-            return IaClasificacionResponse.builder()
+            return AiClassificationResponse.builder()
                     .categoriaSugerida(nodo.path("categoria_sugerida").asString(""))
                     .subcategoriaSugerida(nodo.path("subcategoria_sugerida").asString(""))
                     .etiquetasSugeridas(etiquetas)
@@ -125,7 +125,7 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
                     .build();
         } catch (Exception e) {
             log.error("[NVIDIA] Error al clasificar servicio: {}", e.getMessage());
-            return IaClasificacionResponse.builder()
+            return AiClassificationResponse.builder()
                     .categoriaSugerida("Sin categoría").subcategoriaSugerida("General")
                     .etiquetasSugeridas(List.of()).confianza(BigDecimal.ZERO).build();
         }
@@ -142,7 +142,7 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<String> sugerirPreguntasBriefing(String categoria, String titulo, String descripcion) {
-        String prompt = cargarPrompt("prompt_sugerencia_briefing.md", sanitizarParaPrompt(categoria),
+        String prompt = loadPrompt("prompt_sugerencia_briefing.md", sanitizarParaPrompt(categoria),
                 sanitizarParaPrompt(titulo), sanitizarParaPrompt(descripcion));
         try {
             JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
@@ -165,11 +165,11 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public IaResenaResponse analizarResena(String textoResena, int estrellas) {
-        String prompt = cargarPrompt("prompt_analisis_resena.md", estrellas, sanitizarParaPrompt(textoResena));
+    public AiReviewResponse analyzeReview(String textoResena, int estrellas) {
+        String prompt = loadPrompt("prompt_analisis_resena.md", estrellas, sanitizarParaPrompt(textoResena));
         try {
             JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
-            return IaResenaResponse.builder()
+            return AiReviewResponse.builder()
                     .sentimiento(nodo.path("sentimiento").asString("neutro"))
                     .esCoherenteConEstrellas(nodo.path("es_coherente_con_estrellas").asBoolean(true))
                     .esSpam(nodo.path("es_spam").asBoolean(false))
@@ -179,7 +179,7 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
                     .build();
         } catch (Exception e) {
             log.error("[NVIDIA] Error al analizar reseña: {}", e.getMessage());
-            return IaResenaResponse.builder()
+            return AiReviewResponse.builder()
                     .sentimiento("neutro").esCoherenteConEstrellas(true)
                     .esSpam(false).esInapropiado(false).confianza(BigDecimal.ZERO).build();
         }
@@ -190,10 +190,10 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
                 "model", config.getModel(),
                 "messages", List.of(Map.of("role", "user", "content", prompt)),
                 "temperature", 1.0, "top_p", 0.95, "max_tokens", 8192, "stream", false);
-        return ejecutarLlamada(body);
+        return executeCall(body);
     }
 
-    private String llamarNvidiaConImagen(String prompt, byte[] imagenBytes, String mimeType) {
+    private String callNvidiaWithImage(String prompt, byte[] imagenBytes, String mimeType) {
         String dataUrl = "data:" + mimeType + ";base64," + Base64.getEncoder().encodeToString(imagenBytes);
         Map<String, Object> body = Map.of(
                 "model", config.getModel(),
@@ -201,10 +201,10 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
                         Map.of("type", "text", "text", prompt),
                         Map.of("type", "image_url", "image_url", Map.of("url", dataUrl))))),
                 "temperature", 1.0, "top_p", 0.95, "max_tokens", 8192, "stream", false);
-        return ejecutarLlamada(body);
+        return executeCall(body);
     }
 
-    private String ejecutarLlamada(Map<String, Object> requestBody) {
+    private String executeCall(Map<String, Object> requestBody) {
         String url = config.getBaseUrl() + "/chat/completions";
         try {
             log.info("[NVIDIA] Enviando solicitud a {} [payload={} bytes]", url, estimarTamanoPayload(requestBody));
@@ -252,11 +252,11 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
         }
     }
 
-    private IaVerificacionResponse parsearVerificacionEstricto(String respuestaJson, boolean esIdentidad) {
+    private AiVerificationResponse parseStrictVerification(String respuestaJson, boolean esIdentidad) {
         try {
             JsonNode nodo = objectMapper.readTree(extraerJson(respuestaJson));
             String campoValido = esIdentidad ? "es_documento_valido" : "es_certificado_valido";
-            return IaVerificacionResponse.builder()
+            return AiVerificationResponse.builder()
                     .aprobado(nodo.path(campoValido).asBoolean(false))
                     .confianza(acotarConfianza(toBigDecimal(nodo.path("confianza").asDouble(0.0))))
                     .tipoDocumento(textoONull(nodo, esIdentidad ? "tipo_documento" : "tipo_certificado"))

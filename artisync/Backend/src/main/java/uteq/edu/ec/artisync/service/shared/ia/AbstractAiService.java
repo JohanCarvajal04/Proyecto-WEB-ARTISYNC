@@ -17,8 +17,8 @@ public abstract class AbstractAiService {
      * Un intento + 1 reintento, solo si el fallo es transitorio (429/timeout,
      * ver AiServiceUnavailableException#isReintentable). Mismo patrón que
      * VerificationServiceImpl#analizarConReintento, generalizado aquí para
-     * que moderarContenido/clasificarServicio/sugerirPreguntasBriefing/
-     * analizarResena no descarten en silencio un 429 momentáneo del
+     * que moderarContenido/classifyOffering/sugerirPreguntasBriefing/
+     * analyzeReview no descarten en silencio un 429 momentáneo del
      * proveedor (revisión técnica 2026-09-01: antes caían directo al
      * catch-all y devolvían el valor por defecto sin reintentar).
      */
@@ -58,7 +58,7 @@ public abstract class AbstractAiService {
         return limitado.replace("\"", "'");
     }
 
-    protected String cargarPrompt(String nombreArchivo, Object... args) {
+    protected String loadPrompt(String nombreArchivo, Object... args) {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("IA/" + nombreArchivo)) {
             if (is == null) {
                 throw new RuntimeException("Prompt no encontrado: " + nombreArchivo);

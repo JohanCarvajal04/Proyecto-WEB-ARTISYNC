@@ -286,8 +286,8 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      */
     @Override
     public String uploadThumbnail(org.springframework.web.multipart.MultipartFile archivo) {
-        uteq.edu.ec.artisync.service.shared.almacenamiento.FilePolicy.PERFIL.validar(archivo);
-        String referencia = almacenamientoDocumentos.guardar(archivo, uteq.edu.ec.artisync.service.shared.almacenamiento.StoragePrefix.SERVICIOS);
+        uteq.edu.ec.artisync.service.shared.almacenamiento.FilePolicy.PERFIL.validate(archivo);
+        String referencia = almacenamientoDocumentos.save(archivo, uteq.edu.ec.artisync.service.shared.almacenamiento.StoragePrefix.SERVICIOS);
         return "/api/v1/servicios/miniatura/" + referencia;
     }
 

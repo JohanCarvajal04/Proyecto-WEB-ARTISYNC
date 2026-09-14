@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 /**
  * Prueba de caracterización del comportamiento actual de BackupScheduleServiceImpl,
  * escrita ANTES de renombrar sus métodos en español (create/update/changeStatus/
- * delete/list/getById), ya que la clase estaba en 0% de cobertura real. Mismo
+ * eliminar/list/getById), ya que la clase estaba en 0% de cobertura real. Mismo
  * estilo de mocks que BackupServiceImplTest.
  */
 @ExtendWith(MockitoExtension.class)

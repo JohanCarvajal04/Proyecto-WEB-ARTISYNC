@@ -9,7 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.CreateSubcategoryRequest;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.SubcategoryResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.catalogo.ICategoryService;
 
@@ -66,11 +66,11 @@ public class SubcategoryController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> deleteSubcategory(
+    public ResponseEntity<MessageResponse> deleteSubcategory(
             @PathVariable Long id,
             @RequestParam(required = false) String motivo) {
         categoriaServicio.deleteSubcategory(id, motivo);
-        return ResponseEntity.ok(new RespuestaMensaje("Subcategory eliminada exitosamente"));
+        return ResponseEntity.ok(new MessageResponse("Subcategory eliminada exitosamente"));
     }
 
     /**

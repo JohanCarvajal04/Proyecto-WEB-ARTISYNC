@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.FollowedCreatorUpdateResponse;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.FollowStatusResponse;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.FollowerResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.comunicacion.IFollowerService;
 
@@ -104,11 +104,11 @@ public class FollowerController {
     @Operation(summary = "Actualizar la portada y título profesional del creador")
     @PutMapping("/mi-perfil/portada")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaMensaje> updateCoverAndTitle(
+    public ResponseEntity<MessageResponse> updateCoverAndTitle(
             @RequestParam(required = false) String urlPortada,
             @RequestParam(required = false) String tituloProfesional,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         seguidorServicio.updateCoverAndTitle(userDetails.getIdUsuario(), urlPortada, tituloProfesional);
-        return ResponseEntity.ok(new RespuestaMensaje("Portada y especialidad del perfil actualizadas correctamente."));
+        return ResponseEntity.ok(new MessageResponse("Portada y especialidad del perfil actualizadas correctamente."));
     }
 }

@@ -11,7 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import uteq.edu.ec.artisync.dto.peticion.perfil.UpdateProfileRequest;
 import uteq.edu.ec.artisync.dto.peticion.perfil.CreateProfileRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.ProfileResponse;
 import uteq.edu.ec.artisync.service.perfil.ICreatorProfileService;
 
@@ -111,9 +111,9 @@ class CreatorProfileControllerTest {
 
     @Test
     void eliminarPerfil_devuelveOk() {
-        ResponseEntity<RespuestaMensaje> res = controlador.deleteProfile(10L);
+        ResponseEntity<MessageResponse> res = controlador.deleteProfile(10L);
         verify(perfilServicio).deleteProfile(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(res.getBody().getMensaje()).contains("eliminado exitosamente");
+        assertThat(res.getBody().getMessage()).contains("eliminado exitosamente");
     }
 }

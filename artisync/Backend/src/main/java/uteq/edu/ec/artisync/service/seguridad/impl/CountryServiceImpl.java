@@ -10,7 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.seguridad.request.CountryRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.CountryResponse;
 import uteq.edu.ec.artisync.exception.DuplicateResourceException;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
@@ -171,7 +171,7 @@ public class CountryServiceImpl implements CountryService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje deleteCountry(Long id) {
+    public MessageResponse deleteCountry(Long id) {
         Country pais = paisRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("País no encontrado con ID: " + id));
 
@@ -180,7 +180,7 @@ public class CountryServiceImpl implements CountryService {
         paisRepository.save(pais);
 
         String accionStr = nuevoEstado ? "reactivado" : "desactivado";
-        return new RespuestaMensaje("País " + accionStr + " exitosamente");
+        return new MessageResponse("País " + accionStr + " exitosamente");
     }
 
     private CountryResponse toResponse(Country pais) {

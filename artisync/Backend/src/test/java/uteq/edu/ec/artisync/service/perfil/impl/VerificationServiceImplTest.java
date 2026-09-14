@@ -8,7 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.access.AccessDeniedException;
-import uteq.edu.ec.artisync.dto.ia.IaVerificacionResponse;
+import uteq.edu.ec.artisync.dto.ia.AiVerificationResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.VerificationQueueResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.VerificationResponse;
 import uteq.edu.ec.artisync.entity.perfil.AiCertificate;
@@ -68,7 +68,7 @@ class VerificationServiceImplTest {
         MockMultipartFile documento = new MockMultipartFile("documento", "cedula.jpg", "image/jpeg", "contenido".getBytes());
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
         when(estadoVerificacionRepository.findByNombreEstado("PENDIENTE")).thenReturn(Optional.of(pendiente));
-        when(almacenamiento.guardar(documento)).thenReturn("uuid-generado.jpg");
+        when(almacenamiento.save(documento)).thenReturn("uuid-generado.jpg");
         when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         VerificationResponse respuesta = servicio.upload(1L, VerificationDocumentType.IDENTIDAD, documento);
@@ -123,8 +123,8 @@ class VerificationServiceImplTest {
         when(certificadoIaRepository.findById(10L)).thenReturn(Optional.of(certificado));
         when(almacenamiento.leer("ref.jpg")).thenReturn("bytes-originales".getBytes());
         when(preprocesador.comprimirParaIa(any())).thenReturn("bytes-comprimidos".getBytes());
-        when(iaService.verificarIdentidad(any(), eq("image/jpeg"))).thenReturn(
-                IaVerificacionResponse.builder().aprobado(true).confianza(new BigDecimal("0.9"))
+        when(iaService.verifyIdentity(any(), eq("image/jpeg"))).thenReturn(
+                AiVerificationResponse.builder().aprobado(true).confianza(new BigDecimal("0.9"))
                         .nombreDetectado("Ana Pérez").build());
         when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -154,13 +154,13 @@ class VerificationServiceImplTest {
         when(certificadoIaRepository.findById(12L)).thenReturn(Optional.of(certificado));
         when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
         when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
-        when(iaService.verificarIdentidad(any(), any()))
+        when(iaService.verifyIdentity(any(), any()))
                 .thenThrow(new AiServiceUnavailableException("timeout", null));
 
         assertThrows(AiServiceUnavailableException.class, () -> servicio.analizarConIa(12L));
         verify(certificadoIaRepository, never()).save(any());
         // No reintentable (constructor de 2 argumentos): un solo intento, sin reintento.
-        verify(iaService, times(1)).verificarIdentidad(any(), any());
+        verify(iaService, times(1)).verifyIdentity(any(), any());
     }
 
     @Test
@@ -171,16 +171,16 @@ class VerificationServiceImplTest {
         when(certificadoIaRepository.findById(14L)).thenReturn(Optional.of(certificado));
         when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
         when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
-        when(iaService.verificarIdentidad(any(), any()))
+        when(iaService.verifyIdentity(any(), any()))
                 .thenThrow(new AiServiceUnavailableException("429", null, true))
-                .thenReturn(IaVerificacionResponse.builder()
+                .thenReturn(AiVerificationResponse.builder()
                         .aprobado(true).confianza(new BigDecimal("0.9")).build());
         when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         VerificationResponse respuesta = servicio.analizarConIa(14L);
 
         assertThat(respuesta.veredictoIa()).isEqualTo("SUGIERE_APROBAR");
-        verify(iaService, times(2)).verificarIdentidad(any(), any());
+        verify(iaService, times(2)).verifyIdentity(any(), any());
     }
 
     @Test
@@ -191,11 +191,11 @@ class VerificationServiceImplTest {
         when(certificadoIaRepository.findById(15L)).thenReturn(Optional.of(certificado));
         when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
         when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
-        when(iaService.verificarIdentidad(any(), any()))
+        when(iaService.verifyIdentity(any(), any()))
                 .thenThrow(new AiServiceUnavailableException("401", null, false));
 
         assertThrows(AiServiceUnavailableException.class, () -> servicio.analizarConIa(15L));
-        verify(iaService, times(1)).verificarIdentidad(any(), any());
+        verify(iaService, times(1)).verifyIdentity(any(), any());
     }
 
     @Test
@@ -206,14 +206,14 @@ class VerificationServiceImplTest {
         when(certificadoIaRepository.findById(13L)).thenReturn(Optional.of(certificado));
         when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
         when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
-        when(iaService.analizarCertificado(any(), any())).thenReturn(
-                IaVerificacionResponse.builder().aprobado(true).confianza(new BigDecimal("0.8")).build());
+        when(iaService.analyzeCertificate(any(), any())).thenReturn(
+                AiVerificationResponse.builder().aprobado(true).confianza(new BigDecimal("0.8")).build());
         when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         servicio.analizarConIa(13L);
 
-        verify(iaService).analizarCertificado(any(), eq("image/jpeg"));
-        verify(iaService, never()).verificarIdentidad(any(), any());
+        verify(iaService).analyzeCertificate(any(), eq("image/jpeg"));
+        verify(iaService, never()).verifyIdentity(any(), any());
     }
 
     @Test
@@ -235,7 +235,7 @@ class VerificationServiceImplTest {
 
         verify(certificadoIaRepository).recordDecision(20L, 2L, 99L, "Documento verificado");
         verify(entityManager).refresh(certificado);
-        verify(almacenamiento).eliminar("ref.jpg");
+        verify(almacenamiento).delete("ref.jpg");
         assertThat(respuesta.nombreEstadoVerificacion()).isEqualTo("APROBADO");
         assertThat(respuesta.idModerador()).isEqualTo(99L);
     }
@@ -260,7 +260,7 @@ class VerificationServiceImplTest {
 
         verify(certificadoIaRepository).recordDecision(22L, 4L, 99L, "Falta el reverso del documento");
         verify(entityManager).refresh(certificado);
-        verify(almacenamiento, never()).eliminar(any());
+        verify(almacenamiento, never()).delete(any());
         assertThat(respuesta.nombreEstadoVerificacion()).isEqualTo("REQUIERE_ACLARACION");
     }
 

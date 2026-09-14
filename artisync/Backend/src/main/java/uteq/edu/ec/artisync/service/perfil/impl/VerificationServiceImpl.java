@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
-import uteq.edu.ec.artisync.dto.ia.IaVerificacionResponse;
+import uteq.edu.ec.artisync.dto.ia.AiVerificationResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.VerificationQueueResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.IdentityStatusResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.VerificationResponse;
@@ -87,7 +87,7 @@ public class VerificationServiceImpl implements IVerificationService {
                         "El estado PENDIENTE no está sembrado en estados_verificacion (ver migración V6)."));
 
         String hash = calculateHash(documento);
-        String referenciaAlmacenamiento = almacenamiento.guardar(documento);
+        String referenciaAlmacenamiento = almacenamiento.save(documento);
 
         AiCertificate certificado = AiCertificate.builder()
                 .usuario(usuario)
@@ -179,7 +179,7 @@ public class VerificationServiceImpl implements IVerificationService {
         byte[] comprimido = preprocesador.comprimirParaIa(original);
         log.info("Documento {} comprimido a {} bytes para envío a IA", idCertificado, comprimido.length);
 
-        IaVerificacionResponse dictamen = analizarConReintento(certificado, comprimido);
+        AiVerificationResponse dictamen = analizarConReintento(certificado, comprimido);
 
         certificado.setVeredictoIa(dictamen.isAprobado() ? "SUGIERE_APROBAR" : "SUGIERE_RECHAZAR");
         certificado.setPuntajeConfianzaIa(dictamen.getConfianza());
@@ -227,7 +227,7 @@ public class VerificationServiceImpl implements IVerificationService {
         // RECHAZADO), no para REQUIERE_ACLARACION. Actuamos sobre el flag ya
         // refrescado en vez de borrar incondicionalmente.
         if (certificado.isDocumentoEliminado()) {
-            almacenamiento.eliminar(certificado.getUrlDocumentoS3());
+            almacenamiento.delete(certificado.getUrlDocumentoS3());
         }
 
         log.info("Decisión registrada para verificación {}: estado={}, moderador={}",
@@ -241,12 +241,12 @@ public class VerificationServiceImpl implements IVerificationService {
      * exactamente igual en el segundo intento y solo duplicarían la espera
      * del moderador, así que se propagan de inmediato.
      */
-    private IaVerificacionResponse analizarConReintento(AiCertificate certificado, byte[] comprimido) {
+    private AiVerificationResponse analizarConReintento(AiCertificate certificado, byte[] comprimido) {
         boolean esCertificado = "CERTIFICADO".equals(certificado.getTipoDocumento());
         try {
             return esCertificado
-                    ? iaService.analizarCertificado(comprimido, "image/jpeg")
-                    : iaService.verificarIdentidad(comprimido, "image/jpeg");
+                    ? iaService.analyzeCertificate(comprimido, "image/jpeg")
+                    : iaService.verifyIdentity(comprimido, "image/jpeg");
         } catch (AiServiceUnavailableException e) {
             if (!e.isReintentable()) {
                 throw e;
@@ -260,8 +260,8 @@ public class VerificationServiceImpl implements IVerificationService {
                 throw e;
             }
             return esCertificado
-                    ? iaService.analizarCertificado(comprimido, "image/jpeg")
-                    : iaService.verificarIdentidad(comprimido, "image/jpeg");
+                    ? iaService.analyzeCertificate(comprimido, "image/jpeg")
+                    : iaService.verifyIdentity(comprimido, "image/jpeg");
         }
     }
 
@@ -282,7 +282,7 @@ public class VerificationServiceImpl implements IVerificationService {
         }
     }
 
-    private String serializeExtractedData(IaVerificacionResponse dictamen) {
+    private String serializeExtractedData(AiVerificationResponse dictamen) {
         java.util.Map<String, String> datos = new java.util.LinkedHashMap<>();
         if (dictamen.getNombreDetectado() != null) datos.put("nombreDetectado", dictamen.getNombreDetectado());
         if (dictamen.getTipoDocumento() != null) datos.put("tipoDocumentoDetectado", dictamen.getTipoDocumento());

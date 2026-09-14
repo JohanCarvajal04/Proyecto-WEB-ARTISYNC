@@ -6,21 +6,21 @@ import java.util.List;
 
 /**
  * Contract Strategy de IA. Los seis métodos existen aunque hoy solo se
- * cableen verificarIdentidad/analizarCertificado (REQ-F-006/007); el resto
+ * cableen verifyIdentity/analyzeCertificate (REQ-F-006/007); el resto
  * queda listo para futuras herramientas del moderador sin romper la interfaz.
  */
 public interface AiService {
 
-    IaVerificacionResponse verificarIdentidad(byte[] imagenBytes, String mimeType);
+    AiVerificationResponse verifyIdentity(byte[] imagenBytes, String mimeType);
 
-    IaVerificacionResponse analizarCertificado(byte[] imagenBytes, String mimeType);
+    AiVerificationResponse analyzeCertificate(byte[] imagenBytes, String mimeType);
 
     IaModeracionResponse moderarContenido(String textoMensaje);
 
-    IaClasificacionResponse clasificarServicio(String titulo, String descripcion,
+    AiClassificationResponse classifyOffering(String titulo, String descripcion,
                                                 List<String> categoriasDisponibles);
 
     List<String> sugerirPreguntasBriefing(String categoria, String titulo, String descripcion);
 
-    IaResenaResponse analizarResena(String textoResena, int estrellas);
+    AiReviewResponse analyzeReview(String textoResena, int estrellas);
 }

@@ -5,7 +5,7 @@ import uteq.edu.ec.artisync.repository.perfil.*;
 import org.springframework.data.domain.Pageable;
 import uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
 import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
@@ -56,7 +56,7 @@ public interface AdminUserService {
      * @return el usuario con su estado ya actualizado
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el administrador intenta desactivar su propia cuenta
      */
-    UserResponse changeStatus(Long id, ChangeEstadoRequest request, Long idAdminActual);
+    UserResponse changeStatus(Long id, ChangeAccountStatusRequest request, Long idAdminActual);
 
     /**
      * Reasigna los roles de un usuario y revoca sus sesiones para forzar el refresco de claims del JWT.
@@ -75,10 +75,10 @@ public interface AdminUserService {
      * @param id id del usuario cuyas sesiones se revocan
      * @return mensaje de confirmación
      */
-    RespuestaMensaje revokeUserSessions(Long id);
+    MessageResponse revokeUserSessions(Long id);
 
     /**
-     * Desactiva la cuenta de un usuario (soft-delete: no hay borrado físico) y revoca sus sesiones.
+     * Desactiva la cuenta de un usuario (soft-eliminar: no hay borrado físico) y revoca sus sesiones.
      *
      * @param id            id del usuario a desactivar
      * @param idAdminActual id del administrador que ejecuta la acción

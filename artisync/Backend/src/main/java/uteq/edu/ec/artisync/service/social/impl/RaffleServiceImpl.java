@@ -10,7 +10,7 @@ import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest;
 import uteq.edu.ec.artisync.dto.peticion.social.CreateRaffleRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.WinnerResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.ParticipantResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.PrizeResponse;
@@ -233,7 +233,7 @@ public class RaffleServiceImpl implements RaffleService {
     @Transactional
     @Auditable(accion = "SORTEO_ELIMINAR", modulo = AuditModule.SOCIAL,
             entidad = "sorteos", idEntidad = "#idSorteo")
-    public RespuestaMensaje deleteRaffle(Long idSorteo, Long idUsuario) {
+    public MessageResponse deleteRaffle(Long idSorteo, Long idUsuario) {
         Raffle sorteo = verifyOwner(idSorteo, idUsuario);
         if (participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo)) {
             throw new BusinessRuleException(
@@ -241,7 +241,7 @@ public class RaffleServiceImpl implements RaffleService {
         }
         sorteoRepository.delete(sorteo);
         log.info("Raffle {} eliminado por usuario {}", idSorteo, idUsuario);
-        return new RespuestaMensaje("Raffle eliminado correctamente");
+        return new MessageResponse("Raffle eliminado correctamente");
     }
 
     /**
@@ -356,7 +356,7 @@ public class RaffleServiceImpl implements RaffleService {
      */
     @Override
     @Transactional
-    public RespuestaMensaje cancelParticipation(Long idSorteo, Long idUsuario) {
+    public MessageResponse cancelParticipation(Long idSorteo, Long idUsuario) {
         Raffle sorteo = findRaffleOrThrow(idSorteo);
         if (!"Activo".equals(sorteo.getEstadoSorteo())) {
             throw new BusinessRuleException("No puedes cancelar la inscripción en un sorteo que ya ha finalizado");
@@ -369,7 +369,7 @@ public class RaffleServiceImpl implements RaffleService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No estás inscrito en este sorteo"));
         participanteSorteoRepository.delete(participante);
-        return new RespuestaMensaje("Inscripción cancelada correctamente");
+        return new MessageResponse("Inscripción cancelada correctamente");
     }
 
     /**

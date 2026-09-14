@@ -14,7 +14,7 @@ import uteq.edu.ec.artisync.dto.peticion.catalogo.CreateOfferingRequest;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.AttributeResponse;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.OfferingResponse;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.OfferingSummaryResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.service.catalogo.IOfferingCatalogService;
 
 import java.util.Collections;
@@ -67,10 +67,10 @@ class OfferingControllerTest {
 
     @Test
     void eliminarServicio_devuelveOk() {
-        ResponseEntity<RespuestaMensaje> res = controlador.deleteOffering(10L);
+        ResponseEntity<MessageResponse> res = controlador.deleteOffering(10L);
         verify(servicioCatalogoServicio).deleteOffering(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(res.getBody().getMensaje()).contains("eliminado exitosamente");
+        assertThat(res.getBody().getMessage()).contains("eliminado exitosamente");
     }
 
     @Test
@@ -117,9 +117,9 @@ class OfferingControllerTest {
 
     @Test
     void eliminarAtributo_devuelveOk() {
-        ResponseEntity<RespuestaMensaje> res = controlador.deleteAttribute(10L, 20L);
+        ResponseEntity<MessageResponse> res = controlador.deleteAttribute(10L, 20L);
         verify(servicioCatalogoServicio).deleteAttribute(10L, 20L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(res.getBody().getMensaje()).contains("eliminado exitosamente");
+        assertThat(res.getBody().getMessage()).contains("eliminado exitosamente");
     }
 }

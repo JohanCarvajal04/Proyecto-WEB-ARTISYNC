@@ -11,7 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
 import uteq.edu.ec.artisync.entity.seguridad.TwoFactorAuthentication;
 import uteq.edu.ec.artisync.entity.seguridad.Role;
@@ -253,7 +253,7 @@ class TwoFactorServiceImplTest {
         when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
         when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
 
-        RespuestaMensaje respuesta = twoFactorService.confirm2Fa("creador@example.com", codigoValido);
+        MessageResponse respuesta = twoFactorService.confirm2Fa("creador@example.com", codigoValido);
 
         assertNotNull(respuesta);
         assertTrue(dosFactores.getEstaHabilitado());

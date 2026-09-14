@@ -59,6 +59,6 @@ class AzureStorageTest {
     void eliminar_referenciaInvalida_esRechazadaAntesDeLlamarAAzure() {
         AzureStorage almacenamiento = almacenamientoConCuentaFicticia();
 
-        assertThrows(BusinessRuleException.class, () -> almacenamiento.eliminar("../passwd"));
+        assertThrows(BusinessRuleException.class, () -> almacenamiento.delete("../passwd"));
     }
 }

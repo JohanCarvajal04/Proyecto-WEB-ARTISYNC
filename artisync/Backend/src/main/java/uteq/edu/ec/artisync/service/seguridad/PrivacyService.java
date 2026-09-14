@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.service.seguridad;
 
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 
 /**
  * REQ-NF-018: mecanismo real de supresión de datos personales, distinto de la
@@ -33,7 +33,7 @@ public interface PrivacyService {
      *         {@code BAD_REQUEST} si el usuario tiene 2FA activo y no envía código;
      *         {@code UNAUTHORIZED} si el código enviado es inválido o expiró
      */
-    RespuestaMensaje requestOwnErasure(Long idUsuario, String codigo);
+    MessageResponse requestOwnErasure(Long idUsuario, String codigo);
 
     /**
      * Un administrador ejecuta la supresión en nombre de un usuario. A
@@ -47,5 +47,5 @@ public interface PrivacyService {
      * @throws org.springframework.web.server.ResponseStatusException {@code NOT_FOUND} si el usuario no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario ya tiene la supresión ejecutada
      */
-    RespuestaMensaje anonymizeUserAsAdmin(Long idUsuario, Long idAdminActual);
+    MessageResponse anonymizeUserAsAdmin(Long idUsuario, Long idAdminActual);
 }

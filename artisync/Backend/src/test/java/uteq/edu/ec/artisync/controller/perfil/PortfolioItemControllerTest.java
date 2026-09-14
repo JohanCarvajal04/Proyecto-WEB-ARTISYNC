@@ -15,7 +15,7 @@ import uteq.edu.ec.artisync.dto.peticion.perfil.CreatePortfolioItemRequest;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.PortfolioItemResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.perfil.IPortfolioItemService;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 
 import java.util.Collections;
 import java.util.List;
@@ -80,7 +80,7 @@ class PortfolioItemControllerTest {
 
     @Test
     void descargarArchivo_DebeRetornarBytesYHeaderAttachment() {
-        IPortfolioItemService.ArchivoItem archivoFalso = new IPortfolioItemService.ArchivoItem(
+        IPortfolioItemService.DownloadedFile archivoFalso = new IPortfolioItemService.DownloadedFile(
                 "fake_content".getBytes(),
                 "mi_obra.png",
                 "image/png"
@@ -100,7 +100,7 @@ class PortfolioItemControllerTest {
 
     @Test
     void eliminarItem_DebeRetornarOk() {
-        ResponseEntity<RespuestaMensaje> result = portafolioItemControlador.deleteItem(1L, mockUser);
+        ResponseEntity<MessageResponse> result = portafolioItemControlador.deleteItem(1L, mockUser);
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
 }

@@ -39,7 +39,7 @@ public class RaffleExecutorService {
      * @throws IllegalStateException si el resultado del procedimiento no se puede interpretar
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void ejecutarSorteo(Raffle sorteo) {
+    public void executeRaffle(Raffle sorteo) {
         // REQ-F-023: fn_seleccionar_ganadores_sorteo hace la seleccion aleatoria
         // (ORDER BY random()) y la actualizacion masiva de participantes+sorteo
         // en el motor, en vez de Collections.shuffle en Java seguido de un save()

@@ -14,7 +14,7 @@ class AbstractAiServiceTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
     static class ServicioDePrueba extends AbstractAiService {
-        String cargar(String archivo, Object... args) { return cargarPrompt(archivo, args); }
+        String cargar(String archivo, Object... args) { return loadPrompt(archivo, args); }
         String extraer(String respuesta) { return extraerJson(respuesta); }
         String texto(JsonNode nodo, String campo) { return textoONull(nodo, campo); }
         BigDecimal decimal(Object valor) { return toBigDecimal(valor); }

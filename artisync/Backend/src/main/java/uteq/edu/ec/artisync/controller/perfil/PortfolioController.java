@@ -9,7 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.perfil.CreatePortfolioRequest;
 import uteq.edu.ec.artisync.dto.peticion.perfil.UpdatePortfolioRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.PortfolioResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.perfil.IPortfolioService;
@@ -106,11 +106,11 @@ public class PortfolioController {
      */
     @PostMapping("/{id}/visita")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaMensaje> recordVisit(
+    public ResponseEntity<MessageResponse> recordVisit(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         portafolioServicio.incrementarVisitas(id, userDetails.getIdUsuario());
-        return ResponseEntity.ok(new RespuestaMensaje("Visita al portafolio incrementada"));
+        return ResponseEntity.ok(new MessageResponse("Visita al portafolio incrementada"));
     }
 
     /**
@@ -122,8 +122,8 @@ public class PortfolioController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('PORTAFOLIO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> deletePortfolio(@PathVariable Long id) {
+    public ResponseEntity<MessageResponse> deletePortfolio(@PathVariable Long id) {
         portafolioServicio.deletePortfolio(id);
-        return ResponseEntity.ok(new RespuestaMensaje("Portfolio eliminado exitosamente"));
+        return ResponseEntity.ok(new MessageResponse("Portfolio eliminado exitosamente"));
     }
 }

@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.peticion.perfil.CreatePortfolioRequest;
 import uteq.edu.ec.artisync.dto.peticion.perfil.UpdatePortfolioRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.PortfolioResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.perfil.IPortfolioService;
@@ -89,14 +89,14 @@ class PortfolioControllerTest {
     @Test
     void registrarVisita_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        ResponseEntity<RespuestaMensaje> res = controlador.recordVisit(10L, user);
+        ResponseEntity<MessageResponse> res = controlador.recordVisit(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(portafolioServicio).incrementarVisitas(10L, 1L);
     }
 
     @Test
     void eliminarPortafolio_devuelveOk() {
-        ResponseEntity<RespuestaMensaje> res = controlador.deletePortfolio(10L);
+        ResponseEntity<MessageResponse> res = controlador.deletePortfolio(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(portafolioServicio).deletePortfolio(10L);
     }

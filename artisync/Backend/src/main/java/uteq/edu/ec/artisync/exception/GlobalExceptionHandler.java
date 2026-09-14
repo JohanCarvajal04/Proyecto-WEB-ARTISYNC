@@ -126,7 +126,7 @@ public class GlobalExceptionHandler {
      *         además como warning (no error), por ser un fallo esperado de un tercero
      */
     @ExceptionHandler(AiServiceUnavailableException.class)
-    public ResponseEntity<ProblemDetail> manejarExcepcionServicioIaNoDisponible(
+    public ResponseEntity<ProblemDetail> handleAiServiceUnavailableException(
             AiServiceUnavailableException ex, HttpServletRequest peticion) {
 
         log.warn("Offering de IA no disponible en {}: {}", peticion.getRequestURI(), ex.getMessage());

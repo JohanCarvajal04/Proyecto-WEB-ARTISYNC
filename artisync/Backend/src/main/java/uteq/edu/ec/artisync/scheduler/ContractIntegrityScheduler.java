@@ -32,7 +32,7 @@ public class ContractIntegrityScheduler {
      * calculado). Un fallo en un contrato no bloquea la verificación del resto.
      */
     @Scheduled(cron = "${contrato.integridad.cron:0 30 4 * * *}")
-    public void verificarIntegridadDeTodos() {
+    public void verifyIntegrityOfAll() {
         List<Contract> contratosFirmados = contratoRepository.findByHashContenidoIsNotNull();
 
         if (contratosFirmados.isEmpty()) {
@@ -44,7 +44,7 @@ public class ContractIntegrityScheduler {
 
         for (Contract contrato : contratosFirmados) {
             try {
-                contratoIntegridadEjecutorServicio.verificar(contrato.getIdContrato());
+                contratoIntegridadEjecutorServicio.verify(contrato.getIdContrato());
             } catch (Exception e) {
                 log.error("[ContractIntegrityScheduler] Error verificando el contrato {}: {}",
                         contrato.getIdContrato(), e.getMessage(), e);

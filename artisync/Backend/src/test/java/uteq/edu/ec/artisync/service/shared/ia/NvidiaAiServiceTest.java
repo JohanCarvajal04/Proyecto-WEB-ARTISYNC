@@ -8,7 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import uteq.edu.ec.artisync.config.AiProperties;
-import uteq.edu.ec.artisync.dto.ia.IaVerificacionResponse;
+import uteq.edu.ec.artisync.dto.ia.AiVerificationResponse;
 import uteq.edu.ec.artisync.exception.AiServiceUnavailableException;
 
 import java.util.Map;
@@ -53,7 +53,7 @@ class NvidiaAiServiceTest {
                 .andExpect(jsonPath("$.messages[0].content[1].image_url.url").value(org.hamcrest.Matchers.startsWith("data:image/jpeg;base64,")))
                 .andRespond(withSuccess(respuestaNvidia, MediaType.APPLICATION_JSON));
 
-        IaVerificacionResponse resultado = servicio.verificarIdentidad("contenido-imagen".getBytes(), "image/jpeg");
+        AiVerificationResponse resultado = servicio.verifyIdentity("contenido-imagen".getBytes(), "image/jpeg");
 
         assertThat(resultado.isAprobado()).isTrue();
         assertThat(resultado.getNombreDetectado()).isEqualTo("Ana Pérez");
@@ -66,7 +66,7 @@ class NvidiaAiServiceTest {
                 .andRespond(withServerError());
 
         assertThrows(AiServiceUnavailableException.class,
-                () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
+                () -> servicio.verifyIdentity("bytes".getBytes(), "image/jpeg"));
     }
 
     @Test
@@ -75,7 +75,7 @@ class NvidiaAiServiceTest {
                 .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
 
         assertThrows(AiServiceUnavailableException.class,
-                () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
+                () -> servicio.verifyIdentity("bytes".getBytes(), "image/jpeg"));
     }
 
     @Test
@@ -85,7 +85,7 @@ class NvidiaAiServiceTest {
 
         AiServiceUnavailableException error = org.junit.jupiter.api.Assertions.assertThrows(
                 AiServiceUnavailableException.class,
-                () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
+                () -> servicio.verifyIdentity("bytes".getBytes(), "image/jpeg"));
 
         assertThat(error.isReintentable()).isFalse();
     }
@@ -97,7 +97,7 @@ class NvidiaAiServiceTest {
 
         AiServiceUnavailableException error = org.junit.jupiter.api.Assertions.assertThrows(
                 AiServiceUnavailableException.class,
-                () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
+                () -> servicio.verifyIdentity("bytes".getBytes(), "image/jpeg"));
 
         assertThat(error.isReintentable()).isTrue();
     }
@@ -109,7 +109,7 @@ class NvidiaAiServiceTest {
 
         AiServiceUnavailableException error = org.junit.jupiter.api.Assertions.assertThrows(
                 AiServiceUnavailableException.class,
-                () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
+                () -> servicio.verifyIdentity("bytes".getBytes(), "image/jpeg"));
 
         assertThat(error.isReintentable()).isFalse();
     }
@@ -124,7 +124,7 @@ class NvidiaAiServiceTest {
         servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
                 .andRespond(withSuccess(respuestaNvidia, MediaType.APPLICATION_JSON));
 
-        IaVerificacionResponse resultado = servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg");
+        AiVerificationResponse resultado = servicio.verifyIdentity("bytes".getBytes(), "image/jpeg");
 
         assertThat(resultado.getNombreDetectado()).isNull();
     }

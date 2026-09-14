@@ -11,7 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest;
 import uteq.edu.ec.artisync.dto.peticion.social.CreateRaffleRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.WinnerResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.ParticipantResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.RaffleResponse;
@@ -104,7 +104,7 @@ public class RaffleController {
     @Operation(summary = "Eliminar un sorteo sin participantes (CREADOR)")
     @DeleteMapping("/api/v1/sorteos/{idSorteo}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaMensaje> deleteRaffle(
+    public ResponseEntity<MessageResponse> deleteRaffle(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(sorteoService.deleteRaffle(idSorteo, userDetails.getIdUsuario()));
@@ -177,7 +177,7 @@ public class RaffleController {
     @Operation(summary = "Cancelar inscripción en un sorteo")
     @DeleteMapping("/api/v1/sorteos/{idSorteo}/joinRaffle")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaMensaje> cancelParticipation(
+    public ResponseEntity<MessageResponse> cancelParticipation(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(

@@ -11,7 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.CreateBriefingTemplateRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.BriefingResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.comunicacion.BriefingService;
 
@@ -92,7 +92,7 @@ public class BriefingController {
     @Operation(summary = "Eliminar plantilla de briefing")
     @DeleteMapping("/api/v1/briefing/plantillas/{idPlantilla}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaMensaje> deleteTemplate(
+    public ResponseEntity<MessageResponse> deleteTemplate(
             @PathVariable Long idPlantilla,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(

@@ -20,7 +20,7 @@ import uteq.edu.ec.artisync.audit.AuditContext;
 import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.entity.seguridad.*;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
@@ -253,7 +253,7 @@ public class AdminUserServiceImpl implements AdminUserService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el admin intenta desactivar su propia cuenta
      * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
      */
-    public UserResponse changeStatus(Long id, ChangeEstadoRequest request, Long idAdminActual) {
+    public UserResponse changeStatus(Long id, ChangeAccountStatusRequest request, Long idAdminActual) {
         if (id.equals(idAdminActual) && !request.getEstadoCuenta()) {
             throw new BusinessRuleException("No puedes desactivar tu propia cuenta.");
         }
@@ -264,7 +264,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
         // fn_cambiar_estado_cuenta aplica el cambio y revoca sesiones (si hubo
         // transicion activa->inactiva) en una unica transaccion serializada con
-        // SELECT FOR UPDATE, sustituyendo el find+mutate+save+revocar en cuatro
+        // SELECT FOR UPDATE, sustituyendo el find+mutate+guardar+revocar en cuatro
         // pasos no atomicos que tenia esta operacion.
         //
         // entityManager.refresh() en vez de usuario.setEstadoCuenta(...): este
@@ -317,13 +317,13 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
-    // Es un soft-delete (estadoCuenta=false), no un borrado físico: la acción
+    // Es un soft-eliminar (estadoCuenta=false), no un borrado físico: la acción
     // se llama USUARIO_DESACTIVAR y no USUARIO_ELIMINAR para que la bitácora
     // describa lo que realmente ocurre en la base de datos.
     @Auditable(accion = "USUARIO_DESACTIVAR", modulo = AuditModule.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#id")
     /**
-     * Desactiva (soft-delete) la cuenta de un usuario y revoca sus sesiones,
+     * Desactiva (soft-eliminar) la cuenta de un usuario y revoca sus sesiones,
      * en una única operación atómica.
      *
      * @param id identificador del usuario a desactivar
@@ -454,13 +454,13 @@ public class AdminUserServiceImpl implements AdminUserService {
             // Gráficas estadísticas
             if (graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.ROL
                     || graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.AMBAS) {
-                byte[] imgRol = generadorGraficaReporte.generarGraficaRol(conteoRoles);
+                byte[] imgRol = generadorGraficaReporte.generateRoleChart(conteoRoles);
                 graficas.add(new uteq.edu.ec.artisync.service.shared.reporte.ReportChart("Distribución de Usuarios por Role",
                         "Proporción de usuarios según su rol asignado", imgRol, conteoRoles));
             }
             if (graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.PAIS
                     || graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.AMBAS) {
-                byte[] imgPais = generadorGraficaReporte.generarGraficaPais(conteoPaises);
+                byte[] imgPais = generadorGraficaReporte.generateCountryChart(conteoPaises);
                 graficas.add(new uteq.edu.ec.artisync.service.shared.reporte.ReportChart("Distribución de Usuarios por País",
                         "Concentración geográfica de los usuarios registrados", imgPais, conteoPaises));
             }
@@ -513,23 +513,23 @@ public class AdminUserServiceImpl implements AdminUserService {
      * @return mensaje de confirmación
      * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
      */
-    public RespuestaMensaje revokeUserSessions(Long id) {
+    public MessageResponse revokeUserSessions(Long id) {
         if (!usuarioRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado con ID: " + id);
         }
         sessionRevocationService.revokeUserSessions(id);
-        return new RespuestaMensaje("Se han revocado exitosamente todas las sesiones del usuario ID: " + id);
+        return new MessageResponse("Se han revocado exitosamente todas las sesiones del usuario ID: " + id);
     }
 
     /**
      * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §3) -
      * fn_sincronizar_roles_usuario reemplaza atomicamente, en una unica llamada
      * al motor, lo que antes eran ~10 viajes no atomicos (findByUsuarioIdUsuario
-     * + deleteAll + flush + por cada rol: findByNombreRol + save + consulta de
-     * perfil + save de perfil). Corrige dos anomalias: la lectura fantasma que
+     * + deleteAll + flush + por cada rol: findByNombreRol + guardar + consulta de
+     * perfil + guardar de perfil). Corrige dos anomalias: la lectura fantasma que
      * permitia roles duplicados cuando dos administradores editaban al mismo
      * usuario a la vez, y el estado a medias (usuario sin ningun rol) si el
-     * bucle en Java fallaba despues del delete.
+     * bucle en Java fallaba despues del eliminar.
      */
     private void updateRoles(User usuario, List<String> nuevosRoles) {
         try {

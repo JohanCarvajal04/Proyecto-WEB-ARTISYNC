@@ -11,7 +11,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import uteq.edu.ec.artisync.dto.peticion.pedido.CreateWorkflowRequest;
 import uteq.edu.ec.artisync.dto.peticion.pedido.StageConfigRequest;
 import uteq.edu.ec.artisync.dto.peticion.pedido.SwapStagesRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.WorkflowResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.pedido.IWorkflowService;
@@ -130,9 +130,9 @@ class WorkflowControllerTest {
     void eliminarEtapa_devuelveOk() {
         CustomUserDetails user = mockUserDetails(false);
 
-        ResponseEntity<RespuestaMensaje> res = controlador.deleteStage(10L, 20L, user);
+        ResponseEntity<MessageResponse> res = controlador.deleteStage(10L, 20L, user);
         verify(flujoTrabajoServicio).deleteStage(10L, 20L, 1L, false);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(res.getBody().getMensaje()).contains("eliminada exitosamente");
+        assertThat(res.getBody().getMessage()).contains("eliminada exitosamente");
     }
 }

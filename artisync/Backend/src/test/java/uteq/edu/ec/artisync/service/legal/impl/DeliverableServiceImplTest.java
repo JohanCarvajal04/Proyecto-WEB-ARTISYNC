@@ -105,7 +105,7 @@ class DeliverableServiceImplTest {
     void subirEntregable_guardaAmbasVersionesBajoElPrefijoDeEntregables() {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
         when(entregableRepository.findByPedidoIdPedido(ID_PEDIDO)).thenReturn(Optional.empty());
-        when(almacenamiento.guardar(any(), eq("entregables")))
+        when(almacenamiento.save(any(), eq("entregables")))
                 .thenReturn("entregables/marca.png", "entregables/limpia.png");
         when(entregableRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
@@ -113,7 +113,7 @@ class DeliverableServiceImplTest {
         DeliverableResponse respuesta = servicio.uploadDeliverable(
                 ID_PEDIDO, ID_CREADOR, imagen("marca"), imagen("limpia"));
 
-        verify(almacenamiento, times(2)).guardar(any(), eq("entregables"));
+        verify(almacenamiento, times(2)).save(any(), eq("entregables"));
         assertThat(respuesta.getIdPedido()).isEqualTo(ID_PEDIDO);
     }
 
@@ -124,7 +124,7 @@ class DeliverableServiceImplTest {
         assertThrows(BusinessRuleException.class, () -> servicio.uploadDeliverable(
                 ID_PEDIDO, ID_TERCERO, imagen("marca"), imagen("limpia")));
 
-        verify(almacenamiento, never()).guardar(any(), anyString());
+        verify(almacenamiento, never()).save(any(), anyString());
     }
 
     @Test
@@ -145,15 +145,15 @@ class DeliverableServiceImplTest {
         when(entregableRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("entregables/vieja-marca.png",
                         "entregables/vieja-limpia.png", false)));
-        when(almacenamiento.guardar(any(), eq("entregables")))
+        when(almacenamiento.save(any(), eq("entregables")))
                 .thenReturn("entregables/nueva-marca.png", "entregables/nueva-limpia.png");
         when(entregableRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
 
         servicio.uploadDeliverable(ID_PEDIDO, ID_CREADOR, imagen("marca"), imagen("limpia"));
 
-        verify(almacenamiento).eliminar("entregables/vieja-marca.png");
-        verify(almacenamiento).eliminar("entregables/vieja-limpia.png");
+        verify(almacenamiento).delete("entregables/vieja-marca.png");
+        verify(almacenamiento).delete("entregables/vieja-limpia.png");
     }
 
     @Test
@@ -161,11 +161,11 @@ class DeliverableServiceImplTest {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
         when(entregableRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("entregables/vieja.png", "entregables/vieja2.png", false)));
-        when(almacenamiento.guardar(any(), eq("entregables")))
+        when(almacenamiento.save(any(), eq("entregables")))
                 .thenReturn("entregables/nueva.png", "entregables/nueva2.png");
         when(entregableRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
-        doThrow(new BusinessRuleException("Azure caido")).when(almacenamiento).eliminar(anyString());
+        doThrow(new BusinessRuleException("Azure caido")).when(almacenamiento).delete(anyString());
 
         DeliverableResponse respuesta = servicio.uploadDeliverable(
                 ID_PEDIDO, ID_CREADOR, imagen("marca"), imagen("limpia"));
@@ -194,7 +194,7 @@ class DeliverableServiceImplTest {
                 .thenReturn(Optional.of(entregableGuardado("entregables/m.png", "entregables/l.pdf", true)));
         when(almacenamiento.leer("entregables/l.pdf")).thenReturn("%PDF".getBytes());
 
-        IDeliverableService.ArchivoDescargado archivo =
+        IDeliverableService.DownloadedFile archivo =
                 servicio.downloadCleanVersion(ID_PEDIDO, ID_CLIENTE);
 
         assertThat(archivo.contenido()).isEqualTo("%PDF".getBytes());

@@ -31,7 +31,7 @@ public interface PortfolioCommentRepository extends JpaRepository<PortfolioComme
      * Igual que findById, pero con bloqueo pesimista de fila. ocultarComentario
      * y reactivarComentario no tenían ningún lock: dos moderadores actuando
      * casi a la vez sobre el mismo comentario podían pisarse la decisión sin
-     * ningún aviso (gana el último save/flush). Serializa esas dos llamadas.
+     * ningún aviso (gana el último guardar/flush). Serializa esas dos llamadas.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT c FROM PortfolioComment c WHERE c.idComentario = :idComentario")

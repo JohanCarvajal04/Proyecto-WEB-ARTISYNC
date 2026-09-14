@@ -2,7 +2,7 @@ package uteq.edu.ec.artisync.service.legal;
 
 import uteq.edu.ec.artisync.dto.peticion.legal.UpdateContractTemplateRequest;
 import uteq.edu.ec.artisync.dto.peticion.legal.CreateContractTemplateRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.legal.ContractTemplateResponse;
 import uteq.edu.ec.artisync.dto.respuesta.legal.ContractTemplateSummaryResponse;
 
@@ -50,7 +50,7 @@ public interface IContractTemplateAdminService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la plantilla ya está desactivada
      */
-    RespuestaMensaje deactivate(Long idPlantilla);
+    MessageResponse deactivate(Long idPlantilla);
 
     /**
      * Para el selector del creador al create/update un servicio: solo el

@@ -2,7 +2,7 @@ package uteq.edu.ec.artisync.service.seguridad;
 import uteq.edu.ec.artisync.repository.seguridad.*;
 import uteq.edu.ec.artisync.repository.perfil.*;
 
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
 
 public interface TwoFactorService {
@@ -28,7 +28,7 @@ public interface TwoFactorService {
      * @throws org.springframework.web.server.ResponseStatusException {@code NOT_FOUND} si el usuario no existe;
      *         {@code BAD_REQUEST} si no se inició la configuración de 2FA, o si el código es inválido o expiró
      */
-    RespuestaMensaje confirm2Fa(String correo, String codigo);
+    MessageResponse confirm2Fa(String correo, String codigo);
 
     /**
      * Desactiva el 2FA del usuario y purga sus códigos de respaldo, validando el código TOTP o de respaldo.
@@ -40,7 +40,7 @@ public interface TwoFactorService {
      *         {@code BAD_REQUEST} si el 2FA no está configurado o no está activo;
      *         {@code UNAUTHORIZED} si el código es inválido o expiró
      */
-    RespuestaMensaje disable2Fa(String correo, String codigo);
+    MessageResponse disable2Fa(String correo, String codigo);
 
     /**
      * Valida un código contra el TOTP vigente del usuario o, si no coincide, contra sus códigos de respaldo no usados.

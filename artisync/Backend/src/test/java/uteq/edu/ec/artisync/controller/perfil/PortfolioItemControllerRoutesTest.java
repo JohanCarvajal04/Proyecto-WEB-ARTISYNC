@@ -79,7 +79,7 @@ class PortfolioItemControllerRoutesTest {
     @Test
     void descargarArchivo_resuelveYDevuelveElContentTypeDelArchivo() throws Exception {
         when(itemServicio.downloadFile(eq(11L), any()))
-                .thenReturn(new IPortfolioItemService.ArchivoItem(
+                .thenReturn(new IPortfolioItemService.DownloadedFile(
                         "video".getBytes(), "obra-11.mp4", "video/mp4"));
 
         mockMvc.perform(get("/api/v1/portafolios/items/11/archivo"))

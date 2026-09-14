@@ -57,7 +57,7 @@ public interface IBackupService {
     /**
      * Elimina un respaldo y su archivo en disco, si existe.
      *
-     * @param idRespaldo identificador del respaldo a delete
+     * @param idRespaldo identificador del respaldo a eliminar
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el respaldo no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el respaldo está en progreso, o si existen respaldos incrementales que dependen de él
      */

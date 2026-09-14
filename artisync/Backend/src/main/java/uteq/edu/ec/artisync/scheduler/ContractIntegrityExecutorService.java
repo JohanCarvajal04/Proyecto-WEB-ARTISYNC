@@ -36,7 +36,7 @@ public class ContractIntegrityExecutorService {
      * @param idContrato identificador del contrato ya firmado a verificar
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void verificar(Long idContrato) {
+    public void verify(Long idContrato) {
         IntegrityVerificationResponse resultado = contratoServicio.verifyHashIntegrity(idContrato);
         if (!resultado.isIntegro()) {
             log.error("[ContractIntegrityExecutorService] Discrepancia de integridad detectada en el contrato {}",

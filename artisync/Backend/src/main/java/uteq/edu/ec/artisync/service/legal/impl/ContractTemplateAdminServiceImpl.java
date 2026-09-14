@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.dto.peticion.legal.UpdateContractTemplateRequest;
 import uteq.edu.ec.artisync.dto.peticion.legal.CreateContractTemplateRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.legal.ContractTemplateResponse;
 import uteq.edu.ec.artisync.dto.respuesta.legal.ContractTemplateSummaryResponse;
 import uteq.edu.ec.artisync.entity.pedido.ContractTemplate;
@@ -112,7 +112,7 @@ public class ContractTemplateAdminServiceImpl implements IContractTemplateAdminS
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje deactivate(Long idPlantilla) {
+    public MessageResponse deactivate(Long idPlantilla) {
         ContractTemplate plantilla = plantillaContratoRepository.findById(idPlantilla)
                 .orElseThrow(() -> new ResourceNotFoundException("Plantilla de contrato no encontrada: " + idPlantilla));
 
@@ -124,7 +124,7 @@ public class ContractTemplateAdminServiceImpl implements IContractTemplateAdminS
         plantilla.setActiva(false);
         plantillaContratoRepository.save(plantilla);
         log.info("Plantilla de contrato {} desactivada", idPlantilla);
-        return new RespuestaMensaje("Plantilla desactivada correctamente");
+        return new MessageResponse("Plantilla desactivada correctamente");
     }
 
     @Override

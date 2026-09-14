@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.CategoryResponse;
 import uteq.edu.ec.artisync.service.catalogo.ICategoryService;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 
 import java.util.List;
 
@@ -40,7 +40,7 @@ class CategoryControllerTest {
 
     @Test
     void eliminarCategoria_DebeRetornarOk() {
-        ResponseEntity<RespuestaMensaje> result = categoriaControlador.deleteCategory(1L, null);
+        ResponseEntity<MessageResponse> result = categoriaControlador.deleteCategory(1L, null);
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
 }

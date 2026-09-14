@@ -9,13 +9,9 @@ package uteq.edu.ec.artisync.dto.respuesta.comun;
  * el modelo de dominio interno (Entidades JPA) y exponiendo estrictamente los 
  * atributos necesarios para cumplir con el contrato de esta vista del API.
  */
-public record RespuestaMensaje(
+public record MessageResponse(
         String mensaje
 ) {
-    public String getMensaje() {
-        return mensaje;
-    }
-
     public String getMessage() {
         return mensaje;
     }

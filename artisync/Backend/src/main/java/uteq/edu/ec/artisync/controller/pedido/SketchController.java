@@ -31,12 +31,12 @@ public class SketchController {
      */
     @PostMapping(value = "/{idPedido}/boceto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<SketchResponse> subirBoceto(
+    public ResponseEntity<SketchResponse> uploadSketch(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam("imagen") MultipartFile imagen) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(bocetoServicio.subirBoceto(idPedido, userDetails.getIdUsuario(), imagen));
+                .body(bocetoServicio.uploadSketch(idPedido, userDetails.getIdUsuario(), imagen));
     }
 
     /**
@@ -48,10 +48,10 @@ public class SketchController {
      */
     @GetMapping("/{idPedido}/boceto")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<SketchResponse> obtenerBoceto(
+    public ResponseEntity<SketchResponse> getSketch(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(bocetoServicio.obtenerBoceto(idPedido, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(bocetoServicio.getSketch(idPedido, userDetails.getIdUsuario()));
     }
 
     /**
@@ -63,11 +63,11 @@ public class SketchController {
      */
     @GetMapping("/{idPedido}/boceto/descargar")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<byte[]> descargarBoceto(
+    public ResponseEntity<byte[]> downloadSketch(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        ISketchService.ArchivoDescargado archivo =
-                bocetoServicio.descargarBoceto(idPedido, userDetails.getIdUsuario());
+        ISketchService.DownloadedFile archivo =
+                bocetoServicio.downloadSketch(idPedido, userDetails.getIdUsuario());
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(archivo.contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,

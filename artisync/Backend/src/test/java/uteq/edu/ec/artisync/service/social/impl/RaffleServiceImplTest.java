@@ -11,7 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest;
 import uteq.edu.ec.artisync.dto.peticion.social.CreateRaffleRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.WinnerResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.ParticipantResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.RaffleResponse;
@@ -495,7 +495,7 @@ class RaffleServiceImplTest {
         given(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfilCreador));
         given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(false);
 
-        RespuestaMensaje respuesta = sorteoService.deleteRaffle(100L, 1L);
+        MessageResponse respuesta = sorteoService.deleteRaffle(100L, 1L);
 
         assertThat(respuesta).isNotNull();
         verify(sorteoRepository).delete(sorteoActivo);
@@ -583,7 +583,7 @@ class RaffleServiceImplTest {
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
         given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of(participante));
 
-        RespuestaMensaje respuesta = sorteoService.cancelParticipation(100L, 2L);
+        MessageResponse respuesta = sorteoService.cancelParticipation(100L, 2L);
 
         assertThat(respuesta).isNotNull();
         verify(participanteSorteoRepository).delete(participante);

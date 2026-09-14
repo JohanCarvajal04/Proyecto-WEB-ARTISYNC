@@ -2,7 +2,7 @@ package uteq.edu.ec.artisync.service.social;
 
 import uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest;
 import uteq.edu.ec.artisync.dto.peticion.social.CreateRaffleRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.WinnerResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.ParticipantResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.RaffleResponse;
@@ -60,7 +60,7 @@ public interface RaffleService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe o el usuario no tiene perfil de creador
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo ya tiene participantes inscritos
      */
-    RespuestaMensaje deleteRaffle(Long idSorteo, Long idUsuario);
+    MessageResponse deleteRaffle(Long idSorteo, Long idUsuario);
 
     /**
      * Lista todos los sorteos de un creador (público).
@@ -102,7 +102,7 @@ public interface RaffleService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe o el usuario no está inscrito
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo ya finalizó
      */
-    RespuestaMensaje cancelParticipation(Long idSorteo, Long idUsuario);
+    MessageResponse cancelParticipation(Long idSorteo, Long idUsuario);
 
     /**
      * Lista todos los participantes de un sorteo.

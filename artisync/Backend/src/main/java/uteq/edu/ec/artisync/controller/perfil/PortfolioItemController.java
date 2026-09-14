@@ -12,7 +12,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import uteq.edu.ec.artisync.dto.peticion.perfil.CreatePortfolioItemRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.PortfolioItemResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.perfil.IPortfolioItemService;
@@ -110,7 +110,7 @@ public class PortfolioItemController {
     public ResponseEntity<byte[]> downloadFile(
             @PathVariable Long idItem,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        IPortfolioItemService.ArchivoItem archivo =
+        IPortfolioItemService.DownloadedFile archivo =
                 itemServicio.downloadFile(idItem, idDe(userDetails));
 
         return ResponseEntity.ok()
@@ -150,11 +150,11 @@ public class PortfolioItemController {
      */
     @DeleteMapping("/items/{idItem}")
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> deleteItem(
+    public ResponseEntity<MessageResponse> deleteItem(
             @PathVariable Long idItem,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         itemServicio.deleteItem(idItem, userDetails.getIdUsuario());
-        return ResponseEntity.ok(new RespuestaMensaje("Obra eliminada del portafolio"));
+        return ResponseEntity.ok(new MessageResponse("Obra eliminada del portafolio"));
     }
 
     /** Nulo cuando la petición es anónima, que en GET es un caso válido. */

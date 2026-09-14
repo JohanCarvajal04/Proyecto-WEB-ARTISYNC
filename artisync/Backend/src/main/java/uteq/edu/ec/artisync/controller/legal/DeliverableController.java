@@ -10,7 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.legal.DeliverableResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IDeliverableService;
@@ -74,11 +74,11 @@ public class DeliverableController {
      */
     @PostMapping("/{idPedido}/aprobar")
     @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('FONDOS_LIBERAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> approveDelivery(
+    public ResponseEntity<MessageResponse> approveDelivery(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         entregableServicio.approveDelivery(idPedido, userDetails.getIdUsuario());
-        return ResponseEntity.ok(new RespuestaMensaje("Entrega aprobada exitosamente. Fondos liberados."));
+        return ResponseEntity.ok(new MessageResponse("Entrega aprobada exitosamente. Fondos liberados."));
     }
 
     /**
@@ -122,7 +122,7 @@ public class DeliverableController {
      * HTML o SVG, y servirlo para que el navegador lo interprete en el dominio
      * de la plataforma abriría la puerta a XSS almacenado.
      */
-    private ResponseEntity<byte[]> respondWithFile(IDeliverableService.ArchivoDescargado archivo) {
+    private ResponseEntity<byte[]> respondWithFile(IDeliverableService.DownloadedFile archivo) {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(archivo.contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,

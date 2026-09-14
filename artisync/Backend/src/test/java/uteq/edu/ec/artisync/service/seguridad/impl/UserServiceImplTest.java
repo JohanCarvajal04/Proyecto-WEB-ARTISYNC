@@ -15,7 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.entity.seguridad.Country;
 import uteq.edu.ec.artisync.entity.seguridad.User;
@@ -150,10 +150,10 @@ class UserServiceImplTest {
         // separado de revocarSesionesUsuario.
         when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
 
-        RespuestaMensaje response = userService.deleteOwnAccount("user@example.com");
+        MessageResponse response = userService.deleteOwnAccount("user@example.com");
 
         assertNotNull(response);
-        assertEquals("Cuenta desactivada exitosamente", response.getMensaje());
+        assertEquals("Cuenta desactivada exitosamente", response.getMessage());
         verify(sessionRevocationService).changeAccountStatus(1L, false);
         verify(usuarioRepository, never()).save(any());
     }
@@ -183,7 +183,7 @@ class UserServiceImplTest {
         // sp_cambiar_contrasena es void (PROCEDURE, no FUNCTION): el exito se
         // infiere de que no lance excepcion, no hace falta stubear un retorno.
 
-        RespuestaMensaje respuesta = userService.changePassword("user@example.com", request);
+        MessageResponse respuesta = userService.changePassword("user@example.com", request);
 
         assertNotNull(respuesta);
         verify(usuarioRepository).cambiarContrasena(1L, "hash", "nuevo-hash");
@@ -241,7 +241,7 @@ class UserServiceImplTest {
     void revokeAllMySessions_ShouldRevoke() {
         when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
 
-        RespuestaMensaje respuesta = userService.revokeAllMySessions("user@example.com");
+        MessageResponse respuesta = userService.revokeAllMySessions("user@example.com");
 
         assertNotNull(respuesta);
         verify(sessionRevocationService).revokeUserSessions(1L);

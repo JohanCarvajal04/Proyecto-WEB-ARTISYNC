@@ -3,7 +3,7 @@ package uteq.edu.ec.artisync.service.comunicacion;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.ViolationResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 
 /**
  * Offering de gestión de infracciones y suspensiones de cuenta.
@@ -28,5 +28,5 @@ public interface ViolationService {
     Page<ViolationResponse> getHistoryByUser(Long idUsuario, Pageable pageable);
 
     /** Revierte una suspensión reactivando la cuenta del usuario (solo ADMIN). */
-    RespuestaMensaje revertSuspension(Long idUsuario);
+    MessageResponse revertSuspension(Long idUsuario);
 }

@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest;
 import uteq.edu.ec.artisync.dto.peticion.social.CreateRaffleRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.WinnerResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.ParticipantResponse;
 import uteq.edu.ec.artisync.dto.respuesta.social.RaffleResponse;
@@ -86,10 +86,10 @@ class RaffleControllerTest {
     @Test
     void eliminarSorteo_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        RespuestaMensaje respuesta = new RespuestaMensaje("Ok");
+        MessageResponse respuesta = new MessageResponse("Ok");
         when(sorteoService.deleteRaffle(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<RespuestaMensaje> res = controlador.deleteRaffle(10L, user);
+        ResponseEntity<MessageResponse> res = controlador.deleteRaffle(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -150,10 +150,10 @@ class RaffleControllerTest {
     @Test
     void cancelarParticipacion_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        RespuestaMensaje respuesta = new RespuestaMensaje("Ok");
+        MessageResponse respuesta = new MessageResponse("Ok");
         when(sorteoService.cancelParticipation(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<RespuestaMensaje> res = controlador.cancelParticipation(10L, user);
+        ResponseEntity<MessageResponse> res = controlador.cancelParticipation(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }

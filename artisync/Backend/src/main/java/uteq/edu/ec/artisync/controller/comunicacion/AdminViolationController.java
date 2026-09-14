@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.ViolationResponse;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.service.comunicacion.ViolationService;
 
 /**
@@ -64,7 +64,7 @@ public class AdminViolationController {
     @Operation(summary = "Revertir suspensión de un usuario")
     @DeleteMapping("/suspensiones/{idUsuario}")
     @PreAuthorize("hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> revertSuspension(@PathVariable Long idUsuario) {
+    public ResponseEntity<MessageResponse> revertSuspension(@PathVariable Long idUsuario) {
         return ResponseEntity.ok(infraccionService.revertSuspension(idUsuario));
     }
 }

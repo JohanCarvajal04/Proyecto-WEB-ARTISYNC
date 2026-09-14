@@ -54,7 +54,7 @@ public class ContractRepositoryImpl implements ContractRepositoryCustom {
      * @return la página de filas del reporte que cumplen los filtros
      */
     @Override
-    public Page<ContractReportRow> buscarParaReporte(LocalDateTime desde, LocalDateTime hasta,
+    public Page<ContractReportRow> findForReport(LocalDateTime desde, LocalDateTime hasta,
                                                          Long idPerfilCreador, Boolean soloFirmados,
                                                          Pageable pageable) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
@@ -86,12 +86,12 @@ public class ContractRepositoryImpl implements ContractRepositoryCustom {
         query.setMaxResults(pageable.getPageSize());
         List<ContractReportRow> contenido = query.getResultList();
 
-        long total = contar(cb, desde, hasta, idPerfilCreador, soloFirmados);
+        long total = count(cb, desde, hasta, idPerfilCreador, soloFirmados);
 
         return new PageImpl<>(contenido, pageable, total);
     }
 
-    private long contar(CriteriaBuilder cb, LocalDateTime desde, LocalDateTime hasta,
+    private long count(CriteriaBuilder cb, LocalDateTime desde, LocalDateTime hasta,
                          Long idPerfilCreador, Boolean soloFirmados) {
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Contract> c = cq.from(Contract.class);

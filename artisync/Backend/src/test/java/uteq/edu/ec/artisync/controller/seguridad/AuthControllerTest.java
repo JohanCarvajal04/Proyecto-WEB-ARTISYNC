@@ -17,7 +17,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 import uteq.edu.ec.artisync.dto.seguridad.request.LoginRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.RefreshTokenRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.TokenResponse;
 import uteq.edu.ec.artisync.service.seguridad.AuthService;
 
@@ -167,7 +167,7 @@ class AuthControllerTest {
     @Test
     void logout_ShouldReturnNoContentAndClearCookie() {
         when(request.getHeader("Authorization")).thenReturn("Bearer access-token");
-        when(authService.logout("Bearer access-token", "refresh-token")).thenReturn(new RespuestaMensaje("Sesión cerrada exitosamente"));
+        when(authService.logout("Bearer access-token", "refresh-token")).thenReturn(new MessageResponse("Sesión cerrada exitosamente"));
 
         ResponseEntity<Void> result = authController.logout(request, "refresh-token", response);
 
@@ -211,20 +211,20 @@ class AuthControllerTest {
     @Test
     void forgotPassword_devuelveOk() {
         uteq.edu.ec.artisync.dto.seguridad.request.ForgotPasswordRequest req = new uteq.edu.ec.artisync.dto.seguridad.request.ForgotPasswordRequest();
-        RespuestaMensaje resp = new RespuestaMensaje("Ok");
+        MessageResponse resp = new MessageResponse("Ok");
         when(authService.forgotPassword(req)).thenReturn(resp);
 
-        ResponseEntity<RespuestaMensaje> res = authController.forgotPassword(req);
+        ResponseEntity<MessageResponse> res = authController.forgotPassword(req);
         assertEquals(HttpStatus.OK, res.getStatusCode());
     }
 
     @Test
     void resetPassword_devuelveOk() {
         uteq.edu.ec.artisync.dto.seguridad.request.ResetPasswordRequest req = new uteq.edu.ec.artisync.dto.seguridad.request.ResetPasswordRequest();
-        RespuestaMensaje resp = new RespuestaMensaje("Ok");
+        MessageResponse resp = new MessageResponse("Ok");
         when(authService.resetPassword(req)).thenReturn(resp);
 
-        ResponseEntity<RespuestaMensaje> res = authController.resetPassword(req);
+        ResponseEntity<MessageResponse> res = authController.resetPassword(req);
         assertEquals(HttpStatus.OK, res.getStatusCode());
     }
 

@@ -8,7 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import uteq.edu.ec.artisync.config.AiProperties;
-import uteq.edu.ec.artisync.dto.ia.IaVerificacionResponse;
+import uteq.edu.ec.artisync.dto.ia.AiVerificationResponse;
 import uteq.edu.ec.artisync.exception.AiServiceUnavailableException;
 
 import java.util.List;
@@ -51,7 +51,7 @@ class GeminiAiServiceTest {
         servidorSimulado.expect(method(org.springframework.http.HttpMethod.POST))
                 .andRespond(withSuccess(respuestaGemini, MediaType.APPLICATION_JSON));
 
-        IaVerificacionResponse resultado = servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg");
+        AiVerificationResponse resultado = servicio.verifyIdentity("bytes".getBytes(), "image/jpeg");
 
         assertThat(resultado.isAprobado()).isTrue();
     }
@@ -62,7 +62,7 @@ class GeminiAiServiceTest {
                 .andRespond(withServerError());
 
         assertThrows(AiServiceUnavailableException.class,
-                () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
+                () -> servicio.verifyIdentity("bytes".getBytes(), "image/jpeg"));
     }
 
     @Test
@@ -71,7 +71,7 @@ class GeminiAiServiceTest {
                 .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
 
         AiServiceUnavailableException error = assertThrows(AiServiceUnavailableException.class,
-                () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
+                () -> servicio.verifyIdentity("bytes".getBytes(), "image/jpeg"));
 
         assertThat(error.isReintentable()).isTrue();
     }
@@ -82,7 +82,7 @@ class GeminiAiServiceTest {
                 .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
 
         AiServiceUnavailableException error = assertThrows(AiServiceUnavailableException.class,
-                () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
+                () -> servicio.verifyIdentity("bytes".getBytes(), "image/jpeg"));
 
         assertThat(error.isReintentable()).isFalse();
     }

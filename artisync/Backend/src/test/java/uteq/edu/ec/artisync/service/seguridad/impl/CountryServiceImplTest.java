@@ -12,7 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Sort;
 import uteq.edu.ec.artisync.dto.seguridad.request.CountryRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.CountryResponse;
 import uteq.edu.ec.artisync.exception.DuplicateResourceException;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
@@ -90,9 +90,9 @@ class CountryServiceImplTest {
     void deletePais_ShouldDeactivate_WhenActive() {
         when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
 
-        RespuestaMensaje response = paisService.deleteCountry(1L);
+        MessageResponse response = paisService.deleteCountry(1L);
 
-        assertEquals("País desactivado exitosamente", response.getMensaje());
+        assertEquals("País desactivado exitosamente", response.getMessage());
         assertFalse(pais.getEstado());
         verify(paisRepository).save(pais);
         verify(paisRepository, never()).delete(any(Country.class));
@@ -103,9 +103,9 @@ class CountryServiceImplTest {
         pais.setEstado(false);
         when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
 
-        RespuestaMensaje response = paisService.deleteCountry(1L);
+        MessageResponse response = paisService.deleteCountry(1L);
 
-        assertEquals("País reactivado exitosamente", response.getMensaje());
+        assertEquals("País reactivado exitosamente", response.getMessage());
         assertTrue(pais.getEstado());
         verify(paisRepository).save(pais);
     }

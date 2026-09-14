@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Prueba de caracterización de BackupFileStorage, escrita ANTES de renombrar
- * resolveDestinationPath/delete (clase en 0% de cobertura real). Sin mocks: opera
+ * resolveDestinationPath/eliminar (clase en 0% de cobertura real). Sin mocks: opera
  * sobre un directorio temporal real.
  */
 class BackupFileStorageTest {

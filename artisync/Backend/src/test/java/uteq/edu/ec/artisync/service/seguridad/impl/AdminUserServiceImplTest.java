@@ -20,9 +20,9 @@ import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter;
 import uteq.edu.ec.artisync.dto.seguridad.request.AdminUpdateUserRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.AssignRolesRequest;
-import uteq.edu.ec.artisync.dto.seguridad.request.ChangeEstadoRequest;
+import uteq.edu.ec.artisync.dto.seguridad.request.ChangeAccountStatusRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.CreateUserRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.entity.seguridad.TwoFactorAuthentication;
 import uteq.edu.ec.artisync.entity.seguridad.Country;
@@ -154,7 +154,7 @@ class AdminUserServiceImplTest {
         // entityManager.refresh() (no un usuario.setEstadoCuenta() explicito) es
         // quien deja el campo en memoria coherente con lo que la funcion atomica
         // ya escribio -- se simula aqui exactamente como lo haria Hibernate real.
-        ChangeEstadoRequest request = new ChangeEstadoRequest();
+        ChangeAccountStatusRequest request = new ChangeAccountStatusRequest();
         request.setEstadoCuenta(false);
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
@@ -176,7 +176,7 @@ class AdminUserServiceImplTest {
     @Test
     void changeEstado_ShouldNotRevokeSessions_WhenActivatingUser() {
         User inactivo = User.builder().idUsuario(1L).correo("admin@example.com").estadoCuenta(false).build();
-        ChangeEstadoRequest request = new ChangeEstadoRequest();
+        ChangeAccountStatusRequest request = new ChangeAccountStatusRequest();
         request.setEstadoCuenta(true);
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(inactivo));
@@ -191,7 +191,7 @@ class AdminUserServiceImplTest {
 
     @Test
     void changeEstado_ShouldThrowNotFound_WhenUsuarioNoExiste() {
-        ChangeEstadoRequest request = new ChangeEstadoRequest();
+        ChangeAccountStatusRequest request = new ChangeAccountStatusRequest();
         request.setEstadoCuenta(false);
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -202,7 +202,7 @@ class AdminUserServiceImplTest {
 
     @Test
     void changeEstado_ShouldThrowReglaNegocio_WhenAdminSeDesactivaASiMismo() {
-        ChangeEstadoRequest request = new ChangeEstadoRequest();
+        ChangeAccountStatusRequest request = new ChangeAccountStatusRequest();
         request.setEstadoCuenta(false);
 
         assertThrows(uteq.edu.ec.artisync.exception.BusinessRuleException.class,
@@ -529,7 +529,7 @@ class AdminUserServiceImplTest {
     void revokeUserSessions_ShouldRevokeWhenUsuarioExiste() {
         when(usuarioRepository.existsById(1L)).thenReturn(true);
 
-        RespuestaMensaje respuesta = adminUserService.revokeUserSessions(1L);
+        MessageResponse respuesta = adminUserService.revokeUserSessions(1L);
 
         assertNotNull(respuesta);
         verify(sessionRevocationService).revokeUserSessions(1L);
@@ -655,8 +655,8 @@ class AdminUserServiceImplTest {
         UserResponse r2 = UserResponse.builder().idUsuario(2L).correo("creador@test.com").estadoCuenta(true).roles(List.of("CREADOR")).nombrePais("Colombia").build();
         when(usuarioMapper.toUserResponseList(any())).thenReturn(List.of(r1, r2));
 
-        when(generadorGraficaReporte.generarGraficaRol(any())).thenReturn(new byte[]{1, 2, 3});
-        when(generadorGraficaReporte.generarGraficaPais(any())).thenReturn(new byte[]{4, 5, 6});
+        when(generadorGraficaReporte.generateRoleChart(any())).thenReturn(new byte[]{1, 2, 3});
+        when(generadorGraficaReporte.generateCountryChart(any())).thenReturn(new byte[]{4, 5, 6});
 
         uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument esperado =
                 new uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument(new byte[]{1}, "application/pdf", "usuarios.pdf");
@@ -668,8 +668,8 @@ class AdminUserServiceImplTest {
                         uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.AMBAS, "admin@artisync.com");
 
         assertNotNull(resultado);
-        verify(generadorGraficaReporte).generarGraficaRol(any());
-        verify(generadorGraficaReporte).generarGraficaPais(any());
+        verify(generadorGraficaReporte).generateRoleChart(any());
+        verify(generadorGraficaReporte).generateCountryChart(any());
         verify(servicioExportacion).export(any(), org.mockito.ArgumentMatchers.eq(uteq.edu.ec.artisync.service.shared.reporte.ReportFormat.PDF));
     }
 }

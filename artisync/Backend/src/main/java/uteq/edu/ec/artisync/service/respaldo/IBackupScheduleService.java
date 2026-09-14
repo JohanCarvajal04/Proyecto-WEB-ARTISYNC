@@ -53,7 +53,7 @@ public interface IBackupScheduleService {
     /**
      * Elimina una programación de respaldos recurrentes.
      *
-     * @param idProgramacion identificador de la programación a delete
+     * @param idProgramacion identificador de la programación a eliminar
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la programación no existe
      */
     void delete(Long idProgramacion);

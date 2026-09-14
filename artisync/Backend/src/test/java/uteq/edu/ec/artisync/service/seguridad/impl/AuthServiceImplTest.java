@@ -25,7 +25,7 @@ import uteq.edu.ec.artisync.dto.seguridad.response.TokenResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.dto.seguridad.request.ForgotPasswordRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.ResetPasswordRequest;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comun.MessageResponse;
 import uteq.edu.ec.artisync.entity.seguridad.Role;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.entity.seguridad.UserRole;
@@ -477,7 +477,7 @@ class AuthServiceImplTest {
     void logout_ShouldRevocarAmbosTokensYBorrarSesion() {
         when(jwtService.extraerJti("refresh-token")).thenReturn("jti-1");
 
-        RespuestaMensaje respuesta = authService.logout("Bearer access-token", "refresh-token");
+        MessageResponse respuesta = authService.logout("Bearer access-token", "refresh-token");
 
         assertNotNull(respuesta);
         verify(sessionRevocationService).revokeTokenFromHeader("Bearer access-token");
@@ -487,7 +487,7 @@ class AuthServiceImplTest {
 
     @Test
     void logout_ShouldIgnoreRefreshToken_WhenBlank() {
-        RespuestaMensaje respuesta = authService.logout("Bearer access-token", "");
+        MessageResponse respuesta = authService.logout("Bearer access-token", "");
 
         assertNotNull(respuesta);
         verify(sessionRevocationService, never()).revokeToken(anyString());
@@ -497,7 +497,7 @@ class AuthServiceImplTest {
     void logout_ShouldNotPropagate_WhenJtiExtractionFails() {
         when(jwtService.extraerJti("refresh-token")).thenThrow(new RuntimeException("expirado"));
 
-        RespuestaMensaje respuesta = assertDoesNotThrow(() -> authService.logout("Bearer access-token", "refresh-token"));
+        MessageResponse respuesta = assertDoesNotThrow(() -> authService.logout("Bearer access-token", "refresh-token"));
 
         assertNotNull(respuesta);
         verify(sesionUsuarioRepository, never()).deleteByJti(anyString());
@@ -515,11 +515,11 @@ class AuthServiceImplTest {
         when(usuarioRepository.solicitarRecuperacion(eq("juan@example.com"), anyString()))
                 .thenReturn("{\"idUsuario\":1,\"nombres\":\"Juan\"}");
 
-        RespuestaMensaje respuesta = authService.forgotPassword(request);
+        MessageResponse respuesta = authService.forgotPassword(request);
 
         assertNotNull(respuesta);
         verify(usuarioRepository).solicitarRecuperacion(eq("juan@example.com"), anyString());
-        verify(emailService).enviarCorreoRecuperacion(eq("juan@example.com"), eq("Juan"), anyString());
+        verify(emailService).sendRecoveryEmail(eq("juan@example.com"), eq("Juan"), anyString());
     }
 
     @Test
@@ -527,7 +527,7 @@ class AuthServiceImplTest {
         ForgotPasswordRequest request = ForgotPasswordRequest.builder().correo("fantasma@example.com").build();
         when(usuarioRepository.solicitarRecuperacion(eq("fantasma@example.com"), anyString())).thenReturn(null);
 
-        RespuestaMensaje respuesta = authService.forgotPassword(request);
+        MessageResponse respuesta = authService.forgotPassword(request);
 
         assertNotNull(respuesta);
         verifyNoInteractions(emailService);
@@ -543,7 +543,7 @@ class AuthServiceImplTest {
         // exito se infiere de que no lance excepcion, no hace falta stubear
         // un retorno.
 
-        RespuestaMensaje respuesta = authService.resetPassword(request);
+        MessageResponse respuesta = authService.resetPassword(request);
 
         assertNotNull(respuesta);
         verify(usuarioRepository).restablecerContrasena(anyString(), eq("nuevo-hash"));
