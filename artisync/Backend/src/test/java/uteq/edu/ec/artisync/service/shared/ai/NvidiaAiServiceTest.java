@@ -8,9 +8,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import uteq.edu.ec.artisync.config.AiProperties;
+import uteq.edu.ec.artisync.dto.ai.AiClassificationResponse;
+import uteq.edu.ec.artisync.dto.ai.AiReviewResponse;
 import uteq.edu.ec.artisync.dto.ai.AiVerificationResponse;
+import uteq.edu.ec.artisync.dto.ai.IaModeracionResponse;
 import uteq.edu.ec.artisync.exception.AiServiceUnavailableException;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -149,5 +153,140 @@ class NvidiaAiServiceTest {
 
         assertThrows(IllegalStateException.class,
                 () -> new NvidiaAiService(builder.build(), propiedades, new tools.jackson.databind.ObjectMapper()));
+    }
+
+    private static String respuestaConContenido(String contenido) throws Exception {
+        return new ObjectMapper().writeValueAsString(
+                Map.of("choices", List.of(Map.of("message", Map.of("content", contenido)))));
+    }
+
+    @Test
+    void moderarContenido_respuestaValida_parseaResultado() throws Exception {
+        String contenido = new ObjectMapper().writeValueAsString(Map.of(
+                "es_apropiado", false, "categoria_infraccion", "spam", "confianza", 0.7));
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withSuccess(respuestaConContenido(contenido), MediaType.APPLICATION_JSON));
+
+        IaModeracionResponse resultado = servicio.moderarContenido("mensaje sospechoso");
+
+        assertThat(resultado.isEsApropiado()).isFalse();
+        assertThat(resultado.getCategoriaInfraccion()).isEqualTo("spam");
+    }
+
+    @Test
+    void moderarContenido_nvidiaResponde429YLuego200_reintentaYObtieneResultado() throws Exception {
+        String contenido = new ObjectMapper().writeValueAsString(Map.of("es_apropiado", true));
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withSuccess(respuestaConContenido(contenido), MediaType.APPLICATION_JSON));
+
+        IaModeracionResponse resultado = servicio.moderarContenido("hola");
+
+        assertThat(resultado.isEsApropiado()).isTrue();
+    }
+
+    @Test
+    void clasificarServicio_respuestaValida_parseaEtiquetas() throws Exception {
+        String contenido = new ObjectMapper().writeValueAsString(Map.of(
+                "categoria_sugerida", "Diseño", "subcategoria_sugerida", "Logos",
+                "etiquetas_sugeridas", List.of("moderno", "minimalista"), "confianza", 0.6));
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withSuccess(respuestaConContenido(contenido), MediaType.APPLICATION_JSON));
+
+        AiClassificationResponse resultado = servicio.classifyOffering(
+                "Logo", "Un logo minimalista", List.of("Diseño", "Ilustración"));
+
+        assertThat(resultado.getCategoriaSugerida()).isEqualTo("Diseño");
+        assertThat(resultado.getEtiquetasSugeridas()).containsExactly("moderno", "minimalista");
+    }
+
+    @Test
+    void clasificarServicio_nvidiaResponde500_caeEnFallbackSilencioso() {
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withServerError());
+
+        AiClassificationResponse resultado = servicio.classifyOffering("Logo", "Descripción", List.of("Diseño"));
+
+        assertThat(resultado.getCategoriaSugerida()).isEqualTo("Sin categoría");
+    }
+
+    @Test
+    void sugerirPreguntasBriefing_respuestaConPreguntas_lasDevuelve() throws Exception {
+        String contenido = new ObjectMapper().writeValueAsString(
+                Map.of("preguntas", List.of("¿Colores preferidos?", "¿Fecha límite?")));
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withSuccess(respuestaConContenido(contenido), MediaType.APPLICATION_JSON));
+
+        List<String> preguntas = servicio.sugerirPreguntasBriefing("Diseño", "Logo", "Descripción");
+
+        assertThat(preguntas).containsExactly("¿Colores preferidos?", "¿Fecha límite?");
+    }
+
+    @Test
+    void sugerirPreguntasBriefing_respuestaSinPreguntas_devuelveDefault() throws Exception {
+        String contenido = new ObjectMapper().writeValueAsString(Map.of("preguntas", List.of()));
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withSuccess(respuestaConContenido(contenido), MediaType.APPLICATION_JSON));
+
+        List<String> preguntas = servicio.sugerirPreguntasBriefing("Diseño", "Logo", "Descripción");
+
+        assertThat(preguntas).containsExactly("¿Qué necesitas?");
+    }
+
+    @Test
+    void sugerirPreguntasBriefing_nvidiaResponde500_caeEnFallbackConTresPreguntas() {
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withServerError());
+
+        List<String> preguntas = servicio.sugerirPreguntasBriefing("Diseño", "Logo", "Descripción");
+
+        assertThat(preguntas).hasSize(3);
+    }
+
+    @Test
+    void analizarResena_respuestaValida_parseaSentimiento() throws Exception {
+        String contenido = new ObjectMapper().writeValueAsString(Map.of(
+                "sentimiento", "positivo", "es_coherente_con_estrellas", true,
+                "es_spam", false, "es_inapropiado", false, "confianza", 0.9));
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withSuccess(respuestaConContenido(contenido), MediaType.APPLICATION_JSON));
+
+        AiReviewResponse resultado = servicio.analyzeReview("Excelente trabajo", 5);
+
+        assertThat(resultado.getSentimiento()).isEqualTo("positivo");
+    }
+
+    @Test
+    void analizarResena_nvidiaResponde500_caeEnFallbackNeutro() {
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withServerError());
+
+        AiReviewResponse resultado = servicio.analyzeReview("texto", 3);
+
+        assertThat(resultado.getSentimiento()).isEqualTo("neutro");
+    }
+
+    @Test
+    void analizarCertificado_respuestaValida_parseaDictamen() throws Exception {
+        String contenido = new ObjectMapper().writeValueAsString(Map.of(
+                "es_certificado_valido", true, "confianza", 0.8,
+                "institucion_emisora", "Universidad X", "campo_estudio", "Diseño"));
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withSuccess(respuestaConContenido(contenido), MediaType.APPLICATION_JSON));
+
+        AiVerificationResponse resultado = servicio.analyzeCertificate("bytes".getBytes(), "image/jpeg");
+
+        assertThat(resultado.isAprobado()).isTrue();
+        assertThat(resultado.getInstitucionEmisora()).isEqualTo("Universidad X");
+    }
+
+    @Test
+    void verificarIdentidad_nvidiaResponde400_lanzaExcepcionDeCliente() {
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withStatus(HttpStatus.BAD_REQUEST));
+
+        assertThrows(AiServiceUnavailableException.class,
+                () -> servicio.verifyIdentity("bytes".getBytes(), "image/jpeg"));
     }
 }

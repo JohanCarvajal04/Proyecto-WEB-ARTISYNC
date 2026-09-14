@@ -104,4 +104,42 @@ class XlsxGeneratorTest {
         assertThat(documento.contentType())
                 .isEqualTo("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
+
+    @Test
+    @DisplayName("Con KPIs y gráficas, antepone una hoja 'Resumen' con KPIs y tabla de distribución")
+    void generar_ConKpisYGraficas_creaHojaResumen() throws IOException {
+        GeneratedDocument documento = generador.generate(ReporteDePrueba.modeloConGraficasYKpis());
+
+        try (XSSFWorkbook libro = new XSSFWorkbook(new ByteArrayInputStream(documento.contenido()))) {
+            assertThat(libro.getNumberOfSheets()).isEqualTo(3);
+            assertThat(libro.getSheetAt(0).getSheetName()).isEqualTo("Resumen");
+
+            StringBuilder contenido = new StringBuilder();
+            for (Row fila : libro.getSheet("Resumen")) {
+                for (Cell celda : fila) {
+                    if (celda.getCellType() == CellType.STRING) {
+                        contenido.append(celda.getStringCellValue()).append('|');
+                    }
+                }
+            }
+            String texto = contenido.toString();
+            assertThat(texto).contains("Total de pedidos").contains("42").contains("Últimos 30 días");
+            assertThat(texto).contains("Tasa de conversión").contains("12%");
+            assertThat(texto).contains("DISTRIBUCIÓN POR ESTADO");
+            assertThat(texto).contains("Activo").contains("Cerrado");
+            assertThat(texto).contains("GRÁFICA SIN DATOS NI IMAGEN");
+        }
+    }
+
+    @Test
+    @DisplayName("Sin KPIs ni gráficas, no crea la hoja 'Resumen'")
+    void generar_SinKpisNiGraficas_noCreaHojaResumen() throws IOException {
+        GeneratedDocument documento = generador.generate(ReporteDePrueba.modeloBasico());
+
+        try (XSSFWorkbook libro = new XSSFWorkbook(new ByteArrayInputStream(documento.contenido()))) {
+            for (int i = 0; i < libro.getNumberOfSheets(); i++) {
+                assertThat(libro.getSheetAt(i).getSheetName()).isNotEqualTo("Resumen");
+            }
+        }
+    }
 }

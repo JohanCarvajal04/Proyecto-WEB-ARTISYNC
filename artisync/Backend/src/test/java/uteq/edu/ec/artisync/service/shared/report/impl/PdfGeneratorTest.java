@@ -98,6 +98,33 @@ class PdfGeneratorTest {
     }
 
     @Test
+    @DisplayName("Con KPIs y gráficas, incluye ambos en la plantilla; una gráfica sin imagen no llega al PDF")
+    void generar_ConKpisYGraficas_lasIncluyeEnLaPlantilla() {
+        when(pdfGeneracionServicio.generatePdfFromHtml(htmlCaptor.capture())).thenReturn(new byte[0]);
+        PdfGenerator generador = new PdfGenerator(crearTemplateEngine(), pdfGeneracionServicio);
+
+        generador.generate(ReporteDePrueba.modeloConGraficasYKpis());
+
+        String html = htmlCaptor.getValue();
+        assertThat(html).contains("Total de pedidos").contains("42");
+        assertThat(html).contains("Distribución por estado");
+        assertThat(html).contains("data:image/png;base64,");
+        assertThat(html).doesNotContain("Gráfica sin datos ni imagen");
+    }
+
+    @Test
+    @DisplayName("Con totales, los incluye ya formateados en la plantilla")
+    void generar_ConTotales_losIncluyeFormateados() {
+        when(pdfGeneracionServicio.generatePdfFromHtml(htmlCaptor.capture())).thenReturn(new byte[0]);
+        PdfGenerator generador = new PdfGenerator(crearTemplateEngine(), pdfGeneracionServicio);
+
+        generador.generate(ReporteDePrueba.modeloBasico());
+
+        String html = htmlCaptor.getValue();
+        assertThat(html).contains("Monto total");
+    }
+
+    @Test
     @DisplayName("Extremo a extremo con el renderizador real: produce un PDF válido y el logo data: no dispara SSRF")
     void generar_ExtremoAExtremoProduceDocumentoPdfValido() {
         PdfGenerator generador = new PdfGenerator(crearTemplateEngine(), new PdfGenerationServiceImpl());

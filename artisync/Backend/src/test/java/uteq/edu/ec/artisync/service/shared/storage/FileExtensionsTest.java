@@ -25,4 +25,25 @@ class FileExtensionsTest {
         assertThat(FileExtensions.desde(null)).isEqualTo(".bin");
         assertThat(FileExtensions.desde("   ")).isEqualTo(".bin");
     }
+
+    @Test
+    void contentTypeDe_extensionConocida_devuelveElTipoCanonico() {
+        assertThat(FileExtensions.contentTypeDe("foto.jpg")).isEqualTo("image/jpeg");
+        assertThat(FileExtensions.contentTypeDe("documento.pdf")).isEqualTo("application/pdf");
+    }
+
+    @Test
+    void contentTypeDe_referenciaNula_devuelveOctetStream() {
+        assertThat(FileExtensions.contentTypeDe(null)).isEqualTo("application/octet-stream");
+    }
+
+    @Test
+    void contentTypeDe_sinExtension_devuelveOctetStream() {
+        assertThat(FileExtensions.contentTypeDe("archivo-sin-extension")).isEqualTo("application/octet-stream");
+    }
+
+    @Test
+    void contentTypeDe_extensionDesconocida_devuelveOctetStream() {
+        assertThat(FileExtensions.contentTypeDe("archivo.xyz")).isEqualTo("application/octet-stream");
+    }
 }
