@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EscrowPaymentResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.dto.response.legal</a> &gt; <span class="el_source">EscrowPaymentResponse.java</span></div><h1>EscrowPaymentResponse.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.dto.response.legal;
+
+import lombok.Builder;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+/**
+ * Fila del panel de supervisión de Pagos y Garantías (Escrow) del Auditor
+ * Financiero.
+ *
+ * @param idPago id del pago en garantía
+ * @param idContrato id del contrato asociado
+ * @param idPedido id del pedido asociado
+ * @param tituloServicio título del servicio contratado
+ * @param idUsuarioCliente id del usuario cliente
+ * @param nombreCliente nombre completo del cliente
+ * @param idPerfilCreador id del perfil del creador
+ * @param nombreCreador nombre completo del creador
+ * @param idOrdenPaypal id de la orden de PayPal asociada
+ * @param montoRetenido monto retenido en garantía
+ * @param estadoFondos estado actual de los fondos
+ * @param fechaFormalizacion fecha de formalización del contrato
+ */
+@Builder
+<span class="fc" id="L26">public record EscrowPaymentResponse(</span>
+        Long idPago,
+        Long idContrato,
+        Long idPedido,
+        String tituloServicio,
+        Long idUsuarioCliente,
+        String nombreCliente,
+        Long idPerfilCreador,
+        String nombreCreador,
+        String idOrdenPaypal,
+        BigDecimal montoRetenido,
+        String estadoFondos,
+        LocalDateTime fechaFormalizacion
+) {
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

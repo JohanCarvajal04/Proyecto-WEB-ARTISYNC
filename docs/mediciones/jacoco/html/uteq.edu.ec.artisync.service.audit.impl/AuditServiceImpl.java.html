@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuditServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.audit.impl</a> &gt; <span class="el_source">AuditServiceImpl.java</span></div><h1>AuditServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.audit.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditEventData;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.dto.request.audit.AuditFilter;
+import uteq.edu.ec.artisync.dto.response.audit.AuditEventResponse;
+import uteq.edu.ec.artisync.dto.response.audit.AuditEventSummaryResponse;
+import uteq.edu.ec.artisync.entity.audit.AuditEvent;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.repository.audit.AuditEventRepository;
+import uteq.edu.ec.artisync.service.audit.IAuditService;
+import uteq.edu.ec.artisync.service.shared.report.ReportColumn;
+import uteq.edu.ec.artisync.service.shared.report.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.report.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.report.IExportService;
+import uteq.edu.ec.artisync.service.shared.report.ReportModel;
+import uteq.edu.ec.artisync.specification.audit.AuditEventSpecification;
+import uteq.edu.ec.artisync.util.PagedResponse;
+import uteq.edu.ec.artisync.util.PagedResponseBuilder;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+<span class="fc" id="L38">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class AuditServiceImpl implements IAuditService {
+
+    /** Campos que el cliente puede pedir para ordenar: todos los demás caerían
+     *  en un sort sin índice. Ver los índices de V15__modulo_auditoria.sql. */
+<span class="fc" id="L45">    private static final Set&lt;String&gt; CAMPOS_ORDENABLES = Set.of(&quot;fechaEvento&quot;, &quot;accionAuditoria&quot;, &quot;correoActor&quot;);</span>
+
+    private final AuditEventRepository eventoAuditoriaRepository;
+    private final IExportService servicioExportacion;
+
+    /**
+     * Persiste un evento de auditoría. Se llama siempre en una transacción
+     * propia ({@code REQUIRES_NEW}) para que el evento sobreviva aunque la
+     * operación de negocio auditada haya hecho rollback.
+     *
+     * @param datos datos ya resueltos del evento (actor, módulo, acción, resultado, detalle, etc.)
+     */
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void record(AuditEventData datos) {
+<span class="fc" id="L60">        AuditEvent evento = AuditEvent.builder()</span>
+<span class="fc" id="L61">                .fechaEvento(datos.fechaEvento())</span>
+<span class="fc" id="L62">                .idUsuarioActor(datos.idUsuarioActor())</span>
+<span class="fc" id="L63">                .correoActor(datos.correoActor())</span>
+<span class="fc" id="L64">                .moduloAuditoria(datos.modulo().name())</span>
+<span class="fc" id="L65">                .accionAuditoria(datos.accion())</span>
+<span class="fc" id="L66">                .resultadoEvento(datos.resultado().name())</span>
+<span class="fc" id="L67">                .entidadAfectada(datos.entidadAfectada())</span>
+<span class="fc" id="L68">                .idEntidadAfectada(datos.idEntidadAfectada())</span>
+<span class="fc" id="L69">                .detalleCambio(datos.detalleCambio())</span>
+<span class="fc" id="L70">                .mensajeError(datos.mensajeError())</span>
+<span class="fc" id="L71">                .direccionIp(datos.direccionIp())</span>
+<span class="fc" id="L72">                .agenteUsuario(datos.agenteUsuario())</span>
+<span class="fc" id="L73">                .metodoHttp(datos.metodoHttp())</span>
+<span class="fc" id="L74">                .rutaSolicitud(datos.rutaSolicitud())</span>
+<span class="fc" id="L75">                .duracionMs(datos.duracionMs())</span>
+<span class="fc" id="L76">                .build();</span>
+<span class="fc" id="L77">        eventoAuditoriaRepository.save(evento);</span>
+<span class="fc" id="L78">    }</span>
+
+    /**
+     * Lista el historial de auditoría filtrado, en forma resumida.
+     *
+     * @param filtro criterios de búsqueda y filtrado dinámico a aplicar
+     * @param pageable paginación y ordenamiento solicitados; si el campo de
+     *                 orden no está en {@link #CAMPOS_ORDENABLES} (sin índice),
+     *                 se ignora y se ordena por fecha de evento descendente
+     * @return la página de eventos resumidos que cumplen el filtro
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public PagedResponse&lt;AuditEventSummaryResponse&gt; list(AuditFilter filtro, Pageable pageable) {
+<span class="fc" id="L92">        Pageable seguro = safePage(pageable);</span>
+<span class="fc" id="L93">        Page&lt;AuditEvent&gt; pagina = eventoAuditoriaRepository.findAll(specificationFor(filtro), seguro);</span>
+<span class="fc" id="L94">        return PagedResponseBuilder.buildAndMap(pagina, this::toSummary);</span>
+    }
+
+    /**
+     * Obtiene el detalle completo de un evento de auditoría.
+     *
+     * @param idEvento identificador del evento
+     * @return el evento con todos sus campos (incluido el detalle del cambio)
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el evento no existe
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public AuditEventResponse getById(Long idEvento) {
+<span class="fc" id="L107">        AuditEvent evento = eventoAuditoriaRepository.findById(idEvento)</span>
+<span class="fc" id="L108">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;No existe el evento de auditoría con id &quot; + idEvento));
+<span class="fc" id="L110">        return toDetail(evento);</span>
+    }
+
+    // Auditar al auditor: export la propia bitácora es la operación más
+    // sensible del módulo (extrae datos personales del sistema en un
+    // archivo), así que queda registrada igual que cualquier otra, con el
+    // formato pedido en el detalle.
+    /**
+     * Exporta una página del historial de auditoría filtrado, en el formato solicitado.
+     *
+     * @param filtro criterios de búsqueda y filtrado dinámico a aplicar sobre los eventos
+     * @param formato formato del documento a generar
+     * @param page número de página a export (0-index); {@code null} exporta la primera página completa
+     * @param size tamaño de página deseado, acotado al tope de filas del formato
+     * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
+     * @return el documento generado con la página de eventos de auditoría solicitada
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si {@code page} es {@code null} y el total de eventos filtrados supera el tope de filas del formato
+     */
+    @Override
+    @Transactional(readOnly = true)
+    @Auditable(accion = &quot;AUDITORIA_EXPORTAR&quot;, modulo = AuditModule.SEGURIDAD, detalle = &quot;{formato: #formato, page: #page, size: #size}&quot;)
+    public GeneratedDocument export(AuditFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante) {
+        Page&lt;AuditEvent&gt; pagina;
+<span class="fc" id="L133">        String titulo = &quot;Auditoría&quot;;</span>
+<span class="fc" id="L134">        String subtitulo = &quot;Bitácora de eventos del sistema&quot;;</span>
+
+<span class="fc bfc" id="L136" title="All 2 branches covered.">        if (page != null) {</span>
+<span class="pc bpc" id="L137" title="3 of 6 branches missed.">            int pageSize = (size != null &amp;&amp; size &gt; 0 &amp;&amp; size &lt;= formato.topeFilas()) ? size : formato.topeFilas();</span>
+<span class="fc" id="L138">            pagina = eventoAuditoriaRepository.findAll(</span>
+<span class="fc" id="L139">                    specificationFor(filtro),</span>
+<span class="fc" id="L140">                    PageRequest.of(page, pageSize, Sort.by(Sort.Direction.DESC, &quot;fechaEvento&quot;)));</span>
+<span class="fc" id="L141">            int parte = page + 1;</span>
+<span class="fc" id="L142">            int totalPartes = Math.max(1, pagina.getTotalPages());</span>
+<span class="fc" id="L143">            titulo = &quot;Auditoría - Parte &quot; + parte;</span>
+<span class="fc" id="L144">            subtitulo = &quot;Bitácora de eventos del sistema — Parte &quot; + parte + &quot; de &quot; + totalPartes</span>
+<span class="fc" id="L145">                    + &quot; (&quot; + pagina.getTotalElements() + &quot; eventos en total)&quot;;</span>
+<span class="fc" id="L146">        } else {</span>
+<span class="fc" id="L147">            Pageable primeraPaginaConTope =</span>
+<span class="fc" id="L148">                    PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.DESC, &quot;fechaEvento&quot;));</span>
+<span class="fc" id="L149">            pagina = eventoAuditoriaRepository.findAll(specificationFor(filtro), primeraPaginaConTope);</span>
+
+<span class="fc bfc" id="L151" title="All 2 branches covered.">            if (pagina.getTotalElements() &gt; formato.topeFilas()) {</span>
+<span class="fc" id="L152">                throw new BusinessRuleException(</span>
+<span class="fc" id="L153">                        &quot;El filtro actual devuelve &quot; + pagina.getTotalElements() + &quot; eventos, más de los &quot;</span>
+<span class="fc" id="L154">                                + formato.topeFilas() + &quot; que admite una exportación en &quot; + formato</span>
+                                + &quot;. Acote el rango de fechas o utilice la opción de export por partes.&quot;);
+            }
+        }
+
+<span class="fc" id="L159">        ReportModel&lt;AuditEvent&gt; modelo = ReportModel.&lt;AuditEvent&gt;builder()</span>
+<span class="fc" id="L160">                .titulo(titulo)</span>
+<span class="fc" id="L161">                .subtitulo(subtitulo)</span>
+<span class="fc" id="L162">                .filtrosAplicados(readableFilters(filtro))</span>
+<span class="fc" id="L163">                .columnas(List.of(</span>
+<span class="fc" id="L164">                        ReportColumn.dateTime(&quot;Fecha&quot;, AuditEvent::getFechaEvento),</span>
+<span class="fc" id="L165">                        ReportColumn.texto(&quot;Actor&quot;, AuditEvent::getCorreoActor),</span>
+<span class="fc" id="L166">                        ReportColumn.texto(&quot;Módulo&quot;, AuditEvent::getModuloAuditoria),</span>
+<span class="fc" id="L167">                        ReportColumn.texto(&quot;Acción&quot;, AuditEvent::getAccionAuditoria),</span>
+<span class="fc" id="L168">                        ReportColumn.texto(&quot;Resultado&quot;, AuditEvent::getResultadoEvento),</span>
+<span class="fc" id="L169">                        ReportColumn.texto(&quot;Entidad&quot;, AuditEvent::getEntidadAfectada),</span>
+<span class="fc" id="L170">                        ReportColumn.entero(&quot;Id. entidad&quot;, AuditEvent::getIdEntidadAfectada),</span>
+<span class="fc" id="L171">                        ReportColumn.texto(&quot;IP&quot;, AuditEvent::getDireccionIp),</span>
+<span class="fc" id="L172">                        ReportColumn.texto(&quot;Message de error&quot;, AuditEvent::getMensajeError)))</span>
+<span class="fc" id="L173">                .filas(pagina.getContent())</span>
+<span class="fc" id="L174">                .generadoPor(correoSolicitante)</span>
+<span class="fc" id="L175">                .build();</span>
+
+<span class="fc" id="L177">        return servicioExportacion.export(modelo, formato);</span>
+    }
+
+    /**
+     * Exporta el historial de auditoría filtrado completo (sin paginar), en el formato solicitado.
+     *
+     * @param filtro criterios de búsqueda y filtrado dinámico a aplicar sobre los eventos
+     * @param formato formato del documento a generar
+     * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
+     * @return el documento generado con el listado de eventos de auditoría
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el total de eventos filtrados supera el tope de filas admitido por el formato
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public GeneratedDocument export(AuditFilter filtro, ReportFormat formato, String correoSolicitante) {
+<span class="fc" id="L192">        return export(filtro, formato, null, null, correoSolicitante);</span>
+    }
+
+    private Map&lt;String, String&gt; readableFilters(AuditFilter filtro) {
+<span class="fc" id="L196">        Map&lt;String, String&gt; filtros = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">        if (filtro.getCorreoActor() != null) {</span>
+<span class="fc" id="L198">            filtros.put(&quot;Actor&quot;, filtro.getCorreoActor());</span>
+        }
+<span class="fc bfc" id="L200" title="All 2 branches covered.">        if (filtro.getAccion() != null) {</span>
+<span class="fc" id="L201">            filtros.put(&quot;Acción&quot;, filtro.getAccion());</span>
+        }
+<span class="fc bfc" id="L203" title="All 2 branches covered.">        if (filtro.getModulo() != null) {</span>
+<span class="fc" id="L204">            filtros.put(&quot;Módulo&quot;, filtro.getModulo());</span>
+        }
+<span class="fc bfc" id="L206" title="All 2 branches covered.">        if (filtro.getResultado() != null) {</span>
+<span class="fc" id="L207">            filtros.put(&quot;Resultado&quot;, filtro.getResultado());</span>
+        }
+<span class="fc bfc" id="L209" title="All 2 branches covered.">        if (filtro.getEntidad() != null) {</span>
+<span class="fc" id="L210">            filtros.put(&quot;Entidad&quot;, filtro.getEntidad());</span>
+        }
+<span class="fc bfc" id="L212" title="All 2 branches covered.">        if (filtro.getDesde() != null) {</span>
+<span class="fc" id="L213">            filtros.put(&quot;Desde&quot;, filtro.getDesde().toString());</span>
+        }
+<span class="fc bfc" id="L215" title="All 2 branches covered.">        if (filtro.getHasta() != null) {</span>
+<span class="fc" id="L216">            filtros.put(&quot;Hasta&quot;, filtro.getHasta().toString());</span>
+        }
+<span class="fc" id="L218">        return filtros;</span>
+    }
+
+    /**
+     * @return las acciones de auditoría distintas registradas, para poblar el filtro del panel
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;String&gt; listAvailableActions() {
+<span class="fc" id="L227">        return eventoAuditoriaRepository.listDistinctActions();</span>
+    }
+
+    private Specification&lt;AuditEvent&gt; specificationFor(AuditFilter filtro) {
+<span class="fc" id="L231">        return AuditEventSpecification.conFiltros(</span>
+<span class="fc" id="L232">                filtro.getCorreoActor(), filtro.getAccion(), filtro.getModulo(), filtro.getResultado(),</span>
+<span class="fc" id="L233">                filtro.getEntidad(), filtro.getIdEntidad(), filtro.getDesde(), filtro.getHasta());</span>
+    }
+
+    /** Evita que el cliente ordene por una columna sin índice (p. ej. detalle_cambio). */
+    private Pageable safePage(Pageable pageable) {
+<span class="fc" id="L238">        Sort ordenSeguro = pageable.getSort().stream()</span>
+<span class="fc" id="L239">                .filter(orden -&gt; CAMPOS_ORDENABLES.contains(orden.getProperty()))</span>
+<span class="fc" id="L240">                .findFirst()</span>
+<span class="fc" id="L241">                .map(Sort::by)</span>
+<span class="fc" id="L242">                .orElse(Sort.by(Sort.Direction.DESC, &quot;fechaEvento&quot;));</span>
+<span class="fc" id="L243">        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), ordenSeguro);</span>
+    }
+
+    private AuditEventSummaryResponse toSummary(AuditEvent e) {
+<span class="fc" id="L247">        return AuditEventSummaryResponse.builder()</span>
+<span class="fc" id="L248">                .idEventoAuditoria(e.getIdEventoAuditoria())</span>
+<span class="fc" id="L249">                .fechaEvento(e.getFechaEvento())</span>
+<span class="fc" id="L250">                .idUsuarioActor(e.getIdUsuarioActor())</span>
+<span class="fc" id="L251">                .correoActor(e.getCorreoActor())</span>
+<span class="fc" id="L252">                .moduloAuditoria(e.getModuloAuditoria())</span>
+<span class="fc" id="L253">                .accionAuditoria(e.getAccionAuditoria())</span>
+<span class="fc" id="L254">                .resultadoEvento(e.getResultadoEvento())</span>
+<span class="fc" id="L255">                .entidadAfectada(e.getEntidadAfectada())</span>
+<span class="fc" id="L256">                .idEntidadAfectada(e.getIdEntidadAfectada())</span>
+<span class="fc" id="L257">                .direccionIp(e.getDireccionIp())</span>
+<span class="fc" id="L258">                .build();</span>
+    }
+
+    private AuditEventResponse toDetail(AuditEvent e) {
+<span class="fc" id="L262">        return AuditEventResponse.builder()</span>
+<span class="fc" id="L263">                .idEventoAuditoria(e.getIdEventoAuditoria())</span>
+<span class="fc" id="L264">                .fechaEvento(e.getFechaEvento())</span>
+<span class="fc" id="L265">                .idUsuarioActor(e.getIdUsuarioActor())</span>
+<span class="fc" id="L266">                .correoActor(e.getCorreoActor())</span>
+<span class="fc" id="L267">                .moduloAuditoria(e.getModuloAuditoria())</span>
+<span class="fc" id="L268">                .accionAuditoria(e.getAccionAuditoria())</span>
+<span class="fc" id="L269">                .resultadoEvento(e.getResultadoEvento())</span>
+<span class="fc" id="L270">                .entidadAfectada(e.getEntidadAfectada())</span>
+<span class="fc" id="L271">                .idEntidadAfectada(e.getIdEntidadAfectada())</span>
+<span class="fc" id="L272">                .detalleCambio(e.getDetalleCambio())</span>
+<span class="fc" id="L273">                .mensajeError(e.getMensajeError())</span>
+<span class="fc" id="L274">                .direccionIp(e.getDireccionIp())</span>
+<span class="fc" id="L275">                .agenteUsuario(e.getAgenteUsuario())</span>
+<span class="fc" id="L276">                .metodoHttp(e.getMetodoHttp())</span>
+<span class="fc" id="L277">                .rutaSolicitud(e.getRutaSolicitud())</span>
+<span class="fc" id="L278">                .duracionMs(e.getDuracionMs())</span>
+<span class="fc" id="L279">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

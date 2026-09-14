@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PortfolioCommentServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.communication.impl</a> &gt; <span class="el_source">PortfolioCommentServiceImpl.java</span></div><h1>PortfolioCommentServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.communication.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.dto.request.communication.CreateCommentRequest;
+import uteq.edu.ec.artisync.dto.response.communication.CommentResponse;
+import uteq.edu.ec.artisync.entity.communication.PortfolioComment;
+import uteq.edu.ec.artisync.entity.profile.PortfolioItem;
+import uteq.edu.ec.artisync.entity.security.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.repository.communication.PortfolioCommentRepository;
+import uteq.edu.ec.artisync.repository.profile.PortfolioItemRepository;
+import uteq.edu.ec.artisync.repository.security.UserRepository;
+import uteq.edu.ec.artisync.service.communication.PortfolioCommentService;
+
+/**
+ * Implementación del servicio de comentarios sobre ítems de portafolio.
+ */
+<span class="fc" id="L26">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class PortfolioCommentServiceImpl implements PortfolioCommentService {
+
+    private static final String ESTADO_ACTIVO = &quot;Activo&quot;;
+    private static final String ESTADO_OCULTO = &quot;Oculto&quot;;
+    /**
+     * REQ-F-010: el borrado que hace el propio autor o el dueño del portafolio
+     * es lógico, no físico, precisamente para que quede &quot;consultable por el
+     * administrador&quot; — un DELETE de fila lo haría desaparecer también para él.
+     */
+    private static final String ESTADO_ELIMINADO = &quot;Eliminado&quot;;
+
+    private final PortfolioCommentRepository comentarioRepository;
+    private final PortfolioItemRepository portafolioItemRepository;
+    private final UserRepository usuarioRepository;
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;COMENTARIO_CREAR&quot;, modulo = AuditModule.COMUNICACION,
+            entidad = &quot;comentarios_portafolio&quot;, idEntidad = &quot;#idItemPortafolio&quot;)
+    /**
+     * Crea un comentario sobre una obra del portafolio, en estado {@code Activo}.
+     *
+     * @param idItemPortafolio identificador de la obra comentada
+     * @param peticion texto del comentario
+     * @param idUsuarioAutor identificador del usuario que comenta
+     * @return el comentario creado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra o el usuario no existen
+     */
+    public CommentResponse createComment(Long idItemPortafolio, CreateCommentRequest peticion, Long idUsuarioAutor) {
+<span class="fc" id="L58">        PortfolioItem item = portafolioItemRepository.findById(idItemPortafolio)</span>
+<span class="fc" id="L59">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;Ítem de portafolio no encontrado: &quot; + idItemPortafolio));
+
+<span class="fc" id="L62">        User autor = usuarioRepository.findById(idUsuarioAutor)</span>
+<span class="fc" id="L63">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;User no encontrado: &quot; + idUsuarioAutor));
+
+<span class="fc" id="L66">        PortfolioComment comentario = comentarioRepository.save(PortfolioComment.builder()</span>
+<span class="fc" id="L67">                .itemPortafolio(item)</span>
+<span class="fc" id="L68">                .usuarioAutor(autor)</span>
+<span class="fc" id="L69">                .textoComentario(peticion.getTextoComentario())</span>
+<span class="fc" id="L70">                .estadoModeracion(ESTADO_ACTIVO)</span>
+<span class="fc" id="L71">                .build());</span>
+
+<span class="fc" id="L73">        log.info(&quot;User {} comentó el ítem de portafolio {}&quot;, idUsuarioAutor, idItemPortafolio);</span>
+<span class="fc" id="L74">        return mapToResponse(comentario);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * @param idItemPortafolio identificador de la obra
+     * @param pageable paginación y ordenamiento solicitados
+     * @return los comentarios activos (públicos) de esa obra
+     */
+    public Page&lt;CommentResponse&gt; listComments(Long idItemPortafolio, Pageable pageable) {
+<span class="fc" id="L85">        return comentarioRepository</span>
+<span class="fc" id="L86">                .findByItemPortafolioIdItemPortafolioAndEstadoModeracion(idItemPortafolio, ESTADO_ACTIVO, pageable)</span>
+<span class="fc" id="L87">                .map(this::mapToResponse);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * @param idItemPortafolio identificador de la obra
+     * @return la cantidad de comentarios activos (públicos) de esa obra
+     */
+    public long countComments(Long idItemPortafolio) {
+<span class="fc" id="L97">        return comentarioRepository.countByItemPortafolioIdItemPortafolioAndEstadoModeracion(</span>
+                idItemPortafolio, ESTADO_ACTIVO);
+    }
+
+    /**
+     * REQ-F-010: el autor o el dueño del portafolio hacen un borrado lógico
+     * (estado &quot;Eliminado&quot;): desaparece de la vista pública pero el admin sigue
+     * pudiendo consultarlo vía {@link #listForModeration}. Solo el purgado
+     * explícito de ADMIN (vía {@code AdminCommentController}) borra la fila
+     * de verdad; es una herramienta de moderación aparte, no lo que pide este
+     * requisito.
+     */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;COMENTARIO_ELIMINAR&quot;, modulo = AuditModule.COMUNICACION,
+            entidad = &quot;comentarios_portafolio&quot;, idEntidad = &quot;#idComentario&quot;)
+    /**
+     * Elimina un comentario: un admin lo purga físicamente; el autor o el
+     * dueño del portafolio solo lo marcan como {@code Eliminado} (borrado lógico).
+     *
+     * @param idComentario identificador del comentario
+     * @param idUsuarioSolicitante identificador de quien elimina
+     * @param esAdmin {@code true} si quien elimina es un admin (purga la fila)
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
+     * @throws org.springframework.security.access.AccessDeniedException si quien elimina no es
+     *         admin, ni el autor, ni el dueño del portafolio
+     */
+    public void deleteComment(Long idComentario, Long idUsuarioSolicitante, boolean esAdmin) {
+<span class="fc" id="L125">        PortfolioComment comentario = getComment(idComentario);</span>
+
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        boolean esAutor = comentario.getUsuarioAutor() != null</span>
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">                &amp;&amp; comentario.getUsuarioAutor().getIdUsuario().equals(idUsuarioSolicitante);</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">        boolean esDuenoPortafolio = comentario.getItemPortafolio() != null</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">                &amp;&amp; comentario.getItemPortafolio().getPortafolio() != null</span>
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">                &amp;&amp; comentario.getItemPortafolio().getPortafolio().getPerfil() != null</span>
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">                &amp;&amp; comentario.getItemPortafolio().getPortafolio().getPerfil().getUsuario() != null</span>
+<span class="fc" id="L133">                &amp;&amp; comentario.getItemPortafolio().getPortafolio().getPerfil().getUsuario().getIdUsuario()</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">                        .equals(idUsuarioSolicitante);</span>
+
+<span class="fc bfc" id="L136" title="All 6 branches covered.">        if (!esAdmin &amp;&amp; !esAutor &amp;&amp; !esDuenoPortafolio) {</span>
+<span class="fc" id="L137">            throw new AccessDeniedException(&quot;No tienes permisos para eliminar este comentario&quot;);</span>
+        }
+
+<span class="fc bfc" id="L140" title="All 2 branches covered.">        if (esAdmin) {</span>
+<span class="fc" id="L141">            comentarioRepository.delete(comentario);</span>
+<span class="fc" id="L142">            log.info(&quot;Comentario {} purgado definitivamente por un administrador&quot;, idComentario);</span>
+        } else {
+<span class="fc" id="L144">            comentario.setEstadoModeracion(ESTADO_ELIMINADO);</span>
+<span class="fc" id="L145">            log.info(&quot;Comentario {} eliminado (borrado lógico) por usuario {}&quot;, idComentario, idUsuarioSolicitante);</span>
+        }
+<span class="fc" id="L147">    }</span>
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * @param pageable paginación y ordenamiento solicitados
+     * @return todos los comentarios (en cualquier estado de moderación), para el panel de moderación
+     */
+    public Page&lt;CommentResponse&gt; listForModeration(Pageable pageable) {
+<span class="fc" id="L156">        return comentarioRepository.findAll(pageable).map(this::mapToResponse);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;COMENTARIO_OCULTAR&quot;, modulo = AuditModule.COMUNICACION,
+            entidad = &quot;comentarios_portafolio&quot;, idEntidad = &quot;#idComentario&quot;)
+    /**
+     * Oculta un comentario por moderación.
+     *
+     * @param idComentario identificador del comentario
+     * @return el comentario ya marcado como {@code Oculto}
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
+     */
+    public CommentResponse hideComment(Long idComentario) {
+<span class="fc" id="L171">        PortfolioComment comentario = getCommentForModeration(idComentario);</span>
+<span class="fc" id="L172">        comentario.setEstadoModeracion(ESTADO_OCULTO);</span>
+<span class="fc" id="L173">        log.info(&quot;Comentario {} ocultado por moderación&quot;, idComentario);</span>
+<span class="fc" id="L174">        return mapToResponse(comentario);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;COMENTARIO_REACTIVAR&quot;, modulo = AuditModule.COMUNICACION,
+            entidad = &quot;comentarios_portafolio&quot;, idEntidad = &quot;#idComentario&quot;)
+    /**
+     * Reactiva un comentario previamente ocultado por moderación.
+     *
+     * @param idComentario identificador del comentario
+     * @return el comentario ya marcado como {@code Activo}
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
+     */
+    public CommentResponse reactivateComment(Long idComentario) {
+<span class="fc" id="L189">        PortfolioComment comentario = getCommentForModeration(idComentario);</span>
+<span class="fc" id="L190">        comentario.setEstadoModeracion(ESTADO_ACTIVO);</span>
+<span class="fc" id="L191">        log.info(&quot;Comentario {} reactivado por moderación&quot;, idComentario);</span>
+<span class="fc" id="L192">        return mapToResponse(comentario);</span>
+    }
+
+    // -------------------------------------------------------------------------
+
+    /**
+     * Con bloqueo pesimista de fila: ocultar/reactivar son las dos únicas
+     * operaciones donde dos moderadores podrían pisarse la decisión sin
+     * ningún aviso. La segunda llamada espera a que la primera confirme y
+     * relee el estado ya actualizado antes de aplicar la suya.
+     */
+    private PortfolioComment getCommentForModeration(Long idComentario) {
+<span class="fc" id="L204">        return comentarioRepository.findByIdParaModerar(idComentario)</span>
+<span class="fc" id="L205">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;Comentario no encontrado: &quot; + idComentario));
+    }
+
+    private PortfolioComment getComment(Long idComentario) {
+<span class="fc" id="L210">        return comentarioRepository.findById(idComentario)</span>
+<span class="pc" id="L211">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;Comentario no encontrado: &quot; + idComentario));
+    }
+
+    private CommentResponse mapToResponse(PortfolioComment comentario) {
+<span class="fc" id="L216">        User autor = comentario.getUsuarioAutor();</span>
+<span class="fc bfc" id="L217" title="All 2 branches covered.">        String nombreAutor = autor == null ? null</span>
+<span class="fc" id="L218">                : autor.getNombres() + &quot; &quot; + autor.getApellidos();</span>
+
+<span class="fc" id="L220">        return CommentResponse.builder()</span>
+<span class="fc" id="L221">                .idComentario(comentario.getIdComentario())</span>
+<span class="fc bfc" id="L222" title="All 2 branches covered.">                .idItemPortafolio(comentario.getItemPortafolio() == null ? null</span>
+<span class="fc" id="L223">                        : comentario.getItemPortafolio().getIdItemPortafolio())</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">                .idUsuarioAutor(autor == null ? null : autor.getIdUsuario())</span>
+<span class="fc" id="L225">                .nombreAutor(nombreAutor)</span>
+<span class="fc" id="L226">                .textoComentario(comentario.getTextoComentario())</span>
+<span class="fc" id="L227">                .estadoModeracion(comentario.getEstadoModeracion())</span>
+<span class="fc" id="L228">                .fechaPublicacion(comentario.getFechaPublicacion())</span>
+<span class="fc" id="L229">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

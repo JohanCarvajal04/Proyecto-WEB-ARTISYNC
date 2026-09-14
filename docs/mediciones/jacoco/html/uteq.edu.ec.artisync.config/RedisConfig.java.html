@@ -19,16 +19,26 @@ import java.time.Duration;
     @Value(&quot;${app.cache.catalogo.ttl-seconds:60}&quot;)
     private long catalogoTtlSeconds;
 
+    /**
+     * Plantilla Redis de claves y valores {@code String}, usada por la lista
+     * negra de JTI ({@code JwtAuthenticationFilter}) y el rate limiter
+     * ({@code AuthRateLimitFilter}). Serialización explícita con
+     * {@link StringRedisSerializer} en vez del default JDK, para que las
+     * claves sean legibles directamente en {@code redis-cli}.
+     *
+     * @param connectionFactory conexión Redis configurada por Spring Boot
+     * @return un {@link RedisTemplate} de {@code String}/{@code String}
+     */
     @Bean
     public RedisTemplate&lt;String, String&gt; redisTemplate(RedisConnectionFactory connectionFactory) {
-<span class="fc" id="L24">        RedisTemplate&lt;String, String&gt; template = new RedisTemplate&lt;&gt;();</span>
-<span class="fc" id="L25">        template.setConnectionFactory(connectionFactory);</span>
-<span class="fc" id="L26">        template.setKeySerializer(new StringRedisSerializer());</span>
-<span class="fc" id="L27">        template.setValueSerializer(new StringRedisSerializer());</span>
-<span class="fc" id="L28">        template.setHashKeySerializer(new StringRedisSerializer());</span>
-<span class="fc" id="L29">        template.setHashValueSerializer(new StringRedisSerializer());</span>
-<span class="fc" id="L30">        template.afterPropertiesSet();</span>
-<span class="fc" id="L31">        return template;</span>
+<span class="fc" id="L34">        RedisTemplate&lt;String, String&gt; template = new RedisTemplate&lt;&gt;();</span>
+<span class="fc" id="L35">        template.setConnectionFactory(connectionFactory);</span>
+<span class="fc" id="L36">        template.setKeySerializer(new StringRedisSerializer());</span>
+<span class="fc" id="L37">        template.setValueSerializer(new StringRedisSerializer());</span>
+<span class="fc" id="L38">        template.setHashKeySerializer(new StringRedisSerializer());</span>
+<span class="fc" id="L39">        template.setHashValueSerializer(new StringRedisSerializer());</span>
+<span class="fc" id="L40">        template.afterPropertiesSet();</span>
+<span class="fc" id="L41">        return template;</span>
     }
 
     /**
@@ -38,13 +48,13 @@ import java.time.Duration;
      */
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-<span class="fc" id="L41">        RedisCacheConfiguration catalogoConfig = RedisCacheConfiguration.defaultCacheConfig()</span>
-<span class="fc" id="L42">                .entryTtl(Duration.ofSeconds(catalogoTtlSeconds))</span>
-<span class="fc" id="L43">                .disableCachingNullValues();</span>
+<span class="fc" id="L51">        RedisCacheConfiguration catalogoConfig = RedisCacheConfiguration.defaultCacheConfig()</span>
+<span class="fc" id="L52">                .entryTtl(Duration.ofSeconds(catalogoTtlSeconds))</span>
+<span class="fc" id="L53">                .disableCachingNullValues();</span>
 
-<span class="fc" id="L45">        return RedisCacheManager.builder(connectionFactory)</span>
-<span class="fc" id="L46">                .withCacheConfiguration(&quot;catalogo&quot;, catalogoConfig)</span>
-<span class="fc" id="L47">                .build();</span>
+<span class="fc" id="L55">        return RedisCacheManager.builder(connectionFactory)</span>
+<span class="fc" id="L56">                .withCacheConfiguration(&quot;catalogo&quot;, catalogoConfig)</span>
+<span class="fc" id="L57">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

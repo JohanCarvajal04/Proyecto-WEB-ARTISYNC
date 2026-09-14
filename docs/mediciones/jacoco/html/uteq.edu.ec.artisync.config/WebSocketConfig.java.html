@@ -28,23 +28,47 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Value(&quot;${app.cors.allowed-origins:http://localhost:4200,http://127.0.0.1:4200}&quot;)
     private List&lt;String&gt; allowedOrigins;
 
+    /**
+     * Habilita el broker simple en memoria para {@code /topic} y {@code /queue}
+     * y fija los prefijos de destino: {@code /app} para los métodos
+     * {@code @MessageMapping}, {@code /user} para mensajes dirigidos a un
+     * usuario específico.
+     *
+     * @param config registro de configuración del broker de mensajes
+     */
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         // Broker en memoria para suscripciones a tópicos y colas de usuario
-<span class="fc" id="L34">        config.enableSimpleBroker(&quot;/topic&quot;, &quot;/queue&quot;);</span>
+<span class="fc" id="L42">        config.enableSimpleBroker(&quot;/topic&quot;, &quot;/queue&quot;);</span>
         // Prefijo para los métodos @MessageMapping en los controladores
-<span class="fc" id="L36">        config.setApplicationDestinationPrefixes(&quot;/app&quot;);</span>
+<span class="fc" id="L44">        config.setApplicationDestinationPrefixes(&quot;/app&quot;);</span>
         // Prefijo para mensajes dirigidos a un usuario específico
-<span class="fc" id="L38">        config.setUserDestinationPrefix(&quot;/user&quot;);</span>
-<span class="fc" id="L39">    }</span>
+<span class="fc" id="L46">        config.setUserDestinationPrefix(&quot;/user&quot;);</span>
+<span class="fc" id="L47">    }</span>
 
+    /**
+     * Registra el endpoint {@code /ws} con SockJS como fallback para
+     * navegadores sin soporte nativo de WebSocket, restringido a los orígenes
+     * configurados en {@link #allowedOrigins}.
+     *
+     * @param registry registro de endpoints STOMP
+     */
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-<span class="fc" id="L43">        registry.addEndpoint(&quot;/ws&quot;)</span>
-<span class="fc" id="L44">                .setAllowedOrigins(allowedOrigins.toArray(new String[0]))</span>
-<span class="fc" id="L45">                .withSockJS();  // Fallback para navegadores sin soporte nativo WebSocket</span>
-<span class="fc" id="L46">    }</span>
+<span class="fc" id="L58">        registry.addEndpoint(&quot;/ws&quot;)</span>
+<span class="fc" id="L59">                .setAllowedOrigins(allowedOrigins.toArray(new String[0]))</span>
+<span class="fc" id="L60">                .withSockJS();  // Fallback para navegadores sin soporte nativo WebSocket</span>
+<span class="fc" id="L61">    }</span>
 
+    /**
+     * Encadena {@link #webSocketAuthInterceptor} (valida el JWT del handshake y
+     * lo deja en {@code accessor.setUser()}) seguido de
+     * {@link SecurityContextChannelInterceptor} (publica esa autenticación en
+     * {@code SecurityContextHolder} para el hilo que procesa el mensaje). El
+     * orden importa: invertirlo deja sin autenticación al hilo del mensaje.
+     *
+     * @param registration registro de interceptores del canal de entrada del cliente
+     */
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         // Orden importa: webSocketAuthInterceptor valida el JWT y deja la
@@ -53,12 +77,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // procesa el mensaje — sin este segundo interceptor,
         // AuthenticationPrincipalArgumentResolver (ver addArgumentResolvers)
         // no encuentra ninguna Authentication y resuelve el parámetro como null.
-<span class="fc" id="L56">        registration.interceptors(webSocketAuthInterceptor, new SecurityContextChannelInterceptor());</span>
-<span class="fc" id="L57">    }</span>
+<span class="fc" id="L80">        registration.interceptors(webSocketAuthInterceptor, new SecurityContextChannelInterceptor());</span>
+<span class="fc" id="L81">    }</span>
 
     /**
      * Sin este resolver, un parámetro {@code @AuthenticationPrincipal} en un
-     * método {@code @MessageMapping} (ver ChatControlador#enviarMensajeWs) no
+     * método {@code @MessageMapping} (ver ChatController#sendMessageWs) no
      * lo resuelve ningún HandlerMethodArgumentResolver registrado por
      * defecto, y Spring lo trata como si fuera el {@code @Payload} implícito:
      * intenta deserializar el cuerpo JSON del mensaje STOMP dentro de
@@ -69,7 +93,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      */
     @Override
     public void addArgumentResolvers(List&lt;HandlerMethodArgumentResolver&gt; argumentResolvers) {
-<span class="fc" id="L72">        argumentResolvers.add(new AuthenticationPrincipalArgumentResolver());</span>
-<span class="fc" id="L73">    }</span>
+<span class="fc" id="L96">        argumentResolvers.add(new AuthenticationPrincipalArgumentResolver());</span>
+<span class="fc" id="L97">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EscrowPaymentAuditController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.legal</a> &gt; <span class="el_source">EscrowPaymentAuditController.java</span></div><h1>EscrowPaymentAuditController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.legal;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.request.legal.EscrowPaymentFilter;
+import uteq.edu.ec.artisync.dto.response.legal.EscrowPaymentResponse;
+import uteq.edu.ec.artisync.dto.response.legal.EscrowPaymentDetailResponse;
+import uteq.edu.ec.artisync.dto.response.legal.EscrowSummaryResponse;
+import uteq.edu.ec.artisync.service.legal.IEscrowPaymentAuditService;
+
+import java.util.List;
+
+/**
+ * Supervisión de Pagos y Garantías (Escrow), gateada en PAGO_AUDITAR: el
+ * permiso ya estaba asignado a AUDITOR_FINANCIERO desde el seed inicial
+ * (V1__schema_inicial.sql) pero ningún endpoint lo comprobaba todavía.
+ */
+@Tag(name = &quot;Admin — Pagos y Garantías&quot;, description = &quot;Supervisión de fondos en escrow para el Auditor Financiero&quot;)
+@RestController
+@RequestMapping(&quot;/api/v1/admin/pagos-garantia&quot;)
+@RequiredArgsConstructor
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+public class EscrowPaymentAuditController {
+
+    private final IEscrowPaymentAuditService pagoGarantiaAuditoriaServicio;
+
+    /**
+     * Lista los pagos en garantía (escrow) de forma paginada, con filtros opcionales.
+     *
+     * @param filtro criterios opcionales para filtrar el listado
+     * @param pageable configuración de paginación
+     * @return página con los pagos en garantía que cumplen el filtro
+     */
+    @Operation(summary = &quot;Listado paginado y filtrado de pagos en garantía (escrow)&quot;)
+    @GetMapping
+    @PreAuthorize(&quot;hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;Page&lt;EscrowPaymentResponse&gt;&gt; list(EscrowPaymentFilter filtro, Pageable pageable) {
+<span class="fc" id="L45">        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.list(filtro, pageable));</span>
+    }
+
+    /**
+     * Obtiene el detalle de un pago en garantía junto con su historial de transacciones.
+     *
+     * @param idPago identificador del pago en garantía
+     * @return el detalle del pago en garantía
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pago en garantía no existe
+     */
+    @Operation(summary = &quot;Detalle de un pago en garantía, con su historial de transacciones&quot;)
+    @GetMapping(&quot;/{idPago}&quot;)
+    @PreAuthorize(&quot;hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;EscrowPaymentDetailResponse&gt; getDetail(@PathVariable Long idPago) {
+<span class="fc" id="L59">        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.getDetail(idPago));</span>
+    }
+
+    /**
+     * Obtiene el resumen agregado de fondos en garantía: cantidad y monto total por estado.
+     *
+     * @return listado con el resumen de fondos en escrow por estado
+     */
+    @Operation(summary = &quot;Resumen agregado: cantidad y monto total de fondos por estado&quot;)
+    @GetMapping(&quot;/resumen&quot;)
+    @PreAuthorize(&quot;hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;EscrowSummaryResponse&gt;&gt; getSummary() {
+<span class="fc" id="L71">        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.getSummary());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

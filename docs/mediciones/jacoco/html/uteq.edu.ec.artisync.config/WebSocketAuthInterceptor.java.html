@@ -15,9 +15,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.entity.legal.SalaChat;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
-import uteq.edu.ec.artisync.repository.legal.SalaChatRepository;
+import uteq.edu.ec.artisync.entity.legal.ChatRoom;
+import uteq.edu.ec.artisync.entity.order.Order;
+import uteq.edu.ec.artisync.repository.legal.ChatRoomRepository;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.security.CustomUserDetailsService;
 import uteq.edu.ec.artisync.security.JwtService;
@@ -68,7 +68,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
     private static final String PREFIJO_USER = &quot;/user/&quot;;
 
     @FunctionalInterface
-    private interface AutorizadorTopico {
+    private interface TopicAuthorizer {
         void autorizar(StompHeaderAccessor accessor, String destino);
     }
 
@@ -79,14 +79,14 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
      * que autorizacion existe para cada prefijo — para sumar un nuevo
      * {@code /topic/*} o {@code /queue/*} en el futuro, se agrega su entrada
      * aqui; cualquier prefijo no registrado se rechaza por defecto en
-     * {@link #autorizarSuscripcion} (fail-closed).
+     * {@link #authorizeSubscription} (fail-closed).
      */
-    private final Map&lt;String, AutorizadorTopico&gt; autorizadoresPorPrefijo =
-            Map.of(PREFIJO_TOPIC_SALA, this::autorizarSala);
+    private final Map&lt;String, TopicAuthorizer&gt; autorizadoresPorPrefijo =
+            Map.of(PREFIJO_TOPIC_SALA, this::authorizeRoom);
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
-    private final SalaChatRepository salaChatRepository;
+    private final ChatRoomRepository salaChatRepository;
 
     /**
      * {@code readOnly}: la autorización de SUBSCRIBE navega
@@ -111,7 +111,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 <span class="fc bfc" id="L111" title="All 2 branches covered.">        if (StompCommand.CONNECT.equals(accessor.getCommand())) {</span>
 <span class="fc" id="L112">            autenticarConexion(accessor);</span>
 <span class="fc bfc" id="L113" title="All 2 branches covered.">        } else if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {</span>
-<span class="fc" id="L114">            autorizarSuscripcion(accessor);</span>
+<span class="fc" id="L114">            authorizeSubscription(accessor);</span>
         }
 
 <span class="fc" id="L117">        return message;</span>
@@ -127,8 +127,8 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
 <span class="fc" id="L128">        String token = authHeader.substring(7);</span>
         try {
-<span class="fc" id="L130">            Claims claims = jwtService.extraerTodosLosClaims(token);</span>
-<span class="fc" id="L131">            String username = jwtService.extraerUsername(token);</span>
+<span class="fc" id="L130">            Claims claims = jwtService.extractAllClaims(token);</span>
+<span class="fc" id="L131">            String username = jwtService.extractUsername(token);</span>
 <span class="fc" id="L132">            Date expiration = claims.getExpiration();</span>
 
 <span class="pc bpc" id="L134" title="1 of 4 branches missed.">            if (username == null || !expiration.after(new Date())) {</span>
@@ -151,7 +151,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 <span class="fc" id="L151">        }</span>
 <span class="fc" id="L152">    }</span>
 
-    private void autorizarSuscripcion(StompHeaderAccessor accessor) {
+    private void authorizeSubscription(StompHeaderAccessor accessor) {
 <span class="fc" id="L155">        String destino = accessor.getDestination();</span>
 <span class="fc bfc" id="L156" title="All 2 branches covered.">        if (destino == null) {</span>
 <span class="fc" id="L157">            log.warn(&quot;SUBSCRIBE rechazado: sin destino&quot;);</span>
@@ -162,7 +162,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 <span class="fc" id="L162">            return;</span>
         }
 
-<span class="fc" id="L165">        AutorizadorTopico autorizador = autorizadoresPorPrefijo.entrySet().stream()</span>
+<span class="fc" id="L165">        TopicAuthorizer autorizador = autorizadoresPorPrefijo.entrySet().stream()</span>
 <span class="fc" id="L166">                .filter(entrada -&gt; destino.startsWith(entrada.getKey()))</span>
 <span class="fc" id="L167">                .map(Map.Entry::getValue)</span>
 <span class="fc" id="L168">                .findFirst()</span>
@@ -176,26 +176,26 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 <span class="fc" id="L176">        autorizador.autorizar(accessor, destino);</span>
 <span class="fc" id="L177">    }</span>
 
-    private void autorizarSala(StompHeaderAccessor accessor, String destino) {
-<span class="fc" id="L180">        Long idUsuario = idUsuarioDe(accessor);</span>
+    private void authorizeRoom(StompHeaderAccessor accessor, String destino) {
+<span class="fc" id="L180">        Long idUsuario = userIdFrom(accessor);</span>
 <span class="fc bfc" id="L181" title="All 2 branches covered.">        if (idUsuario == null) {</span>
 <span class="fc" id="L182">            log.warn(&quot;SUBSCRIBE rechazado a {}: sesión sin Principal autenticado&quot;, destino);</span>
 <span class="fc" id="L183">            throw new MessagingException(&quot;No autenticado&quot;);</span>
         }
 
-<span class="fc" id="L186">        Long idSala = parsearIdSala(destino);</span>
+<span class="fc" id="L186">        Long idSala = parseRoomId(destino);</span>
 <span class="pc bpc" id="L187" title="1 of 2 branches missed.">        if (idSala == null) {</span>
 <span class="nc" id="L188">            log.warn(&quot;SUBSCRIBE rechazado: destino de sala con formato inválido ({})&quot;, destino);</span>
 <span class="nc" id="L189">            throw new MessagingException(&quot;Destino de suscripción inválido&quot;);</span>
         }
 
-<span class="fc" id="L192">        SalaChat sala = salaChatRepository.findById(idSala).orElse(null);</span>
+<span class="fc" id="L192">        ChatRoom sala = salaChatRepository.findById(idSala).orElse(null);</span>
 <span class="fc bfc" id="L193" title="All 2 branches covered.">        if (sala == null) {</span>
 <span class="fc" id="L194">            log.warn(&quot;SUBSCRIBE rechazado: sala {} no existe (usuario {})&quot;, idSala, idUsuario);</span>
 <span class="fc" id="L195">            throw new MessagingException(&quot;Sala no encontrada&quot;);</span>
         }
 
-<span class="fc" id="L198">        Pedido pedido = sala.getPedido();</span>
+<span class="fc" id="L198">        Order pedido = sala.getPedido();</span>
 <span class="fc" id="L199">        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuario);</span>
 <span class="fc" id="L200">        boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuario);</span>
 <span class="fc bfc" id="L201" title="All 4 branches covered.">        if (!esCliente &amp;&amp; !esCreador) {</span>
@@ -205,7 +205,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         }
 <span class="fc" id="L206">    }</span>
 
-    private Long idUsuarioDe(StompHeaderAccessor accessor) {
+    private Long userIdFrom(StompHeaderAccessor accessor) {
 <span class="fc bfc" id="L209" title="All 2 branches covered.">        if (!(accessor.getUser() instanceof Authentication autenticacion)) {</span>
 <span class="fc" id="L210">            return null;</span>
         }
@@ -215,7 +215,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 <span class="fc" id="L215">        return principal.getIdUsuario();</span>
     }
 
-    private Long parsearIdSala(String destino) {
+    private Long parseRoomId(String destino) {
         try {
 <span class="fc" id="L220">            return Long.valueOf(destino.substring(PREFIJO_TOPIC_SALA.length()));</span>
 <span class="nc" id="L221">        } catch (NumberFormatException e) {</span>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RevisionTicketController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.order</a> &gt; <span class="el_source">RevisionTicketController.java</span></div><h1>RevisionTicketController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.order;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.request.order.CreateRevisionTicketRequest;
+import uteq.edu.ec.artisync.dto.response.order.RevisionTicketResponse;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.order.IRevisionTicketService;
+
+import java.util.List;
+
+/** Tickets de revisión adicional (con posible cargo extra) sobre un pedido. */
+@RestController
+@RequestMapping(&quot;/api/v1&quot;)
+@RequiredArgsConstructor
+public class RevisionTicketController {
+
+    private final IRevisionTicketService ticketRevisionServicio;
+
+    /**
+     * Crea un ticket de revisión (rechazo) para el entregable actual de un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que crea el ticket
+     * @param peticion datos del ticket de revisión, incluyendo el motivo de rechazo
+     * @return el ticket de revisión creado, con estado 201
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido o el motivo de rechazo no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no es el cliente del pedido
+     */
+    @PostMapping(&quot;/pedidos/{idPedido}/tickets-revision&quot;)
+    @PreAuthorize(&quot;hasAuthority('TICKET_REVISAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RevisionTicketResponse&gt; createTicket(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody CreateRevisionTicketRequest peticion) {
+<span class="fc" id="L41">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L42">                .body(ticketRevisionServicio.createRevisionTicket(idPedido, userDetails.getIdUsuario(), peticion));</span>
+    }
+
+    /**
+     * Lista los tickets de revisión asociados a un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que consulta los tickets
+     * @return listado de tickets de revisión del pedido
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
+     */
+    @GetMapping(&quot;/pedidos/{idPedido}/tickets-revision&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;List&lt;RevisionTicketResponse&gt;&gt; listTickets(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L58">        return ResponseEntity.ok(ticketRevisionServicio.listTicketsByOrder(idPedido, userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Cambia el estado de un ticket de revisión.
+     *
+     * @param idTicket identificador del ticket de revisión
+     * @param userDetails usuario autenticado que solicita el cambio de estado
+     * @param nuevoEstado nuevo estado a asignar al ticket
+     * @return el ticket de revisión con su estado actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el ticket no existe
+     */
+    @PutMapping(&quot;/tickets-revision/{idTicket}/estado&quot;)
+    @PreAuthorize(&quot;hasAuthority('TICKET_RESOLVER') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RevisionTicketResponse&gt; changeStatus(
+            @PathVariable Long idTicket,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam String nuevoEstado) {
+<span class="fc" id="L76">        return ResponseEntity.ok(</span>
+<span class="fc" id="L77">                ticketRevisionServicio.changeTicketStatus(idTicket, userDetails.getIdUsuario(), nuevoEstado));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,546 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminUserServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.security.impl</a> &gt; <span class="el_source">AdminUserServiceImpl.java</span></div><h1>AdminUserServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.security.impl;
+import uteq.edu.ec.artisync.service.security.*;
+
+import jakarta.persistence.EntityManager;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditContext;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.dto.request.security.UserFilter;
+import uteq.edu.ec.artisync.dto.security.request.*;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.security.response.UserResponse;
+import uteq.edu.ec.artisync.entity.security.*;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.repository.security.*;
+import uteq.edu.ec.artisync.repository.profile.*;
+import uteq.edu.ec.artisync.repository.catalog.*;
+import uteq.edu.ec.artisync.repository.order.*;
+import uteq.edu.ec.artisync.repository.legal.*;
+import uteq.edu.ec.artisync.repository.communication.*;
+import uteq.edu.ec.artisync.repository.social.*;
+import uteq.edu.ec.artisync.security.JwtService;
+import uteq.edu.ec.artisync.service.security.AdminUserService;
+import uteq.edu.ec.artisync.service.shared.report.ReportColumn;
+import uteq.edu.ec.artisync.service.shared.report.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.report.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.report.IExportService;
+import uteq.edu.ec.artisync.service.shared.report.ReportModel;
+import uteq.edu.ec.artisync.specification.security.UserSpecification;
+import uteq.edu.ec.artisync.util.PagedResponse;
+import uteq.edu.ec.artisync.util.PagedResponseBuilder;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
+import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
+import uteq.edu.ec.artisync.service.shared.UserMapper;
+
+<span class="fc" id="L56">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class AdminUserServiceImpl implements AdminUserService {
+
+    private final UserRepository usuarioRepository;
+    private final UserRoleRepository usuarioRolRepository;
+    private final CountryRepository paisRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final UserMapper usuarioMapper;
+    private final SessionRevocationService sessionRevocationService;
+    private final TwoFactorAuthenticationRepository autenticacionDosFactoresRepository;
+    private final EntityManager entityManager;
+    private final IExportService servicioExportacion;
+    private final uteq.edu.ec.artisync.service.shared.report.impl.ReportChartGenerator generadorGraficaReporte;
+
+    @Override
+    @Transactional(readOnly = true)
+    // Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §8):
+    // toUserResponseList batchea los roles/permisos/2FA de toda la pagina en
+    // dos consultas IN (...), en vez del N+1 de invocar toUserResponse() (dos
+    // consultas por fila) elemento a elemento. El Pageable/Sort de la peticion
+    // se conserva intacto -- se sigue resolviendo con findAll(pageable), no se
+    // reemplaza por una rutina con orden fijo.
+    /**
+     * Lista usuarios filtrados, para el panel de administración.
+     *
+     * @param filtro búsqueda, rol y estado de cuenta a filtrar
+     * @param pageable paginación y ordenamiento solicitados
+     * @return la página de usuarios, con sus roles/permisos/2FA ya resueltos en lote
+     */
+    public PagedResponse&lt;UserResponse&gt; getAllUsers(UserFilter filtro, Pageable pageable) {
+<span class="fc" id="L88">        Specification&lt;User&gt; spec = UserSpecification.conFiltros(</span>
+<span class="fc" id="L89">                filtro.getBusqueda(), filtro.getRol(), filtro.getEstadoCuenta());</span>
+<span class="fc" id="L90">        Page&lt;User&gt; usuariosPage = usuarioRepository.findAll(spec, pageable);</span>
+<span class="fc" id="L91">        return PagedResponseBuilder.buildAndMapList(usuariosPage, usuarioMapper::toUserResponseList);</span>
+    }
+
+    /**
+     * @param id identificador del usuario
+     * @return el usuario solicitado
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public UserResponse getUserById(Long id) {
+<span class="fc" id="L102">        User usuario = usuarioRepository.findById(id)</span>
+<span class="fc" id="L103">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;User no encontrado con ID: &quot; + id));</span>
+<span class="fc" id="L104">        return usuarioMapper.toUserResponse(usuario);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;USUARIO_CREAR&quot;, modulo = AuditModule.SEGURIDAD,
+            entidad = &quot;usuarios&quot;, idEntidad = &quot;#resultado.idUsuario&quot;,
+            detalle = &quot;{correo: #request.correo, roles: #request.roles}&quot;)
+    // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4): delega
+    // en fn_crear_usuario_admin, que captura unique_violation sobre el correo
+    // en vez de la comprobacion existsByCorreo previa a esta version, que no
+    // era atomica respecto al save() (lectura fantasma, A3), y compone con
+    // fn_sincronizar_roles_usuario (Fase 1) para los roles y el perfil de
+    // creador en la misma transaccion.
+    /**
+     * Crea un usuario desde el panel de administración, con los roles indicados
+     * (o {@code CLIENTE} por defecto).
+     *
+     * @param request datos del usuario, país, roles y estado de cuenta inicial
+     * @return el usuario creado
+     * @throws org.springframework.web.server.ResponseStatusException 400 si el correo ya está en uso,
+     *         o ante cualquier otro fallo de la rutina de creación
+     */
+    public UserResponse createUser(CreateUserRequest request) {
+<span class="pc bpc" id="L128" title="1 of 4 branches missed.">        List&lt;String&gt; rolesAsignar = (request.getRoles() != null &amp;&amp; !request.getRoles().isEmpty())</span>
+<span class="fc" id="L129">                ? request.getRoles() : List.of(&quot;CLIENTE&quot;);</span>
+<span class="fc" id="L130">        String[] roles = rolesAsignar.stream().map(String::toUpperCase).toArray(String[]::new);</span>
+
+        Long idUsuario;
+        try {
+<span class="fc" id="L134">            idUsuario = usuarioRepository.crearUsuarioAdmin(</span>
+<span class="fc" id="L135">                    request.getNombres(),</span>
+<span class="fc" id="L136">                    request.getApellidos(),</span>
+<span class="fc" id="L137">                    request.getCorreo(),</span>
+<span class="fc" id="L138">                    passwordEncoder.encode(request.getContrasena()),</span>
+<span class="fc" id="L139">                    request.getFechaNacimiento(),</span>
+<span class="fc" id="L140">                    request.getIdPais(),</span>
+<span class="fc" id="L141">                    request.getEstadoCuenta(),</span>
+                    roles);
+<span class="fc" id="L143">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L144">            throw StoredProcedureExceptionTranslator.translate(e, HttpStatus.BAD_REQUEST);</span>
+<span class="fc" id="L145">        }</span>
+
+<span class="fc" id="L147">        User usuario = usuarioRepository.findById(idUsuario)</span>
+<span class="pc" id="L148">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;Error al crear el usuario&quot;));</span>
+
+<span class="fc" id="L150">        return usuarioMapper.toUserResponse(usuario);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;USUARIO_EDITAR&quot;, modulo = AuditModule.SEGURIDAD,
+            entidad = &quot;usuarios&quot;, idEntidad = &quot;#id&quot;,
+            detalle = &quot;{estadoCuenta: #request.estadoCuenta, roles: #request.roles}&quot;)
+    /**
+     * Actualiza los datos de un usuario desde el panel de administración:
+     * datos personales, país, 2FA, roles y estado de cuenta. Los campos
+     * {@code null} de la petición no se modifican.
+     *
+     * @param id identificador del usuario a actualizar
+     * @param request campos a actualizar
+     * @return el usuario ya actualizado
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe,
+     *         400 si el país indicado no existe
+     */
+    public UserResponse updateUser(Long id, AdminUpdateUserRequest request) {
+<span class="fc" id="L170">        User usuario = usuarioRepository.findById(id)</span>
+<span class="fc" id="L171">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;User no encontrado&quot;));</span>
+
+<span class="fc" id="L173">        AuditContext.put(&quot;antes&quot;, Map.of(</span>
+<span class="fc" id="L174">                &quot;nombres&quot;, usuario.getNombres(),</span>
+<span class="fc" id="L175">                &quot;apellidos&quot;, usuario.getApellidos(),</span>
+<span class="fc" id="L176">                &quot;estadoCuenta&quot;, usuario.getEstadoCuenta()));</span>
+
+<span class="pc bpc" id="L178" title="1 of 4 branches missed.">        if (request.getNombres() != null &amp;&amp; !request.getNombres().isBlank()) {</span>
+<span class="fc" id="L179">            usuario.setNombres(request.getNombres());</span>
+        }
+<span class="pc bpc" id="L181" title="1 of 4 branches missed.">        if (request.getApellidos() != null &amp;&amp; !request.getApellidos().isBlank()) {</span>
+<span class="fc" id="L182">            usuario.setApellidos(request.getApellidos());</span>
+        }
+<span class="fc bfc" id="L184" title="All 2 branches covered.">        if (request.getFechaNacimiento() != null) {</span>
+<span class="fc" id="L185">            usuario.setFechaNacimiento(request.getFechaNacimiento());</span>
+        }
+<span class="fc bfc" id="L187" title="All 2 branches covered.">        if (request.getIdPais() != null) {</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">            if (request.getIdPais() &lt;= 0) {</span>
+<span class="fc" id="L189">                usuario.setPais(null);</span>
+            } else {
+<span class="fc" id="L191">                Country pais = paisRepository.findById(request.getIdPais())</span>
+<span class="fc" id="L192">                        .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;País no encontrado&quot;));</span>
+<span class="fc" id="L193">                usuario.setPais(pais);</span>
+            }
+        }
+<span class="fc bfc" id="L196" title="All 2 branches covered.">        if (Boolean.FALSE.equals(request.getDosFactoresHabilitado())) {</span>
+            // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §7):
+            // fn_desactivar_2fa desactiva el flag y purga los codigos de
+            // respaldo en una unica transaccion; es idempotente (no lanza si
+            // el usuario no tenia 2FA configurado, igual que el ifPresent
+            // anterior). Unifica el codigo antes duplicado con
+            // TwoFactorServiceImpl.disable2Fa.
+<span class="fc" id="L203">            boolean desactivado = autenticacionDosFactoresRepository.desactivar2Fa(usuario.getIdUsuario());</span>
+<span class="pc bpc" id="L204" title="1 of 2 branches missed.">            if (desactivado) {</span>
+<span class="fc" id="L205">                log.info(&quot;2FA desactivado por administrador para usuario: {}&quot;, usuario.getCorreo());</span>
+            }
+        }
+
+<span class="pc bpc" id="L209" title="1 of 4 branches missed.">        if (request.getRoles() != null &amp;&amp; !request.getRoles().isEmpty()) {</span>
+<span class="fc" id="L210">            updateRoles(usuario, request.getRoles());</span>
+        }
+
+        // Persiste primero nombres/apellidos/fechaNacimiento/pais (los unicos
+        // campos mutados directamente en la entidad hasta aqui) para que este
+        // UPDATE no incluya estado_cuenta -- ese campo se cambia mas abajo por
+        // la rutina atomica, nunca por esta escritura JPA.
+<span class="fc" id="L217">        usuario = usuarioRepository.save(usuario);</span>
+
+<span class="fc bfc" id="L219" title="All 2 branches covered.">        if (request.getEstadoCuenta() != null) {</span>
+            // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
+            // fn_cambiar_estado_cuenta decide &quot;hubo transicion activa-&gt;inactiva?&quot;
+            // y revoca sesiones bajo SELECT FOR UPDATE en el motor, en vez de
+            // comparar aqui un estadoAnterior que otro administrador concurrente
+            // pudo dejar obsoleto (actualizacion perdida).
+            //
+            // entityManager.refresh() en vez de usuario.setEstadoCuenta(...):
+            // el save() de arriba ya vacio cualquier cambio pendiente, asi que
+            // no hay nada que perder; refresh() releae la fila (reflejando el
+            // estado_cuenta que la funcion nativa acaba de escribir) y
+            // resincroniza el snapshot de Hibernate, evitando que el commit de
+            // esta transaccion dispare un SEGUNDO UPDATE redundante reescribiendo
+            // el mismo valor que la funcion atomica ya persistio.
+<span class="fc" id="L233">            sessionRevocationService.changeAccountStatus(usuario.getIdUsuario(), request.getEstadoCuenta());</span>
+<span class="fc" id="L234">            entityManager.refresh(usuario);</span>
+        }
+
+<span class="fc" id="L237">        return usuarioMapper.toUserResponse(usuario);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;USUARIO_CAMBIAR_ESTADO&quot;, modulo = AuditModule.SEGURIDAD,
+            entidad = &quot;usuarios&quot;, idEntidad = &quot;#id&quot;,
+            detalle = &quot;{estadoCuenta: #request.estadoCuenta}&quot;)
+    /**
+     * Activa o desactiva la cuenta de un usuario; si desactiva, revoca sus
+     * sesiones en la misma operación atómica.
+     *
+     * @param id identificador del usuario
+     * @param request nuevo estado de la cuenta
+     * @param idAdminActual identificador del admin que ejecuta la acción
+     * @return el usuario con su estado ya actualizado
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el admin intenta desactivar su propia cuenta
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
+     */
+    public UserResponse changeStatus(Long id, ChangeAccountStatusRequest request, Long idAdminActual) {
+<span class="pc bpc" id="L257" title="1 of 4 branches missed.">        if (id.equals(idAdminActual) &amp;&amp; !request.getEstadoCuenta()) {</span>
+<span class="fc" id="L258">            throw new BusinessRuleException(&quot;No puedes desactivar tu propia cuenta.&quot;);</span>
+        }
+
+<span class="fc" id="L261">        User usuario = usuarioRepository.findById(id)</span>
+<span class="fc" id="L262">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;User no encontrado&quot;));</span>
+
+        // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
+        // fn_cambiar_estado_cuenta aplica el cambio y revoca sesiones (si hubo
+        // transicion activa-&gt;inactiva) en una unica transaccion serializada con
+        // SELECT FOR UPDATE, sustituyendo el find+mutate+guardar+revocar en cuatro
+        // pasos no atomicos que tenia esta operacion.
+        //
+        // entityManager.refresh() en vez de usuario.setEstadoCuenta(...): este
+        // metodo no tiene ningun otro cambio pendiente sobre `usuario`, asi que
+        // mutar el campo en el objeto managed lo marcaria &quot;dirty&quot; y Hibernate
+        // emitiria, al confirmar la transaccion, un UPDATE adicional reescribiendo
+        // el mismo valor que la funcion atomica ya persistio. refresh() releae la
+        // fila real (sin escribir nada) y resincroniza el snapshot de Hibernate.
+<span class="fc" id="L276">        sessionRevocationService.changeAccountStatus(usuario.getIdUsuario(), request.getEstadoCuenta());</span>
+<span class="fc" id="L277">        entityManager.refresh(usuario);</span>
+
+<span class="fc" id="L279">        return usuarioMapper.toUserResponse(usuario);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;USUARIO_ASIGNAR_ROLES&quot;, modulo = AuditModule.SEGURIDAD,
+            entidad = &quot;usuarios&quot;, idEntidad = &quot;#id&quot;,
+            detalle = &quot;{roles: #request.roles}&quot;)
+    /**
+     * Reemplaza el conjunto de roles de un usuario y revoca sus sesiones, para
+     * que sus próximos tokens ya lleven los claims de rol actualizados.
+     *
+     * @param id identificador del usuario
+     * @param request nuevo conjunto de roles a asignar
+     * @param idAdminActual identificador del admin que ejecuta la acción
+     * @return el usuario con sus roles ya actualizados
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el admin intenta cambiar sus propios roles
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe,
+     *         400 si algún rol indicado no existe
+     */
+    public UserResponse assignRoles(Long id, AssignRolesRequest request, Long idAdminActual) {
+<span class="fc bfc" id="L300" title="All 2 branches covered.">        if (id.equals(idAdminActual)) {</span>
+<span class="fc" id="L301">            throw new BusinessRuleException(&quot;No puedes cambiar tus propios roles. Pide a otro administrador que lo haga.&quot;);</span>
+        }
+
+<span class="fc" id="L304">        User usuario = usuarioRepository.findById(id)</span>
+<span class="fc" id="L305">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;User no encontrado&quot;));</span>
+
+<span class="fc" id="L307">        AuditContext.put(&quot;antes&quot;, Map.of(&quot;roles&quot;,</span>
+<span class="fc" id="L308">                usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
+<span class="fc" id="L309">                        .map(ur -&gt; ur.getRol().getNombreRol())</span>
+<span class="fc" id="L310">                        .toList()));</span>
+
+<span class="fc" id="L312">        updateRoles(usuario, request.getRoles());</span>
+<span class="fc" id="L313">        sessionRevocationService.revokeUserSessions(usuario.getIdUsuario()); // Revocar sesiones para obligar a refrescar claims JWT con nuevos roles</span>
+
+<span class="fc" id="L315">        return usuarioMapper.toUserResponse(usuario);</span>
+    }
+
+    @Override
+    @Transactional
+    // Es un soft-eliminar (estadoCuenta=false), no un borrado físico: la acción
+    // se llama USUARIO_DESACTIVAR y no USUARIO_ELIMINAR para que la bitácora
+    // describa lo que realmente ocurre en la base de datos.
+    @Auditable(accion = &quot;USUARIO_DESACTIVAR&quot;, modulo = AuditModule.SEGURIDAD,
+            entidad = &quot;usuarios&quot;, idEntidad = &quot;#id&quot;)
+    /**
+     * Desactiva (soft-eliminar) la cuenta de un usuario y revoca sus sesiones,
+     * en una única operación atómica.
+     *
+     * @param id identificador del usuario a desactivar
+     * @param idAdminActual identificador del admin que ejecuta la acción
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el admin intenta eliminar su propia cuenta
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
+     */
+    public void deleteUser(Long id, Long idAdminActual) {
+<span class="fc bfc" id="L335" title="All 2 branches covered.">        if (id.equals(idAdminActual)) {</span>
+<span class="fc" id="L336">            throw new BusinessRuleException(&quot;No puedes eliminar tu propia cuenta.&quot;);</span>
+        }
+
+        // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
+        // fn_cambiar_estado_cuenta desactiva la cuenta y revoca sus sesiones
+        // atomicamente; ya no hace falta cargar la entidad completa. El
+        // existsById previo era redundante: fn_cambiar_estado_cuenta ya
+        // lanza P0002 si el usuario no existe, y SessionRevocationService
+        // ya lo traduce a 404 (revision de codigo, hallazgo de eficiencia).
+<span class="fc" id="L345">        sessionRevocationService.changeAccountStatus(id, false);</span>
+<span class="fc" id="L346">    }</span>
+
+    @Override
+    @Transactional(readOnly = true)
+    @Auditable(accion = &quot;USUARIO_EXPORTAR&quot;, modulo = AuditModule.SEGURIDAD, entidad = &quot;usuarios&quot;,
+            detalle = &quot;{formato: #formato}&quot;)
+    /**
+     * Exporta el listado de usuarios filtrado, con ambas gráficas (rol y país), sin paginar.
+     *
+     * @param filtro criterios de búsqueda, rol y estado de cuenta
+     * @param formato formato del documento a generar
+     * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
+     * @return el documento generado con el listado de usuarios
+     */
+    public GeneratedDocument export(UserFilter filtro, ReportFormat formato, String correoSolicitante) {
+<span class="fc" id="L361">        return export(filtro, formato, uteq.edu.ec.artisync.service.shared.report.ReportChartType.AMBAS, null, null, correoSolicitante);</span>
+    }
+
+    /**
+     * Exporta el listado de usuarios filtrado, incluyendo la gráfica indicada, sin paginar.
+     *
+     * @param filtro criterios de búsqueda, rol y estado de cuenta
+     * @param formato formato del documento a generar
+     * @param tipoGrafica gráfica(s) a incluir en el documento junto con la tabla
+     * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
+     * @return el documento generado con el listado de usuarios y la gráfica solicitada
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public GeneratedDocument export(UserFilter filtro, ReportFormat formato,
+                                      uteq.edu.ec.artisync.service.shared.report.ReportChartType tipoGrafica,
+                                      String correoSolicitante) {
+<span class="fc" id="L378">        return export(filtro, formato, tipoGrafica, null, null, correoSolicitante);</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(readOnly = true)
+    @Auditable(accion = &quot;USUARIO_EXPORTAR&quot;, modulo = AuditModule.SEGURIDAD, entidad = &quot;usuarios&quot;,
+            detalle = &quot;{formato: #formato, grafica: #tipoGrafica, page: #page, size: #size}&quot;)
+    public GeneratedDocument export(UserFilter filtro, ReportFormat formato,
+                                      uteq.edu.ec.artisync.service.shared.report.ReportChartType tipoGrafica,
+                                      Integer page, Integer size,
+                                      String correoSolicitante) {
+<span class="fc" id="L390">        Specification&lt;User&gt; spec = UserSpecification.conFiltros(</span>
+<span class="fc" id="L391">                filtro.getBusqueda(), filtro.getRol(), filtro.getEstadoCuenta());</span>
+
+        Page&lt;User&gt; pagina;
+<span class="fc" id="L394">        String titulo = &quot;Usuarios&quot;;</span>
+<span class="fc" id="L395">        String subtitulo = &quot;Listado administrativo de usuarios&quot;;</span>
+
+<span class="fc bfc" id="L397" title="All 2 branches covered.">        if (page != null) {</span>
+<span class="pc bpc" id="L398" title="3 of 6 branches missed.">            int pageSize = (size != null &amp;&amp; size &gt; 0 &amp;&amp; size &lt;= formato.topeFilas()) ? size : formato.topeFilas();</span>
+<span class="fc" id="L399">            pagina = usuarioRepository.findAll(spec, PageRequest.of(page, pageSize, Sort.by(Sort.Direction.ASC, &quot;idUsuario&quot;)));</span>
+<span class="fc" id="L400">            int parte = page + 1;</span>
+<span class="fc" id="L401">            int totalPartes = Math.max(1, pagina.getTotalPages());</span>
+<span class="fc" id="L402">            titulo = &quot;Usuarios - Parte &quot; + parte;</span>
+<span class="fc" id="L403">            subtitulo = &quot;Listado administrativo de usuarios — Parte &quot; + parte + &quot; de &quot; + totalPartes</span>
+<span class="fc" id="L404">                    + &quot; (&quot; + pagina.getTotalElements() + &quot; usuarios en total)&quot;;</span>
+<span class="fc" id="L405">        } else {</span>
+<span class="fc" id="L406">            long total = usuarioRepository.count(spec);</span>
+<span class="fc bfc" id="L407" title="All 2 branches covered.">            if (total &gt; formato.topeFilas()) {</span>
+<span class="fc" id="L408">                throw new BusinessRuleException(</span>
+<span class="fc" id="L409">                        &quot;El listado filtrado tiene &quot; + total + &quot; usuarios, más de los &quot; + formato.topeFilas()</span>
+                                + &quot; que admite una exportación en &quot; + formato + &quot;. Acote los filtros o utilice la opción de export por partes.&quot;);
+            }
+
+<span class="fc" id="L413">            pagina = usuarioRepository.findAll(</span>
+<span class="fc" id="L414">                    spec, PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.ASC, &quot;idUsuario&quot;)));</span>
+        }
+
+<span class="fc" id="L417">        List&lt;UserResponse&gt; filas = usuarioMapper.toUserResponseList(pagina.getContent());</span>
+
+        // Calcular métricas (KPIs) y datos agregados para las gráficas
+        uteq.edu.ec.artisync.service.shared.report.ReportChartType graficaElegida =
+<span class="pc bpc" id="L421" title="1 of 2 branches missed.">                tipoGrafica != null ? tipoGrafica : uteq.edu.ec.artisync.service.shared.report.ReportChartType.AMBAS;</span>
+<span class="fc" id="L422">        List&lt;uteq.edu.ec.artisync.service.shared.report.ReportChart&gt; graficas = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L423">        List&lt;uteq.edu.ec.artisync.service.shared.report.ReportKpi&gt; kpis = new ArrayList&lt;&gt;();</span>
+
+<span class="pc bpc" id="L425" title="2 of 6 branches missed.">        if (!filas.isEmpty() &amp;&amp; (formato == ReportFormat.PDF || formato == ReportFormat.XLSX)) {</span>
+<span class="fc" id="L426">            Map&lt;String, Long&gt; conteoRoles = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L427">            Map&lt;String, Long&gt; conteoPaises = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L428">            long activos = 0;</span>
+
+<span class="fc bfc" id="L430" title="All 2 branches covered.">            for (UserResponse u : filas) {</span>
+<span class="pc bpc" id="L431" title="1 of 2 branches missed.">                if (Boolean.TRUE.equals(u.getEstadoCuenta())) {</span>
+<span class="fc" id="L432">                    activos++;</span>
+                }
+
+<span class="pc bpc" id="L435" title="1 of 4 branches missed.">                if (u.getRoles() != null &amp;&amp; !u.getRoles().isEmpty()) {</span>
+<span class="fc bfc" id="L436" title="All 2 branches covered.">                    for (String rol : u.getRoles()) {</span>
+<span class="fc" id="L437">                        conteoRoles.put(rol, conteoRoles.getOrDefault(rol, 0L) + 1);</span>
+<span class="fc" id="L438">                    }</span>
+                } else {
+<span class="fc" id="L440">                    conteoRoles.put(&quot;SIN_ROL&quot;, conteoRoles.getOrDefault(&quot;SIN_ROL&quot;, 0L) + 1);</span>
+                }
+
+<span class="pc bpc" id="L443" title="1 of 4 branches missed.">                String pais = (u.getNombrePais() != null &amp;&amp; !u.getNombrePais().isBlank())</span>
+<span class="fc" id="L444">                        ? u.getNombrePais() : &quot;Sin especificar&quot;;</span>
+<span class="fc" id="L445">                conteoPaises.put(pais, conteoPaises.getOrDefault(pais, 0L) + 1);</span>
+<span class="fc" id="L446">            }</span>
+
+            // KPIs
+<span class="fc" id="L449">            kpis.add(new uteq.edu.ec.artisync.service.shared.report.ReportKpi(&quot;Total Usuarios&quot;, String.valueOf(filas.size()), &quot;Registrados en listado&quot;));</span>
+<span class="fc" id="L450">            double pctActivos = ((double) activos / filas.size()) * 100.0;</span>
+<span class="fc" id="L451">            kpis.add(new uteq.edu.ec.artisync.service.shared.report.ReportKpi(&quot;Usuarios Activos&quot;, String.format(&quot;%d (%.0f%%)&quot;, activos, pctActivos), &quot;Cuentas habilitadas&quot;));</span>
+<span class="fc" id="L452">            kpis.add(new uteq.edu.ec.artisync.service.shared.report.ReportKpi(&quot;Roles Representados&quot;, String.valueOf(conteoRoles.size()), &quot;Roles distintos&quot;));</span>
+<span class="fc" id="L453">            kpis.add(new uteq.edu.ec.artisync.service.shared.report.ReportKpi(&quot;Países&quot;, String.valueOf(conteoPaises.size()), &quot;Distribución geográfica&quot;));</span>
+
+            // Gráficas estadísticas
+<span class="pc bpc" id="L456" title="1 of 4 branches missed.">            if (graficaElegida == uteq.edu.ec.artisync.service.shared.report.ReportChartType.ROL</span>
+                    || graficaElegida == uteq.edu.ec.artisync.service.shared.report.ReportChartType.AMBAS) {
+<span class="fc" id="L458">                byte[] imgRol = generadorGraficaReporte.generateRoleChart(conteoRoles);</span>
+<span class="fc" id="L459">                graficas.add(new uteq.edu.ec.artisync.service.shared.report.ReportChart(&quot;Distribución de Usuarios por Role&quot;,</span>
+                        &quot;Proporción de usuarios según su rol asignado&quot;, imgRol, conteoRoles));
+            }
+<span class="pc bpc" id="L462" title="1 of 4 branches missed.">            if (graficaElegida == uteq.edu.ec.artisync.service.shared.report.ReportChartType.PAIS</span>
+                    || graficaElegida == uteq.edu.ec.artisync.service.shared.report.ReportChartType.AMBAS) {
+<span class="fc" id="L464">                byte[] imgPais = generadorGraficaReporte.generateCountryChart(conteoPaises);</span>
+<span class="fc" id="L465">                graficas.add(new uteq.edu.ec.artisync.service.shared.report.ReportChart(&quot;Distribución de Usuarios por País&quot;,</span>
+                        &quot;Concentración geográfica de los usuarios registrados&quot;, imgPais, conteoPaises));
+            }
+        }
+
+<span class="fc" id="L470">        ReportModel&lt;UserResponse&gt; modelo = ReportModel.&lt;UserResponse&gt;builder()</span>
+<span class="fc" id="L471">                .titulo(titulo)</span>
+<span class="fc" id="L472">                .subtitulo(subtitulo)</span>
+<span class="fc" id="L473">                .filtrosAplicados(readableFilters(filtro))</span>
+<span class="fc" id="L474">                .kpis(kpis)</span>
+<span class="fc" id="L475">                .graficas(graficas)</span>
+<span class="fc" id="L476">                .columnas(List.of(</span>
+<span class="fc" id="L477">                        ReportColumn.entero(&quot;Id&quot;, UserResponse::getIdUsuario),</span>
+<span class="fc" id="L478">                        ReportColumn.texto(&quot;Nombres&quot;, UserResponse::getNombres),</span>
+<span class="fc" id="L479">                        ReportColumn.texto(&quot;Apellidos&quot;, UserResponse::getApellidos),</span>
+<span class="fc" id="L480">                        ReportColumn.texto(&quot;Correo&quot;, UserResponse::getCorreo),</span>
+<span class="fc" id="L481">                        ReportColumn.texto(&quot;País&quot;, UserResponse::getNombrePais),</span>
+<span class="fc" id="L482">                        ReportColumn.dateTime(&quot;Registrado&quot;, UserResponse::getFechaRegistro),</span>
+<span class="fc" id="L483">                        ReportColumn.booleano(&quot;Activo&quot;, UserResponse::getEstadoCuenta),</span>
+<span class="pc bnc" id="L484" title="All 2 branches missed.">                        ReportColumn.texto(&quot;Roles&quot;, u -&gt; u.getRoles() == null ? &quot;&quot; : String.join(&quot;, &quot;, u.getRoles()))))</span>
+<span class="fc" id="L485">                .filas(filas)</span>
+<span class="fc" id="L486">                .generadoPor(correoSolicitante)</span>
+<span class="fc" id="L487">                .build();</span>
+
+<span class="fc" id="L489">        return servicioExportacion.export(modelo, formato);</span>
+    }
+
+    private Map&lt;String, String&gt; readableFilters(UserFilter filtro) {
+<span class="fc" id="L493">        Map&lt;String, String&gt; filtros = new LinkedHashMap&lt;&gt;();</span>
+<span class="pc bpc" id="L494" title="1 of 4 branches missed.">        if (filtro.getBusqueda() != null &amp;&amp; !filtro.getBusqueda().isBlank()) {</span>
+<span class="fc" id="L495">            filtros.put(&quot;Búsqueda&quot;, filtro.getBusqueda());</span>
+        }
+<span class="pc bpc" id="L497" title="1 of 4 branches missed.">        if (filtro.getRol() != null &amp;&amp; !filtro.getRol().isBlank()) {</span>
+<span class="fc" id="L498">            filtros.put(&quot;Role&quot;, filtro.getRol());</span>
+        }
+<span class="fc bfc" id="L500" title="All 2 branches covered.">        if (filtro.getEstadoCuenta() != null) {</span>
+<span class="fc bfc" id="L501" title="All 2 branches covered.">            filtros.put(&quot;Estado&quot;, filtro.getEstadoCuenta() ? &quot;Activo&quot; : &quot;Suspendido&quot;);</span>
+        }
+<span class="fc" id="L503">        return filtros;</span>
+    }
+
+    @Override
+    @Auditable(accion = &quot;SESION_REVOCAR&quot;, modulo = AuditModule.SEGURIDAD,
+            entidad = &quot;usuarios&quot;, idEntidad = &quot;#id&quot;)
+    /**
+     * Revoca todas las sesiones activas de un usuario (fuerza el cierre de
+     * sesión en cualquier dispositivo).
+     *
+     * @param id identificador del usuario
+     * @return mensaje de confirmación
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
+     */
+    public MessageResponse revokeUserSessions(Long id) {
+<span class="fc bfc" id="L518" title="All 2 branches covered.">        if (!usuarioRepository.existsById(id)) {</span>
+<span class="fc" id="L519">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;User no encontrado con ID: &quot; + id);</span>
+        }
+<span class="fc" id="L521">        sessionRevocationService.revokeUserSessions(id);</span>
+<span class="fc" id="L522">        return new MessageResponse(&quot;Se han revocado exitosamente todas las sesiones del usuario ID: &quot; + id);</span>
+    }
+
+    /**
+     * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §3) -
+     * fn_sincronizar_roles_usuario reemplaza atomicamente, en una unica llamada
+     * al motor, lo que antes eran ~10 viajes no atomicos (findByUsuarioIdUsuario
+     * + deleteAll + flush + por cada rol: findByNombreRol + guardar + consulta de
+     * perfil + guardar de perfil). Corrige dos anomalias: la lectura fantasma que
+     * permitia roles duplicados cuando dos administradores editaban al mismo
+     * usuario a la vez, y el estado a medias (usuario sin ningun rol) si el
+     * bucle en Java fallaba despues del eliminar.
+     */
+    private void updateRoles(User usuario, List&lt;String&gt; nuevosRoles) {
+        try {
+<span class="fc" id="L537">            usuarioRolRepository.sincronizarRoles(</span>
+<span class="fc" id="L538">                    usuario.getIdUsuario(),</span>
+<span class="fc" id="L539">                    nuevosRoles.stream().map(String::toUpperCase).toArray(String[]::new));</span>
+<span class="fc" id="L540">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L541">            throw StoredProcedureExceptionTranslator.translate(e, HttpStatus.BAD_REQUEST);</span>
+<span class="fc" id="L542">        }</span>
+<span class="fc" id="L543">    }</span>
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

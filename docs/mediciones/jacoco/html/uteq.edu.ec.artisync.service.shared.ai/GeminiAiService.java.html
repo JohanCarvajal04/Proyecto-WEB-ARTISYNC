@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GeminiAiService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.ai</a> &gt; <span class="el_source">GeminiAiService.java</span></div><h1>GeminiAiService.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.ai;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClient;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import uteq.edu.ec.artisync.config.AiProperties;
+import uteq.edu.ec.artisync.dto.ai.*;
+import uteq.edu.ec.artisync.exception.AiServiceUnavailableException;
+
+import java.math.BigDecimal;
+import java.util.*;
+
+@Service
+@ConditionalOnProperty(name = &quot;ia.provider&quot;, havingValue = &quot;gemini&quot;)
+<span class="fc" id="L23">@Slf4j</span>
+public class GeminiAiService extends AbstractAiService implements AiService {
+
+    private final RestClient restClient;
+    private final AiProperties.GeminiConfig config;
+    private final ObjectMapper objectMapper;
+
+    /**
+     * Construye el cliente de Gemini validando de entrada que haya una API key
+     * configurada — falla rápido al arrancar en vez de fallar en la primera
+     * petición real de un usuario.
+     *
+     * @param restClient cliente HTTP compartido para llamadas a proveedores de IA
+     * @param iaProperties configuración de proveedores de IA, de la que se toma la sección de Gemini
+     * @param objectMapper mapeador JSON usado para construir y leer las peticiones/respuestas de Gemini
+     * @throws IllegalStateException si no hay una API key de Gemini configurada
+     */
+    public GeminiAiService(@Qualifier(&quot;iaRestClient&quot;) RestClient restClient,
+                            AiProperties iaProperties,
+<span class="fc" id="L42">                            ObjectMapper objectMapper) {</span>
+<span class="fc" id="L43">        this.restClient = restClient;</span>
+<span class="fc" id="L44">        this.config = iaProperties.getGemini();</span>
+<span class="fc" id="L45">        this.objectMapper = objectMapper;</span>
+<span class="pc bpc" id="L46" title="2 of 4 branches missed.">        if (config.getApiKey() == null || config.getApiKey().isBlank()) {</span>
+<span class="nc" id="L47">            throw new IllegalStateException(</span>
+                    &quot;ia.provider=gemini requiere ia.gemini.api-key (variable GEMINI_API_KEY).&quot;);
+        }
+<span class="fc" id="L50">        log.info(&quot;Offering de IA GEMINI inicializado [modelo={}]&quot;, config.getModel());</span>
+<span class="fc" id="L51">    }</span>
+
+    /** {@inheritDoc} */
+    @Override
+    public AiVerificationResponse verifyIdentity(byte[] imagenBytes, String mimeType) {
+<span class="fc" id="L56">        String prompt = loadPrompt(&quot;prompt_verificacion_identidad.md&quot;);</span>
+<span class="fc" id="L57">        return parseStrictVerification(callGeminiWithImage(prompt, imagenBytes, mimeType), true);</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public AiVerificationResponse analyzeCertificate(byte[] imagenBytes, String mimeType) {
+<span class="fc" id="L63">        String prompt = loadPrompt(&quot;prompt_verificacion_certificado.md&quot;);</span>
+<span class="fc" id="L64">        return parseStrictVerification(callGeminiWithImage(prompt, imagenBytes, mimeType), false);</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public IaModeracionResponse moderarContenido(String textoMensaje) {
+<span class="fc" id="L70">        String prompt = loadPrompt(&quot;prompt_moderacion_mensaje.md&quot;, sanitizeForPrompt(textoMensaje));</span>
+        try {
+<span class="fc" id="L72">            JsonNode nodo = objectMapper.readTree(extractJson(conReintentoTransitorio(() -&gt; llamarGeminiSoloTexto(prompt))));</span>
+<span class="fc" id="L73">            return IaModeracionResponse.builder()</span>
+<span class="fc" id="L74">                    .esApropiado(nodo.path(&quot;es_apropiado&quot;).asBoolean(true))</span>
+<span class="fc" id="L75">                    .categoriaInfraccion(nodo.path(&quot;categoria_infraccion&quot;).asString(&quot;ninguno&quot;))</span>
+<span class="fc" id="L76">                    .confianza(acotarConfianza(toBigDecimal(nodo.path(&quot;confianza&quot;).asDouble(0.5))))</span>
+<span class="fc" id="L77">                    .razon(textoONull(nodo, &quot;razon&quot;))</span>
+<span class="fc" id="L78">                    .build();</span>
+<span class="fc" id="L79">        } catch (Exception e) {</span>
+<span class="fc" id="L80">            log.error(&quot;[GEMINI] Error al moderar contenido: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L81">            return IaModeracionResponse.builder()</span>
+<span class="fc" id="L82">                    .esApropiado(true).categoriaInfraccion(&quot;ninguno&quot;)</span>
+<span class="fc" id="L83">                    .confianza(BigDecimal.ZERO).razon(&quot;Error al procesar con IA&quot;).build();</span>
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public AiClassificationResponse classifyOffering(String titulo, String descripcion, List&lt;String&gt; categoriasDisponibles) {
+<span class="fc" id="L90">        String categorias = String.join(&quot;, &quot;, categoriasDisponibles);</span>
+<span class="fc" id="L91">        String prompt = loadPrompt(&quot;prompt_clasificacion_servicio.md&quot;, categorias,</span>
+<span class="fc" id="L92">                sanitizeForPrompt(titulo), sanitizeForPrompt(descripcion));</span>
+        try {
+<span class="fc" id="L94">            JsonNode nodo = objectMapper.readTree(extractJson(conReintentoTransitorio(() -&gt; llamarGeminiSoloTexto(prompt))));</span>
+<span class="fc" id="L95">            List&lt;String&gt; etiquetas = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L96">            nodo.path(&quot;etiquetas_sugeridas&quot;).forEach(e -&gt; etiquetas.add(e.asString()));</span>
+<span class="fc" id="L97">            return AiClassificationResponse.builder()</span>
+<span class="fc" id="L98">                    .categoriaSugerida(nodo.path(&quot;categoria_sugerida&quot;).asString(&quot;&quot;))</span>
+<span class="fc" id="L99">                    .subcategoriaSugerida(nodo.path(&quot;subcategoria_sugerida&quot;).asString(&quot;&quot;))</span>
+<span class="fc" id="L100">                    .etiquetasSugeridas(etiquetas)</span>
+<span class="fc" id="L101">                    .confianza(acotarConfianza(toBigDecimal(nodo.path(&quot;confianza&quot;).asDouble(0.5))))</span>
+<span class="fc" id="L102">                    .build();</span>
+<span class="fc" id="L103">        } catch (Exception e) {</span>
+<span class="fc" id="L104">            log.error(&quot;[GEMINI] Error al clasificar servicio: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L105">            return AiClassificationResponse.builder()</span>
+<span class="fc" id="L106">                    .categoriaSugerida(&quot;Sin categoría&quot;).subcategoriaSugerida(&quot;General&quot;)</span>
+<span class="fc" id="L107">                    .etiquetasSugeridas(List.of()).confianza(BigDecimal.ZERO).build();</span>
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List&lt;String&gt; sugerirPreguntasBriefing(String categoria, String titulo, String descripcion) {
+<span class="fc" id="L114">        String prompt = loadPrompt(&quot;prompt_sugerencia_briefing.md&quot;, sanitizeForPrompt(categoria),</span>
+<span class="fc" id="L115">                sanitizeForPrompt(titulo), sanitizeForPrompt(descripcion));</span>
+        try {
+<span class="fc" id="L117">            JsonNode nodo = objectMapper.readTree(extractJson(conReintentoTransitorio(() -&gt; llamarGeminiSoloTexto(prompt))));</span>
+<span class="fc" id="L118">            List&lt;String&gt; preguntas = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L119">            nodo.path(&quot;preguntas&quot;).forEach(p -&gt; preguntas.add(p.asString()));</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">            return preguntas.isEmpty() ? List.of(&quot;¿Qué necesitas?&quot;) : preguntas;</span>
+<span class="fc" id="L121">        } catch (Exception e) {</span>
+<span class="fc" id="L122">            log.error(&quot;[GEMINI] Error al generar briefing: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L123">            return List.of(&quot;¿Cuál es el objetivo del proyecto?&quot;,</span>
+                    &quot;¿Cuál es la fecha de entrega deseada?&quot;, &quot;¿Tienes referencias visuales?&quot;);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public AiReviewResponse analyzeReview(String textoResena, int estrellas) {
+<span class="fc" id="L131">        String prompt = loadPrompt(&quot;prompt_analisis_resena.md&quot;, estrellas, sanitizeForPrompt(textoResena));</span>
+        try {
+<span class="fc" id="L133">            JsonNode nodo = objectMapper.readTree(extractJson(conReintentoTransitorio(() -&gt; llamarGeminiSoloTexto(prompt))));</span>
+<span class="fc" id="L134">            return AiReviewResponse.builder()</span>
+<span class="fc" id="L135">                    .sentimiento(nodo.path(&quot;sentimiento&quot;).asString(&quot;neutro&quot;))</span>
+<span class="fc" id="L136">                    .esCoherenteConEstrellas(nodo.path(&quot;es_coherente_con_estrellas&quot;).asBoolean(true))</span>
+<span class="fc" id="L137">                    .esSpam(nodo.path(&quot;es_spam&quot;).asBoolean(false))</span>
+<span class="fc" id="L138">                    .esInapropiado(nodo.path(&quot;es_inapropiado&quot;).asBoolean(false))</span>
+<span class="fc" id="L139">                    .confianza(acotarConfianza(toBigDecimal(nodo.path(&quot;confianza&quot;).asDouble(0.5))))</span>
+<span class="fc" id="L140">                    .razon(textoONull(nodo, &quot;razon&quot;))</span>
+<span class="fc" id="L141">                    .build();</span>
+<span class="fc" id="L142">        } catch (Exception e) {</span>
+<span class="fc" id="L143">            log.error(&quot;[GEMINI] Error al analizar reseña: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L144">            return AiReviewResponse.builder()</span>
+<span class="fc" id="L145">                    .sentimiento(&quot;neutro&quot;).esCoherenteConEstrellas(true)</span>
+<span class="fc" id="L146">                    .esSpam(false).esInapropiado(false).confianza(BigDecimal.ZERO).build();</span>
+        }
+    }
+
+    private String llamarGeminiSoloTexto(String prompt) {
+<span class="fc" id="L151">        Map&lt;String, Object&gt; body = Map.of(&quot;contents&quot;, List.of(Map.of(&quot;parts&quot;, List.of(Map.of(&quot;text&quot;, prompt)))));</span>
+<span class="fc" id="L152">        return executeCall(body);</span>
+    }
+
+    private String callGeminiWithImage(String prompt, byte[] imagenBytes, String mimeType) {
+<span class="fc" id="L156">        String base64Image = Base64.getEncoder().encodeToString(imagenBytes);</span>
+<span class="fc" id="L157">        Map&lt;String, Object&gt; body = Map.of(&quot;contents&quot;, List.of(Map.of(&quot;parts&quot;, List.of(</span>
+<span class="fc" id="L158">                Map.of(&quot;text&quot;, prompt),</span>
+<span class="fc" id="L159">                Map.of(&quot;inline_data&quot;, Map.of(&quot;mime_type&quot;, mimeType, &quot;data&quot;, base64Image))))));</span>
+<span class="fc" id="L160">        return executeCall(body);</span>
+    }
+
+    private String executeCall(Map&lt;String, Object&gt; requestBody) {
+<span class="fc" id="L164">        String url = String.format(&quot;%s/models/%s:generateContent?key=%s&quot;,</span>
+<span class="fc" id="L165">                config.getBaseUrl(), config.getModel(), config.getApiKey());</span>
+        try {
+<span class="fc" id="L167">            log.info(&quot;[GEMINI] Enviando solicitud [payload={} bytes]&quot;, estimarTamanoPayload(requestBody));</span>
+<span class="fc" id="L168">            String responseBody = restClient.post()</span>
+<span class="fc" id="L169">                    .uri(url)</span>
+<span class="fc" id="L170">                    .contentType(MediaType.APPLICATION_JSON)</span>
+<span class="fc" id="L171">                    .body(requestBody)</span>
+<span class="fc" id="L172">                    .retrieve()</span>
+<span class="fc" id="L173">                    .body(String.class);</span>
+<span class="fc" id="L174">            JsonNode raiz = objectMapper.readTree(responseBody);</span>
+<span class="fc" id="L175">            return raiz.path(&quot;candidates&quot;).path(0).path(&quot;content&quot;).path(&quot;parts&quot;).path(0).path(&quot;text&quot;).asString(&quot;&quot;);</span>
+<span class="fc" id="L176">        } catch (HttpClientErrorException.Unauthorized e) {</span>
+<span class="fc" id="L177">            log.warn(&quot;[GEMINI] 401 Unauthorized. Body de respuesta: {}&quot;, e.getResponseBodyAsString());</span>
+<span class="fc" id="L178">            throw new AiServiceUnavailableException(&quot;Gemini rechazó la API key configurada (401).&quot;, e);</span>
+<span class="fc" id="L179">        } catch (HttpClientErrorException.TooManyRequests e) {</span>
+<span class="fc" id="L180">            log.warn(&quot;[GEMINI] 429 Too Many Requests. Body de respuesta: {}&quot;, e.getResponseBodyAsString());</span>
+<span class="fc" id="L181">            throw new AiServiceUnavailableException(&quot;Se alcanzó el límite de solicitudes de Gemini (429).&quot;, e, true);</span>
+<span class="fc" id="L182">        } catch (HttpClientErrorException e) {</span>
+<span class="fc" id="L183">            log.warn(&quot;[GEMINI] {} de cliente. Body de respuesta: {}&quot;, e.getStatusCode().value(), e.getResponseBodyAsString());</span>
+<span class="fc" id="L184">            throw new AiServiceUnavailableException(</span>
+<span class="fc" id="L185">                    &quot;Gemini rechazó la solicitud (&quot; + e.getStatusCode().value() + &quot;).&quot;, e);</span>
+<span class="fc" id="L186">        } catch (HttpServerErrorException e) {</span>
+<span class="fc" id="L187">            log.warn(&quot;[GEMINI] Error de servidor {}. Body de respuesta: {}&quot;, e.getStatusCode().value(), e.getResponseBodyAsString());</span>
+<span class="fc" id="L188">            throw new AiServiceUnavailableException(&quot;Gemini respondió con un error de servidor.&quot;, e);</span>
+<span class="nc" id="L189">        } catch (ResourceAccessException e) {</span>
+<span class="nc" id="L190">            log.warn(&quot;[GEMINI] Tiempo de espera agotado: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L191">            throw new AiServiceUnavailableException(&quot;Tiempo de espera agotado al contactar a Gemini.&quot;, e, true);</span>
+<span class="nc" id="L192">        } catch (AiServiceUnavailableException e) {</span>
+<span class="nc" id="L193">            throw e;</span>
+<span class="nc" id="L194">        } catch (Exception e) {</span>
+<span class="nc" id="L195">            throw new AiServiceUnavailableException(&quot;Error inesperado al comunicarse con Gemini.&quot;, e);</span>
+        }
+    }
+
+    /** Tamaño aproximado del cuerpo JSON, solo para diagnóstico — no exacto al byte. */
+    private int estimarTamanoPayload(Map&lt;String, Object&gt; requestBody) {
+        try {
+<span class="fc" id="L202">            return objectMapper.writeValueAsBytes(requestBody).length;</span>
+<span class="nc" id="L203">        } catch (Exception e) {</span>
+<span class="nc" id="L204">            return -1;</span>
+        }
+    }
+
+    private AiVerificationResponse parseStrictVerification(String respuestaJson, boolean esIdentidad) {
+        try {
+<span class="fc" id="L210">            JsonNode nodo = objectMapper.readTree(extractJson(respuestaJson));</span>
+<span class="fc bfc" id="L211" title="All 2 branches covered.">            String campoValido = esIdentidad ? &quot;es_documento_valido&quot; : &quot;es_certificado_valido&quot;;</span>
+<span class="fc" id="L212">            return AiVerificationResponse.builder()</span>
+<span class="fc" id="L213">                    .aprobado(nodo.path(campoValido).asBoolean(false))</span>
+<span class="fc" id="L214">                    .confianza(acotarConfianza(toBigDecimal(nodo.path(&quot;confianza&quot;).asDouble(0.0))))</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">                    .tipoDocumento(textoONull(nodo, esIdentidad ? &quot;tipo_documento&quot; : &quot;tipo_certificado&quot;))</span>
+<span class="fc bfc" id="L216" title="All 2 branches covered.">                    .nombreDetectado(textoONull(nodo, esIdentidad ? &quot;nombre_detectado&quot; : &quot;nombre_titular&quot;))</span>
+<span class="fc bfc" id="L217" title="All 2 branches covered.">                    .mayorEdad(esIdentidad ? nodo.path(&quot;es_mayor_de_edad&quot;).asBoolean(false) : null)</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">                    .fechaNacimiento(esIdentidad ? textoONull(nodo, &quot;fecha_nacimiento&quot;) : null)</span>
+<span class="fc bfc" id="L219" title="All 2 branches covered.">                    .paisEmision(esIdentidad ? textoONull(nodo, &quot;pais_emision&quot;) : null)</span>
+<span class="fc bfc" id="L220" title="All 2 branches covered.">                    .institucionEmisora(esIdentidad ? null : textoONull(nodo, &quot;institucion_emisora&quot;))</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">                    .campoEstudio(esIdentidad ? null : textoONull(nodo, &quot;campo_estudio&quot;))</span>
+<span class="fc bfc" id="L222" title="All 2 branches covered.">                    .fechaEmision(esIdentidad ? null : textoONull(nodo, &quot;fecha_emision&quot;))</span>
+<span class="fc" id="L223">                    .razonRechazo(textoONull(nodo, &quot;razon_rechazo&quot;))</span>
+<span class="fc" id="L224">                    .build();</span>
+<span class="nc" id="L225">        } catch (AiServiceUnavailableException e) {</span>
+<span class="nc" id="L226">            throw e;</span>
+<span class="nc" id="L227">        } catch (Exception e) {</span>
+<span class="nc" id="L228">            throw new AiServiceUnavailableException(&quot;No se pudo interpretar la respuesta de Gemini.&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuditEventSpecification.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.specification.audit</a> &gt; <span class="el_source">AuditEventSpecification.java</span></div><h1>AuditEventSpecification.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.specification.audit;
+
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
+import uteq.edu.ec.artisync.entity.audit.AuditEvent;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+/** Filtros dinámicos de búsqueda del panel de auditoría (bitácora de eventos). */
+<span class="nc" id="L12">public class AuditEventSpecification {</span>
+
+    /**
+     * Arma la {@link Specification} de {@link AuditEvent} combinando (AND) solo
+     * los criterios no nulos/no vacíos recibidos; sin ningún filtro, no
+     * restringe nada.
+     *
+     * @param correoActor coincidencia parcial (contiene), insensible a mayúsculas, sobre el correo del actor
+     * @param accion acción de auditoría exacta (p. ej. &quot;USUARIO_CREAR&quot;)
+     * @param modulo módulo de negocio exacto
+     * @param resultado resultado del evento exacto (éxito/error)
+     * @param entidad nombre de la entidad afectada, exacto
+     * @param idEntidad identificador de la entidad afectada
+     * @param desde fecha/hora mínima del evento (inclusive)
+     * @param hasta fecha/hora máxima del evento (inclusive)
+     * @return la especificación combinada, lista para {@code findAll(spec, pageable)}
+     */
+    public static Specification&lt;AuditEvent&gt; conFiltros(
+            String correoActor,
+            String accion,
+            String modulo,
+            String resultado,
+            String entidad,
+            Long idEntidad,
+            LocalDateTime desde,
+            LocalDateTime hasta) {
+
+<span class="fc" id="L39">        return (root, query, cb) -&gt; {</span>
+<span class="fc" id="L40">            List&lt;Predicate&gt; predicates = new ArrayList&lt;&gt;();</span>
+
+<span class="pc bpc" id="L42" title="1 of 4 branches missed.">            if (correoActor != null &amp;&amp; !correoActor.isBlank()) {</span>
+<span class="fc" id="L43">                String likePattern = &quot;%&quot; + correoActor.toLowerCase().trim() + &quot;%&quot;;</span>
+<span class="fc" id="L44">                predicates.add(cb.like(cb.lower(root.get(&quot;correoActor&quot;)), likePattern));</span>
+            }
+
+<span class="pc bpc" id="L47" title="1 of 4 branches missed.">            if (accion != null &amp;&amp; !accion.isBlank()) {</span>
+<span class="fc" id="L48">                predicates.add(cb.equal(root.get(&quot;accionAuditoria&quot;), accion));</span>
+            }
+
+<span class="pc bpc" id="L51" title="1 of 4 branches missed.">            if (modulo != null &amp;&amp; !modulo.isBlank()) {</span>
+<span class="fc" id="L52">                predicates.add(cb.equal(root.get(&quot;moduloAuditoria&quot;), modulo));</span>
+            }
+
+<span class="pc bpc" id="L55" title="1 of 4 branches missed.">            if (resultado != null &amp;&amp; !resultado.isBlank()) {</span>
+<span class="fc" id="L56">                predicates.add(cb.equal(root.get(&quot;resultadoEvento&quot;), resultado));</span>
+            }
+
+<span class="pc bpc" id="L59" title="1 of 4 branches missed.">            if (entidad != null &amp;&amp; !entidad.isBlank()) {</span>
+<span class="fc" id="L60">                predicates.add(cb.equal(root.get(&quot;entidadAfectada&quot;), entidad));</span>
+            }
+
+<span class="fc bfc" id="L63" title="All 2 branches covered.">            if (idEntidad != null) {</span>
+<span class="fc" id="L64">                predicates.add(cb.equal(root.get(&quot;idEntidadAfectada&quot;), idEntidad));</span>
+            }
+
+<span class="fc bfc" id="L67" title="All 2 branches covered.">            if (desde != null) {</span>
+<span class="fc" id="L68">                predicates.add(cb.greaterThanOrEqualTo(root.get(&quot;fechaEvento&quot;), desde));</span>
+            }
+
+<span class="fc bfc" id="L71" title="All 2 branches covered.">            if (hasta != null) {</span>
+<span class="fc" id="L72">                predicates.add(cb.lessThanOrEqualTo(root.get(&quot;fechaEvento&quot;), hasta));</span>
+            }
+
+<span class="fc" id="L75">            return cb.and(predicates.toArray(new Predicate[0]));</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

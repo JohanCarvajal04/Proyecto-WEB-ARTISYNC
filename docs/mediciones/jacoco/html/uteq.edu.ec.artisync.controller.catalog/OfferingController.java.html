@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OfferingController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.catalog</a> &gt; <span class="el_source">OfferingController.java</span></div><h1>OfferingController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.catalog;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.dto.request.catalog.UpdateAttributeRequest;
+import uteq.edu.ec.artisync.dto.request.catalog.UpdateOfferingRequest;
+import uteq.edu.ec.artisync.dto.request.catalog.CreateAttributeRequest;
+import uteq.edu.ec.artisync.dto.request.catalog.CreateOfferingRequest;
+import uteq.edu.ec.artisync.dto.response.catalog.AttributeResponse;
+import uteq.edu.ec.artisync.dto.response.catalog.OfferingResponse;
+import uteq.edu.ec.artisync.dto.response.catalog.OfferingSummaryResponse;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.comun.UrlResponse;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.service.catalog.IOfferingCatalogService;
+import uteq.edu.ec.artisync.service.shared.storage.DocumentStorage;
+import uteq.edu.ec.artisync.service.shared.storage.FileExtensions;
+import uteq.edu.ec.artisync.service.shared.storage.StoragePrefix;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+/** Gestión de servicios del catálogo: creación, edición, atributos dinámicos y su miniatura. */
+@RestController
+@RequestMapping(&quot;/api/v1/servicios&quot;)
+@RequiredArgsConstructor
+public class OfferingController {
+
+    private final IOfferingCatalogService servicioCatalogoServicio;
+    private final DocumentStorage almacenamientoDocumentos;
+
+    /**
+     * Crea un nuevo servicio para el perfil de creador indicado.
+     *
+     * @param idPerfilCreador identificador del perfil de creador propietario del servicio
+     * @param peticion datos del servicio a crear
+     * @return el servicio creado, con estado 201
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el precio es menor a 0.01 USD
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil de creador no existe
+     */
+    @PostMapping(&quot;/creador/{idPerfilCreador}&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;OfferingResponse&gt; createOffering(
+            @PathVariable Long idPerfilCreador,
+            @Valid @RequestBody CreateOfferingRequest peticion) {
+<span class="fc" id="L54">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L55">                .body(servicioCatalogoServicio.createOffering(idPerfilCreador, peticion));</span>
+    }
+
+    /**
+     * Actualiza los datos de un servicio existente.
+     *
+     * @param id identificador del servicio a actualizar
+     * @param peticion datos actualizados del servicio
+     * @return el servicio actualizado
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el precio es menor a 0.01 USD o si el servicio queda sin subcategorías
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     */
+    @PutMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;OfferingResponse&gt; updateOffering(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateOfferingRequest peticion) {
+<span class="fc" id="L72">        return ResponseEntity.ok(servicioCatalogoServicio.updateOffering(id, peticion));</span>
+    }
+
+    /**
+     * Obtiene el detalle de un servicio por su identificador.
+     *
+     * @param id identificador del servicio
+     * @return el servicio solicitado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     */
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;OfferingResponse&gt; getOfferingById(@PathVariable Long id) {
+<span class="fc" id="L84">        return ResponseEntity.ok(servicioCatalogoServicio.getOfferingById(id));</span>
+    }
+
+    /**
+     * Elimina un servicio existente.
+     *
+     * @param id identificador del servicio a eliminar
+     * @return mensaje de confirmación de la eliminación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     */
+    @DeleteMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;MessageResponse&gt; deleteOffering(@PathVariable Long id) {
+<span class="fc" id="L97">        servicioCatalogoServicio.deleteOffering(id);</span>
+<span class="fc" id="L98">        return ResponseEntity.ok(new MessageResponse(&quot;Offering eliminado exitosamente&quot;));</span>
+    }
+
+    /**
+     * Lista los servicios de un creador, opcionalmente filtrados por estado de publicación.
+     *
+     * @param idPerfilCreador identificador del perfil de creador
+     * @param estadoPublicacion estado de publicación por el cual filtrar (opcional)
+     * @return listado resumido de los servicios del creador
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil de creador no existe
+     */
+    @GetMapping(&quot;/creador/{idPerfilCreador}&quot;)
+    public ResponseEntity&lt;List&lt;OfferingSummaryResponse&gt;&gt; listOfferingsByCreator(
+            @PathVariable Long idPerfilCreador,
+            @RequestParam(required = false) String estadoPublicacion) {
+<span class="fc" id="L113">        return ResponseEntity.ok(servicioCatalogoServicio.listOfferingsByCreator(idPerfilCreador, estadoPublicacion));</span>
+    }
+
+    /**
+     * Lista los atributos personalizados asociados a un servicio.
+     *
+     * @param id identificador del servicio
+     * @return listado de atributos del servicio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     */
+    @GetMapping(&quot;/{id}/atributos&quot;)
+    public ResponseEntity&lt;List&lt;AttributeResponse&gt;&gt; listAttributesByOffering(@PathVariable Long id) {
+<span class="fc" id="L125">        return ResponseEntity.ok(servicioCatalogoServicio.listAttributesByOffering(id));</span>
+    }
+
+    /**
+     * Agrega un atributo personalizado a un servicio.
+     *
+     * @param id identificador del servicio
+     * @param peticion datos del atributo a agregar
+     * @return el atributo creado, con estado 201
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si se alcanzó el límite de atributos permitidos o el atributo ya está asociado al servicio
+     */
+    @PostMapping(&quot;/{id}/atributos&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;AttributeResponse&gt; addAttribute(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateAttributeRequest peticion) {
+<span class="fc" id="L142">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L143">                .body(servicioCatalogoServicio.addAttribute(id, peticion));</span>
+    }
+
+    /**
+     * Actualiza un atributo personalizado de un servicio.
+     *
+     * @param id identificador del servicio
+     * @param idAtributo identificador del atributo a actualizar
+     * @param peticion datos actualizados del atributo
+     * @return el atributo actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio o el atributo no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el atributo no pertenece al servicio indicado
+     */
+    @PutMapping(&quot;/{id}/atributos/{idAtributo}&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;AttributeResponse&gt; updateAttribute(
+            @PathVariable Long id,
+            @PathVariable Long idAtributo,
+            @Valid @RequestBody UpdateAttributeRequest peticion) {
+<span class="fc" id="L162">        return ResponseEntity.ok(servicioCatalogoServicio.updateAttribute(id, idAtributo, peticion));</span>
+    }
+
+    /**
+     * Elimina un atributo personalizado de un servicio.
+     *
+     * @param id identificador del servicio
+     * @param idAtributo identificador del atributo a eliminar
+     * @return mensaje de confirmación de la eliminación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio o el atributo no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el atributo no pertenece al servicio indicado
+     */
+    @DeleteMapping(&quot;/{id}/atributos/{idAtributo}&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;MessageResponse&gt; deleteAttribute(
+            @PathVariable Long id,
+            @PathVariable Long idAtributo) {
+<span class="fc" id="L179">        servicioCatalogoServicio.deleteAttribute(id, idAtributo);</span>
+<span class="fc" id="L180">        return ResponseEntity.ok(new MessageResponse(&quot;Atributo eliminado exitosamente del servicio&quot;));</span>
+    }
+
+    /**
+     * Sube la imagen de miniatura de un servicio al almacenamiento de documentos.
+     *
+     * @param archivo archivo de imagen a subir
+     * @return la URL de la miniatura subida, con estado 201
+     */
+    @PostMapping(value = &quot;/miniatura&quot;, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;UrlResponse&gt; uploadThumbnail(@RequestParam(&quot;archivo&quot;) MultipartFile archivo) {
+<span class="nc" id="L192">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="nc" id="L193">                .body(new UrlResponse(servicioCatalogoServicio.uploadThumbnail(archivo)));</span>
+    }
+
+    /**
+     * Sirve la miniatura públicamente (sin autenticación): se muestra en el
+     * catálogo a cualquier visitante. Mismo criterio que
+     * UserController.serveProfilePhoto: solo referencias bajo &quot;servicios/&quot; son
+     * válidas aquí, para no convertir esto en una puerta trasera a otros
+     * prefijos (verificacion, entregables) que sí son privados.
+     *
+     * @param request petición HTTP, de la cual se extrae la referencia de la miniatura solicitada
+     * @return el contenido binario de la miniatura con su tipo de contenido y cabecera de caché
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la referencia no corresponde a una miniatura bajo el prefijo &quot;servicios/&quot;
+     */
+    @GetMapping(&quot;/miniatura/**&quot;)
+    public ResponseEntity&lt;byte[]&gt; servirMiniatura(HttpServletRequest request) {
+<span class="nc" id="L209">        String fullPath = request.getRequestURI();</span>
+<span class="nc" id="L210">        String prefix = &quot;/api/v1/servicios/miniatura/&quot;;</span>
+<span class="nc" id="L211">        String referencia = fullPath.substring(fullPath.indexOf(prefix) + prefix.length());</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">        if (!referencia.startsWith(StoragePrefix.SERVICIOS + &quot;/&quot;)) {</span>
+<span class="nc" id="L213">            throw new ResourceNotFoundException(&quot;Miniatura no disponible: &quot; + referencia);</span>
+        }
+<span class="nc" id="L215">        byte[] contenido = almacenamientoDocumentos.read(referencia);</span>
+<span class="nc" id="L216">        String contentType = FileExtensions.contentTypeDe(referencia);</span>
+<span class="nc" id="L217">        return ResponseEntity.ok()</span>
+<span class="nc" id="L218">                .contentType(MediaType.parseMediaType(contentType))</span>
+<span class="nc" id="L219">                .header(HttpHeaders.CACHE_CONTROL, &quot;public, max-age=&quot; + TimeUnit.DAYS.toSeconds(7))</span>
+<span class="nc" id="L220">                .body(contenido);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EscrowPaymentSpecification.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.specification.legal</a> &gt; <span class="el_source">EscrowPaymentSpecification.java</span></div><h1>EscrowPaymentSpecification.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.specification.legal;
+
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
+import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Filtros del panel de supervisión de Pagos y Garantías (Escrow) del Auditor
+ * Financiero. Navega contrato → pedido para llegar a cliente y creador, igual
+ * que hace {@code fn_reporte_comisiones_creador} para el reporte agregado.
+ */
+<span class="nc" id="L16">public class EscrowPaymentSpecification {</span>
+
+    /**
+     * Arma la {@link Specification} de {@link EscrowPayment} combinando (AND)
+     * solo los criterios no nulos/no vacíos recibidos, navegando
+     * contrato → pedido para llegar a cliente y creador.
+     *
+     * @param estadoFondos estado exacto de los fondos en garantía
+     * @param idPerfilCreador si no es {@code null}, restringe a pagos del creador con ese perfil
+     * @param idUsuarioCliente si no es {@code null}, restringe a pagos de ese cliente
+     * @param desde fecha de formalización del contrato mínima (inclusive)
+     * @param hasta fecha de formalización del contrato máxima (inclusive)
+     * @return la especificación combinada, lista para {@code findAll(spec, pageable)}
+     */
+    public static Specification&lt;EscrowPayment&gt; conFiltros(
+            String estadoFondos,
+            Long idPerfilCreador,
+            Long idUsuarioCliente,
+            LocalDateTime desde,
+            LocalDateTime hasta) {
+
+<span class="fc" id="L37">        return (root, query, cb) -&gt; {</span>
+<span class="fc" id="L38">            List&lt;Predicate&gt; predicates = new ArrayList&lt;&gt;();</span>
+
+<span class="pc bpc" id="L40" title="1 of 4 branches missed.">            if (estadoFondos != null &amp;&amp; !estadoFondos.isBlank()) {</span>
+<span class="fc" id="L41">                predicates.add(cb.equal(root.get(&quot;estadoFondos&quot;), estadoFondos));</span>
+            }
+
+<span class="fc bfc" id="L44" title="All 2 branches covered.">            if (idPerfilCreador != null) {</span>
+<span class="fc" id="L45">                predicates.add(cb.equal(</span>
+<span class="fc" id="L46">                        root.get(&quot;contrato&quot;).get(&quot;pedido&quot;).get(&quot;servicio&quot;).get(&quot;perfil&quot;).get(&quot;idPerfil&quot;),</span>
+                        idPerfilCreador));
+            }
+
+<span class="fc bfc" id="L50" title="All 2 branches covered.">            if (idUsuarioCliente != null) {</span>
+<span class="fc" id="L51">                predicates.add(cb.equal(</span>
+<span class="fc" id="L52">                        root.get(&quot;contrato&quot;).get(&quot;pedido&quot;).get(&quot;usuarioCliente&quot;).get(&quot;idUsuario&quot;),</span>
+                        idUsuarioCliente));
+            }
+
+<span class="fc bfc" id="L56" title="All 2 branches covered.">            if (desde != null) {</span>
+<span class="fc" id="L57">                predicates.add(cb.greaterThanOrEqualTo(root.get(&quot;contrato&quot;).get(&quot;fechaFormalizacion&quot;), desde));</span>
+            }
+
+<span class="fc bfc" id="L60" title="All 2 branches covered.">            if (hasta != null) {</span>
+<span class="fc" id="L61">                predicates.add(cb.lessThanOrEqualTo(root.get(&quot;contrato&quot;).get(&quot;fechaFormalizacion&quot;), hasta));</span>
+            }
+
+<span class="fc" id="L64">            return cb.and(predicates.toArray(new Predicate[0]));</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

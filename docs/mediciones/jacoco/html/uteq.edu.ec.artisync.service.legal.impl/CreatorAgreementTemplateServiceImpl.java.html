@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CreatorAgreementTemplateServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.legal.impl</a> &gt; <span class="el_source">CreatorAgreementTemplateServiceImpl.java</span></div><h1>CreatorAgreementTemplateServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.legal.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.request.legal.UpdateOwnAgreementTemplateRequest;
+import uteq.edu.ec.artisync.dto.request.legal.CreateOwnAgreementTemplateRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.legal.ContractTemplateResponse;
+import uteq.edu.ec.artisync.entity.order.ContractTemplate;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.repository.order.ContractTemplateRepository;
+import uteq.edu.ec.artisync.service.legal.ICreatorAgreementTemplateService;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+/**
+ * Autoservicio de plantillas de acuerdo propias del creador (V45). No toca
+ * {@link ContractTemplateAdminServiceImpl}: el catálogo general de ADMIN
+ * sigue intacto, esto es una vía adicional y aislada por id_creador.
+ */
+<span class="fc" id="L25">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class CreatorAgreementTemplateServiceImpl implements ICreatorAgreementTemplateService {
+
+    private final ContractTemplateRepository plantillaContratoRepository;
+
+    @Override
+    @Transactional
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public ContractTemplateResponse create(Long idUsuarioCreador, CreateOwnAgreementTemplateRequest peticion) {
+<span class="fc" id="L43">        ContractTemplate plantilla = ContractTemplate.builder()</span>
+<span class="fc" id="L44">                .nombrePlantilla(peticion.getNombrePlantilla().trim())</span>
+                // No es un dato de negocio para una plantilla privada (a diferencia
+                // del catálogo general, donde el admin la declara a mano para
+                // versionar cambios legales revisados) — se genera solo para
+                // satisfacer la columna version_legal NOT NULL UNIQUE heredada de V13.
+<span class="fc" id="L49">                .versionLegal(generateOwnLegalVersion(idUsuarioCreador))</span>
+<span class="fc" id="L50">                .cuerpoHtmlPlantilla(peticion.getCuerpoHtmlPlantilla())</span>
+<span class="fc" id="L51">                .esPredeterminada(false)</span>
+<span class="fc" id="L52">                .activa(true)</span>
+<span class="fc" id="L53">                .idCreador(idUsuarioCreador)</span>
+<span class="fc" id="L54">                .build();</span>
+
+<span class="fc" id="L56">        plantilla = plantillaContratoRepository.save(plantilla);</span>
+<span class="fc" id="L57">        log.info(&quot;Plantilla de acuerdo propia '{}' creada (id {}) por el usuario {}&quot;,</span>
+<span class="fc" id="L58">                plantilla.getNombrePlantilla(), plantilla.getIdPlantilla(), idUsuarioCreador);</span>
+<span class="fc" id="L59">        return mapToRespuesta(plantilla);</span>
+    }
+
+    @Override
+    @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @param idPlantilla identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public ContractTemplateResponse update(Long idUsuarioCreador, Long idPlantilla, UpdateOwnAgreementTemplateRequest peticion) {
+<span class="fc" id="L74">        ContractTemplate plantilla = getOwnOrFail(idUsuarioCreador, idPlantilla);</span>
+
+<span class="fc" id="L76">        plantilla.setNombrePlantilla(peticion.getNombrePlantilla().trim());</span>
+<span class="fc" id="L77">        plantilla.setCuerpoHtmlPlantilla(peticion.getCuerpoHtmlPlantilla());</span>
+<span class="fc" id="L78">        plantilla.setActiva(peticion.isActiva());</span>
+
+<span class="fc" id="L80">        plantilla = plantillaContratoRepository.save(plantilla);</span>
+<span class="fc" id="L81">        log.info(&quot;Plantilla de acuerdo propia {} actualizada por el usuario {}&quot;, idPlantilla, idUsuarioCreador);</span>
+<span class="fc" id="L82">        return mapToRespuesta(plantilla);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public List&lt;ContractTemplateResponse&gt; listOwn(Long idUsuarioCreador) {
+<span class="fc" id="L95">        return plantillaContratoRepository.findByIdCreadorOrderByNombrePlantillaAsc(idUsuarioCreador).stream()</span>
+<span class="fc" id="L96">                .map(this::mapToRespuesta)</span>
+<span class="fc" id="L97">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @param idPlantilla identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public MessageResponse deactivate(Long idUsuarioCreador, Long idPlantilla) {
+<span class="fc" id="L111">        ContractTemplate plantilla = getOwnOrFail(idUsuarioCreador, idPlantilla);</span>
+<span class="fc" id="L112">        plantilla.setActiva(false);</span>
+<span class="fc" id="L113">        plantillaContratoRepository.save(plantilla);</span>
+<span class="fc" id="L114">        log.info(&quot;Plantilla de acuerdo propia {} desactivada por el usuario {}&quot;, idPlantilla, idUsuarioCreador);</span>
+<span class="fc" id="L115">        return new MessageResponse(&quot;Plantilla desactivada correctamente&quot;);</span>
+    }
+
+    /** Mismo criterio &quot;no encontrado&quot; (no &quot;prohibido&quot;) que resolverBriefingPlantillaPropia/resolverFlujoPropio: no revela si el recurso existe a nombre de otro. */
+    private ContractTemplate getOwnOrFail(Long idUsuarioCreador, Long idPlantilla) {
+<span class="fc" id="L120">        return plantillaContratoRepository.findByIdPlantillaAndIdCreador(idPlantilla, idUsuarioCreador)</span>
+<span class="fc" id="L121">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Plantilla de acuerdo no encontrada: &quot; + idPlantilla));</span>
+    }
+
+    private String generateOwnLegalVersion(Long idUsuarioCreador) {
+<span class="fc" id="L125">        return &quot;propia-&quot; + idUsuarioCreador + &quot;-&quot; + UUID.randomUUID().toString().substring(0, 8);</span>
+    }
+
+    private ContractTemplateResponse mapToRespuesta(ContractTemplate plantilla) {
+<span class="fc" id="L129">        return ContractTemplateResponse.builder()</span>
+<span class="fc" id="L130">                .idPlantilla(plantilla.getIdPlantilla())</span>
+<span class="fc" id="L131">                .nombrePlantilla(plantilla.getNombrePlantilla())</span>
+<span class="fc" id="L132">                .versionLegal(plantilla.getVersionLegal())</span>
+<span class="fc" id="L133">                .cuerpoHtmlPlantilla(plantilla.getCuerpoHtmlPlantilla())</span>
+<span class="fc" id="L134">                .esPredeterminada(plantilla.getEsPredeterminada())</span>
+<span class="fc" id="L135">                .activa(plantilla.getActiva())</span>
+<span class="fc" id="L136">                .idCreador(plantilla.getIdCreador())</span>
+<span class="fc" id="L137">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

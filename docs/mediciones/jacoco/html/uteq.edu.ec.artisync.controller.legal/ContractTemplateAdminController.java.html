@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContractTemplateAdminController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.legal</a> &gt; <span class="el_source">ContractTemplateAdminController.java</span></div><h1>ContractTemplateAdminController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.legal;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.request.legal.UpdateContractTemplateRequest;
+import uteq.edu.ec.artisync.dto.request.legal.CreateContractTemplateRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.legal.ContractTemplateResponse;
+import uteq.edu.ec.artisync.service.legal.IContractTemplateAdminService;
+
+import java.util.List;
+
+/**
+ * Catálogo de plantillas de contrato curado por ADMIN (REQ-F-017 ampliado):
+ * el creador solo elige entre estas plantillas, no escribe texto legal libre.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/admin/plantillas-contrato&quot;)
+@RequiredArgsConstructor
+@PreAuthorize(&quot;hasAuthority('CONTRATO_PLANTILLA_GESTIONAR')&quot;)
+public class ContractTemplateAdminController {
+
+    private final IContractTemplateAdminService plantillaContratoAdminServicio;
+
+    /**
+     * Crea una nueva plantilla de contrato en el catálogo curado por administración.
+     *
+     * @param peticion datos de la plantilla a create
+     * @return la plantilla creada, con estado 201
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una plantilla con la misma versión legal
+     */
+    @PostMapping
+    public ResponseEntity&lt;ContractTemplateResponse&gt; create(@Valid @RequestBody CreateContractTemplateRequest peticion) {
+<span class="fc" id="L38">        return ResponseEntity.status(HttpStatus.CREATED).body(plantillaContratoAdminServicio.create(peticion));</span>
+    }
+
+    /**
+     * Edita una plantilla de contrato existente.
+     *
+     * @param id identificador de la plantilla a update
+     * @param peticion datos actualizados de la plantilla
+     * @return la plantilla actualizada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la plantilla no puede editarse en su estado actual
+     */
+    @PutMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;ContractTemplateResponse&gt; update(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateContractTemplateRequest peticion) {
+<span class="fc" id="L54">        return ResponseEntity.ok(plantillaContratoAdminServicio.update(id, peticion));</span>
+    }
+
+    /**
+     * Lista todas las plantillas de contrato del catálogo, activas e inactivas.
+     *
+     * @return listado completo de plantillas de contrato
+     */
+    @GetMapping
+    public ResponseEntity&lt;List&lt;ContractTemplateResponse&gt;&gt; listAll() {
+<span class="fc" id="L64">        return ResponseEntity.ok(plantillaContratoAdminServicio.listAll());</span>
+    }
+
+    /**
+     * Desactiva una plantilla de contrato del catálogo.
+     *
+     * @param id identificador de la plantilla a deactivate
+     * @return mensaje de confirmación de la desactivación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la plantilla no puede desactivarse en su estado actual
+     */
+    @PatchMapping(&quot;/{id}/desactivar&quot;)
+    public ResponseEntity&lt;MessageResponse&gt; deactivate(@PathVariable Long id) {
+<span class="fc" id="L77">        return ResponseEntity.ok(plantillaContratoAdminServicio.deactivate(id));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

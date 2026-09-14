@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CountryController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.security</a> &gt; <span class="el_source">CountryController.java</span></div><h1>CountryController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.security;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.security.request.CountryRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.security.response.CountryResponse;
+import uteq.edu.ec.artisync.service.security.CountryService;
+
+import java.util.List;
+
+/** Consulta y gestión del catálogo maestro de países. */
+@RestController
+@RequestMapping(&quot;/api/v1/paises&quot;)
+@RequiredArgsConstructor
+@Tag(name = &quot;Catálogo de Países&quot;, description = &quot;Endpoints para consulta pública y administración (CUD) de países&quot;)
+public class CountryController {
+
+    private final CountryService paisService;
+
+    /**
+     * Lista todos los países del catálogo, ordenados alfabéticamente.
+     *
+     * @return listado de países
+     */
+    @Operation(summary = &quot;Listar todos los países ordenados alfabéticamente&quot;)
+    @GetMapping
+    public ResponseEntity&lt;List&lt;CountryResponse&gt;&gt; getAllCountries() {
+<span class="fc" id="L36">        return ResponseEntity.ok(paisService.getAllCountries());</span>
+    }
+
+    /**
+     * Lista solo los países activos del catálogo, ordenados alfabéticamente.
+     *
+     * @return listado de países activos
+     */
+    @Operation(summary = &quot;Listar solo los países activos ordenados alfabéticamente&quot;)
+    @GetMapping(&quot;/activos&quot;)
+    public ResponseEntity&lt;List&lt;CountryResponse&gt;&gt; getActiveCountries() {
+<span class="nc" id="L47">        return ResponseEntity.ok(paisService.getActiveCountries());</span>
+    }
+
+    /**
+     * Obtiene un país por su identificador.
+     *
+     * @param id identificador del país
+     * @return el país solicitado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el país no existe
+     */
+    @Operation(summary = &quot;Obtener un país por su ID&quot;)
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;CountryResponse&gt; getCountryById(@PathVariable Long id) {
+<span class="nc" id="L60">        return ResponseEntity.ok(paisService.getCountryById(id));</span>
+    }
+
+    /**
+     * Crea un nuevo país en el catálogo.
+     *
+     * @param request datos del país a crear
+     * @return el país creado, con estado 201
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si ya existe un país con el mismo nombre
+     */
+    @Operation(summary = &quot;Crear un nuevo país&quot;, security = @SecurityRequirement(name = &quot;bearerAuth&quot;))
+    @PreAuthorize(&quot;hasAuthority('PAIS_CREAR') or hasRole('ADMIN')&quot;)
+    @PostMapping
+    public ResponseEntity&lt;CountryResponse&gt; createCountry(@Valid @RequestBody CountryRequest request) {
+<span class="fc" id="L74">        return ResponseEntity.status(HttpStatus.CREATED).body(paisService.createCountry(request));</span>
+    }
+
+    /**
+     * Actualiza el nombre de un país existente.
+     *
+     * @param id identificador del país a actualizar
+     * @param request datos actualizados del país
+     * @return el país actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el país no existe
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si ya existe otro país con el mismo nombre
+     */
+    @Operation(summary = &quot;Actualizar el nombre de un país existente&quot;, security = @SecurityRequirement(name = &quot;bearerAuth&quot;))
+    @PreAuthorize(&quot;hasAuthority('PAIS_EDITAR') or hasRole('ADMIN')&quot;)
+    @PutMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;CountryResponse&gt; updateCountry(@PathVariable Long id, @Valid @RequestBody CountryRequest request) {
+<span class="nc" id="L90">        return ResponseEntity.ok(paisService.updateCountry(id, request));</span>
+    }
+
+    /**
+     * Activa o desactiva un país del catálogo.
+     *
+     * @param id identificador del país
+     * @return mensaje de confirmación con el nuevo estado del país
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el país no existe
+     */
+    @Operation(summary = &quot;Eliminar un país si no tiene usuarios asociados&quot;, security = @SecurityRequirement(name = &quot;bearerAuth&quot;))
+    @PreAuthorize(&quot;hasAuthority('PAIS_ELIMINAR') or hasRole('ADMIN')&quot;)
+    @DeleteMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;MessageResponse&gt; deleteCountry(@PathVariable Long id) {
+<span class="fc" id="L104">        return ResponseEntity.ok(paisService.deleteCountry(id));</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

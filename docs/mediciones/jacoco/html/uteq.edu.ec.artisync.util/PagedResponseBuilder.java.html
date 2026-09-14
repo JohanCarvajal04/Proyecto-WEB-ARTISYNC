@@ -7,50 +7,65 @@ import java.util.function.Function;
 
 <span class="nc" id="L8">public class PagedResponseBuilder {</span>
 
+    /**
+     * Convierte una {@link Page} de Spring Data en un {@link PagedResponse},
+     * sin transformar el contenido.
+     *
+     * @param page página de origen
+     * @return el {@link PagedResponse} equivalente, con el mismo contenido
+     */
     public static &lt;T&gt; PagedResponse&lt;T&gt; build(Page&lt;T&gt; page) {
-<span class="fc" id="L11">        return PagedResponse.&lt;T&gt;builder()</span>
-<span class="fc" id="L12">                .content(page.getContent())</span>
-<span class="fc" id="L13">                .pageNumber(page.getNumber())</span>
-<span class="fc" id="L14">                .pageSize(page.getSize())</span>
-<span class="fc" id="L15">                .totalElements(page.getTotalElements())</span>
-<span class="fc" id="L16">                .totalPages(page.getTotalPages())</span>
-<span class="fc" id="L17">                .last(page.isLast())</span>
-<span class="fc" id="L18">                .build();</span>
+<span class="fc" id="L18">        return PagedResponse.&lt;T&gt;builder()</span>
+<span class="fc" id="L19">                .content(page.getContent())</span>
+<span class="fc" id="L20">                .pageNumber(page.getNumber())</span>
+<span class="fc" id="L21">                .pageSize(page.getSize())</span>
+<span class="fc" id="L22">                .totalElements(page.getTotalElements())</span>
+<span class="fc" id="L23">                .totalPages(page.getTotalPages())</span>
+<span class="fc" id="L24">                .last(page.isLast())</span>
+<span class="fc" id="L25">                .build();</span>
     }
 
+    /**
+     * Convierte una {@link Page} en un {@link PagedResponse}, mapeando cada
+     * elemento del contenido individualmente (una llamada a {@code mapper} por fila).
+     *
+     * @param page página de origen
+     * @param mapper función de mapeo elemento a elemento (p. ej. entidad → DTO)
+     * @return el {@link PagedResponse} con el contenido ya mapeado
+     */
     public static &lt;T, R&gt; PagedResponse&lt;R&gt; buildAndMap(Page&lt;T&gt; page, Function&lt;T, R&gt; mapper) {
-<span class="fc" id="L22">        List&lt;R&gt; mappedContent = page.getContent().stream()</span>
-<span class="fc" id="L23">                .map(mapper)</span>
-<span class="fc" id="L24">                .toList();</span>
+<span class="fc" id="L37">        List&lt;R&gt; mappedContent = page.getContent().stream()</span>
+<span class="fc" id="L38">                .map(mapper)</span>
+<span class="fc" id="L39">                .toList();</span>
 
-<span class="fc" id="L26">        return PagedResponse.&lt;R&gt;builder()</span>
-<span class="fc" id="L27">                .content(mappedContent)</span>
-<span class="fc" id="L28">                .pageNumber(page.getNumber())</span>
-<span class="fc" id="L29">                .pageSize(page.getSize())</span>
-<span class="fc" id="L30">                .totalElements(page.getTotalElements())</span>
-<span class="fc" id="L31">                .totalPages(page.getTotalPages())</span>
-<span class="fc" id="L32">                .last(page.isLast())</span>
-<span class="fc" id="L33">                .build();</span>
+<span class="fc" id="L41">        return PagedResponse.&lt;R&gt;builder()</span>
+<span class="fc" id="L42">                .content(mappedContent)</span>
+<span class="fc" id="L43">                .pageNumber(page.getNumber())</span>
+<span class="fc" id="L44">                .pageSize(page.getSize())</span>
+<span class="fc" id="L45">                .totalElements(page.getTotalElements())</span>
+<span class="fc" id="L46">                .totalPages(page.getTotalPages())</span>
+<span class="fc" id="L47">                .last(page.isLast())</span>
+<span class="fc" id="L48">                .build();</span>
     }
 
     /**
      * Variante de {@link #buildAndMap} que mapea el contenido de la pagina en
-     * un unico lote (p. ej. UsuarioMapper.toUserResponseList) en vez de
+     * un unico lote (p. ej. UserMapper.toUserResponseList) en vez de
      * elemento a elemento. Uso: cuando el mapper hace consultas adicionales
      * por elemento (roles, permisos, flags), pasar la lista completa permite
      * batchearlas con IN (...) en vez de repetirlas por cada fila (N+1).
      */
     public static &lt;T, R&gt; PagedResponse&lt;R&gt; buildAndMapList(Page&lt;T&gt; page, Function&lt;List&lt;T&gt;, List&lt;R&gt;&gt; mapper) {
-<span class="fc" id="L44">        List&lt;R&gt; mappedContent = mapper.apply(page.getContent());</span>
+<span class="fc" id="L59">        List&lt;R&gt; mappedContent = mapper.apply(page.getContent());</span>
 
-<span class="fc" id="L46">        return PagedResponse.&lt;R&gt;builder()</span>
-<span class="fc" id="L47">                .content(mappedContent)</span>
-<span class="fc" id="L48">                .pageNumber(page.getNumber())</span>
-<span class="fc" id="L49">                .pageSize(page.getSize())</span>
-<span class="fc" id="L50">                .totalElements(page.getTotalElements())</span>
-<span class="fc" id="L51">                .totalPages(page.getTotalPages())</span>
-<span class="fc" id="L52">                .last(page.isLast())</span>
-<span class="fc" id="L53">                .build();</span>
+<span class="fc" id="L61">        return PagedResponse.&lt;R&gt;builder()</span>
+<span class="fc" id="L62">                .content(mappedContent)</span>
+<span class="fc" id="L63">                .pageNumber(page.getNumber())</span>
+<span class="fc" id="L64">                .pageSize(page.getSize())</span>
+<span class="fc" id="L65">                .totalElements(page.getTotalElements())</span>
+<span class="fc" id="L66">                .totalPages(page.getTotalPages())</span>
+<span class="fc" id="L67">                .last(page.isLast())</span>
+<span class="fc" id="L68">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

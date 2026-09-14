@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FollowerServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.communication.impl</a> &gt; <span class="el_source">FollowerServiceImpl.java</span></div><h1>FollowerServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.communication.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.response.communication.FollowedCreatorUpdateResponse;
+import uteq.edu.ec.artisync.dto.response.communication.FollowStatusResponse;
+import uteq.edu.ec.artisync.dto.response.communication.FollowerResponse;
+import uteq.edu.ec.artisync.entity.communication.Follower;
+import uteq.edu.ec.artisync.entity.profile.CreatorProfile;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.repository.communication.FollowerRepository;
+import uteq.edu.ec.artisync.repository.profile.CreatorProfileRepository;
+import uteq.edu.ec.artisync.service.communication.IFollowerService;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class FollowerServiceImpl implements IFollowerService {
+
+    private final FollowerRepository seguidorRepository;
+    private final CreatorProfileRepository perfilCreadorRepository;
+
+    @Override
+    @Transactional
+    /**
+     * Registra que un usuario sigue a un perfil de creador.
+     *
+     * @param idUsuarioSeguidor identificador del usuario que sigue
+     * @param idPerfilCreador identificador del perfil de creador a seguir
+     * @return el estado de seguimiento actualizado, con el nuevo total de seguidores
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el creador intenta seguirse a sí mismo
+     */
+    public FollowStatusResponse followCreator(Long idUsuarioSeguidor, Long idPerfilCreador) {
+<span class="fc" id="L40">        CreatorProfile perfil = perfilCreadorRepository.findById(idPerfilCreador)</span>
+<span class="fc" id="L41">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Perfil de creador no encontrado con ID: &quot; + idPerfilCreador));</span>
+
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        if (Objects.equals(perfil.getUsuario().getIdUsuario(), idUsuarioSeguidor)) {</span>
+<span class="fc" id="L44">            throw new BusinessRuleException(&quot;Un creador no puede seguirse a sí mismo.&quot;);</span>
+        }
+
+        // Ejecutar función SQL fn_seguir_creador en PostgreSQL
+<span class="fc" id="L48">        seguidorRepository.ejecutarFnSeguirCreador(idUsuarioSeguidor, idPerfilCreador);</span>
+
+<span class="fc" id="L50">        Long total = seguidorRepository.ejecutarFnConteoSeguidores(idPerfilCreador);</span>
+
+<span class="fc" id="L52">        return FollowStatusResponse.builder()</span>
+<span class="fc" id="L53">                .esSeguidor(true)</span>
+<span class="fc" id="L54">                .totalSeguidores(total)</span>
+<span class="fc" id="L55">                .esPropioPerfil(false)</span>
+<span class="fc" id="L56">                .build();</span>
+    }
+
+    @Override
+    @Transactional
+    /**
+     * Deja de seguir a un perfil de creador.
+     *
+     * @param idUsuarioSeguidor identificador del usuario que deja de seguir
+     * @param idPerfilCreador identificador del perfil de creador
+     * @return el estado de seguimiento actualizado, con el nuevo total de seguidores
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
+     */
+    public FollowStatusResponse unfollowCreator(Long idUsuarioSeguidor, Long idPerfilCreador) {
+<span class="fc" id="L70">        perfilCreadorRepository.findById(idPerfilCreador)</span>
+<span class="fc" id="L71">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Perfil de creador no encontrado con ID: &quot; + idPerfilCreador));</span>
+
+        // Ejecutar función SQL fn_dejar_de_seguir_creador en PostgreSQL
+<span class="fc" id="L74">        seguidorRepository.ejecutarFnDejarDeSeguirCreador(idUsuarioSeguidor, idPerfilCreador);</span>
+
+<span class="fc" id="L76">        Long total = seguidorRepository.ejecutarFnConteoSeguidores(idPerfilCreador);</span>
+
+<span class="fc" id="L78">        return FollowStatusResponse.builder()</span>
+<span class="fc" id="L79">                .esSeguidor(false)</span>
+<span class="fc" id="L80">                .totalSeguidores(total)</span>
+<span class="fc" id="L81">                .esPropioPerfil(false)</span>
+<span class="fc" id="L82">                .build();</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * @param idUsuarioConsulta identificador de quien consulta; {@code null} si es anónimo
+     * @param idPerfilCreador identificador del perfil de creador
+     * @return si ese usuario sigue al creador, si es su propio perfil, y el total de seguidores
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
+     */
+    public FollowStatusResponse getFollowStatus(Long idUsuarioConsulta, Long idPerfilCreador) {
+<span class="fc" id="L94">        CreatorProfile perfil = perfilCreadorRepository.findById(idPerfilCreador)</span>
+<span class="pc" id="L95">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Perfil de creador no encontrado con ID: &quot; + idPerfilCreador));</span>
+
+<span class="fc bfc" id="L97" title="All 4 branches covered.">        boolean esPropioPerfil = idUsuarioConsulta != null &amp;&amp; Objects.equals(perfil.getUsuario().getIdUsuario(), idUsuarioConsulta);</span>
+<span class="fc" id="L98">        boolean esSeguidor = false;</span>
+
+<span class="fc bfc" id="L100" title="All 4 branches covered.">        if (idUsuarioConsulta != null &amp;&amp; !esPropioPerfil) {</span>
+<span class="fc" id="L101">            Boolean res = seguidorRepository.ejecutarFnEsSeguidor(idUsuarioConsulta, idPerfilCreador);</span>
+<span class="fc" id="L102">            esSeguidor = Boolean.TRUE.equals(res);</span>
+        }
+
+<span class="fc" id="L105">        Long total = seguidorRepository.ejecutarFnConteoSeguidores(idPerfilCreador);</span>
+
+<span class="fc" id="L107">        return FollowStatusResponse.builder()</span>
+<span class="fc" id="L108">                .esSeguidor(esSeguidor)</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">                .totalSeguidores(total != null ? total : 0L)</span>
+<span class="fc" id="L110">                .esPropioPerfil(esPropioPerfil)</span>
+<span class="fc" id="L111">                .build();</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * @param idPerfilCreador identificador del perfil de creador
+     * @return los seguidores de ese perfil
+     */
+    public List&lt;FollowerResponse&gt; listFollowers(Long idPerfilCreador) {
+<span class="fc" id="L121">        List&lt;Follower&gt; lista = seguidorRepository.findByPerfilCreadorIdPerfil(idPerfilCreador);</span>
+<span class="fc" id="L122">        return lista.stream()</span>
+<span class="fc" id="L123">                .map(s -&gt; FollowerResponse.builder()</span>
+<span class="fc" id="L124">                        .idSeguimiento(s.getIdSeguimiento())</span>
+<span class="fc" id="L125">                        .idUsuarioSeguidor(s.getUsuarioSeguidor().getIdUsuario())</span>
+<span class="fc" id="L126">                        .nombreSeguidor((s.getUsuarioSeguidor().getNombres() + &quot; &quot; + s.getUsuarioSeguidor().getApellidos()).trim())</span>
+<span class="fc" id="L127">                        .idPerfilCreador(s.getPerfilCreador().getIdPerfil())</span>
+<span class="fc" id="L128">                        .notificacionesActivas(s.getNotificacionesActivas())</span>
+<span class="fc" id="L129">                        .fechaSeguimiento(s.getFechaSeguimiento())</span>
+<span class="fc" id="L130">                        .build())</span>
+<span class="fc" id="L131">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * @param idUsuarioSeguidor identificador del usuario
+     * @return los perfiles de creador que sigue, con su novedad más reciente
+     */
+    public List&lt;FollowedCreatorUpdateResponse&gt; listFollowedCreatorUpdates(Long idUsuarioSeguidor) {
+<span class="fc" id="L141">        List&lt;Follower&gt; seguidos = seguidorRepository.findByUsuarioSeguidorIdUsuario(idUsuarioSeguidor);</span>
+<span class="fc" id="L142">        return seguidos.stream()</span>
+<span class="fc" id="L143">                .map(s -&gt; {</span>
+<span class="fc" id="L144">                    CreatorProfile p = s.getPerfilCreador();</span>
+<span class="fc" id="L145">                    String nombre = (p.getUsuario().getNombres() + &quot; &quot; + p.getUsuario().getApellidos()).trim();</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">                    String handle = &quot;@&quot; + (p.getUsuario().getNombres() != null ? p.getUsuario().getNombres().toLowerCase().replace(&quot; &quot;, &quot;&quot;) : &quot;creador&quot;);</span>
+<span class="fc" id="L147">                    return FollowedCreatorUpdateResponse.builder()</span>
+<span class="fc" id="L148">                            .idPerfil(p.getIdPerfil())</span>
+<span class="fc" id="L149">                            .idUsuario(p.getUsuario().getIdUsuario())</span>
+<span class="fc" id="L150">                            .nombreCreador(nombre)</span>
+<span class="fc" id="L151">                            .handle(handle)</span>
+<span class="fc" id="L152">                            .urlFotoPerfil(p.getUsuario().getUrlFotoPerfil())</span>
+<span class="fc" id="L153">                            .tituloProfesional(p.getTituloProfesional())</span>
+<span class="fc" id="L154">                            .resumenNovedad(&quot;Actividad reciente en su catálogo y publicaciones&quot;)</span>
+<span class="fc" id="L155">                            .tipoNovedad(&quot;GENERAL&quot;)</span>
+<span class="fc" id="L156">                            .fechaNovedad(s.getFechaSeguimiento())</span>
+<span class="fc" id="L157">                            .build();</span>
+                })
+<span class="fc" id="L159">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional
+    /**
+     * Actualiza la portada y/o el título profesional del perfil de creador de un usuario.
+     *
+     * @param idUsuario identificador del usuario dueño del perfil de creador
+     * @param urlPortada nueva URL de portada; {@code null} no la modifica
+     * @param tituloProfesional nuevo título profesional; {@code null} no lo modifica
+     * @return {@code true} si se actualizó
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene perfil de creador
+     */
+    public boolean updateCoverAndTitle(Long idUsuario, String urlPortada, String tituloProfesional) {
+<span class="fc" id="L174">        CreatorProfile perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)</span>
+<span class="fc" id="L175">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;No tienes un perfil de creador asociado.&quot;));</span>
+
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        if (urlPortada != null) {</span>
+<span class="fc" id="L178">            perfil.setUrlPortada(urlPortada);</span>
+        }
+<span class="fc bfc" id="L180" title="All 2 branches covered.">        if (tituloProfesional != null) {</span>
+<span class="fc" id="L181">            perfil.setTituloProfesional(tituloProfesional);</span>
+        }
+<span class="fc" id="L183">        perfilCreadorRepository.save(perfil);</span>
+<span class="fc" id="L184">        return true;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>QuotaExceededException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.exception</a> &gt; <span class="el_source">QuotaExceededException.java</span></div><h1>QuotaExceededException.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.exception;
+
+/**
+ * Componente de Excepciones: Error personalizado de negocio.
+ * 
+ * Propósito: Notificar que un usuario ha superado un limite o cuota operativa permitida en el sistema (ej. cuota de IA).
+ * 
+ * Flujo interno: Lanzada por la capa de negocio y atrapada por el manejador global para traducirse a un HTTP 429 Too Many Requests o 402 Payment Required.
+ */
+public class QuotaExceededException extends RuntimeException {
+
+    private final long retryAfterSegundos;
+
+    /**
+     * Crea la excepción con el mensaje de la cuota excedida y el tiempo de espera sugerido.
+     *
+     * @param mensaje descripción de la cuota operativa superada
+     * @param retryAfterSegundos segundos que el cliente debe esperar antes de reintentar
+     */
+    public QuotaExceededException(String mensaje, long retryAfterSegundos) {
+<span class="fc" id="L21">        super(mensaje);</span>
+<span class="fc" id="L22">        this.retryAfterSegundos = retryAfterSegundos;</span>
+<span class="fc" id="L23">    }</span>
+
+    /**
+     * @return segundos que el cliente debe esperar antes de reintentar,
+     *         reflejados en la cabecera HTTP {@code Retry-After} de la respuesta
+     */
+    public long getRetryAfterSegundos() {
+<span class="fc" id="L30">        return retryAfterSegundos;</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CategoryServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.catalog.impl</a> &gt; <span class="el_source">CategoryServiceImpl.java</span></div><h1>CategoryServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.catalog.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.dto.request.catalog.UpdateCategoryRequest;
+import uteq.edu.ec.artisync.dto.request.catalog.CreateCategoryRequest;
+import uteq.edu.ec.artisync.dto.request.catalog.CreateSubcategoryRequest;
+import uteq.edu.ec.artisync.dto.response.catalog.CategoryResponse;
+import uteq.edu.ec.artisync.dto.response.catalog.SubcategoryResponse;
+import uteq.edu.ec.artisync.entity.catalog.Category;
+import uteq.edu.ec.artisync.entity.catalog.Subcategory;
+import uteq.edu.ec.artisync.entity.security.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.repository.catalog.CategoryRepository;
+import uteq.edu.ec.artisync.repository.catalog.OfferingSubcategoryRepository;
+import uteq.edu.ec.artisync.repository.catalog.SubcategoryRepository;
+import uteq.edu.ec.artisync.repository.security.UserRepository;
+import uteq.edu.ec.artisync.service.catalog.ICategoryService;
+import uteq.edu.ec.artisync.service.communication.NotificationService;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class CategoryServiceImpl implements ICategoryService {
+
+    private final CategoryRepository categoriaRepository;
+    private final SubcategoryRepository subcategoriaRepository;
+    private final OfferingSubcategoryRepository servicioSubcategoriaRepository;
+    private final UserRepository usuarioRepository;
+    private final NotificationService notificacionService;
+
+    /** @return las categorías activas y ya revisadas, para el catálogo público, ordenadas alfabéticamente */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;CategoryResponse&gt; listActiveCategories() {
+<span class="fc" id="L42">        return categoriaRepository.findByEstadoActivaTrueOrderByNombreCategoriaAsc()</span>
+<span class="fc" id="L43">                .stream()</span>
+<span class="fc" id="L44">                .map(this::mapToCategoryResponse)</span>
+<span class="fc" id="L45">                .collect(Collectors.toList());</span>
+    }
+
+    /** @return todas las categorías (incluidas inactivas y sin revisar), para administración */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;CategoryResponse&gt; listAllCategories() {
+<span class="fc" id="L52">        return categoriaRepository.findAllByOrderByNombreCategoriaAsc()</span>
+<span class="fc" id="L53">                .stream()</span>
+<span class="fc" id="L54">                .map(this::mapToCategoryResponse)</span>
+<span class="fc" id="L55">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * @param idCategoria identificador de la categoría
+     * @return la categoría solicitada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public CategoryResponse getCategoryById(Long idCategoria) {
+<span class="fc" id="L66">        Category cat = categoriaRepository.findById(idCategoria)</span>
+<span class="pc" id="L67">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Category no encontrada con ID: &quot; + idCategoria));</span>
+<span class="nc" id="L68">        return mapToCategoryResponse(cat);</span>
+    }
+
+    /**
+     * Crea una categoría. Si {@code idUsuarioCreador} no es {@code null} (autoservicio de un
+     * creador), la categoría queda sin revisar; si es {@code null} (admin/moderador), queda ya revisada.
+     *
+     * @param idUsuarioCreador identificador del creador que la crea; {@code null} si la crea un admin/moderador
+     * @param peticion nombre y estado activo de la categoría
+     * @return la categoría creada
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una categoría con ese nombre
+     */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;CATEGORIA_CREAR&quot;, modulo = AuditModule.CATALOGO,
+            entidad = &quot;categorias&quot;, idEntidad = &quot;#resultado.idCategoria&quot;,
+            detalle = &quot;{nombreCategoria: #peticion.nombreCategoria}&quot;)
+    public CategoryResponse createCategory(Long idUsuarioCreador, CreateCategoryRequest peticion) {
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if (categoriaRepository.existsByNombreCategoriaIgnoreCase(peticion.getNombreCategoria())) {</span>
+<span class="fc" id="L87">            throw new BusinessRuleException(&quot;Ya existe una categoria con el nombre: &quot; + peticion.getNombreCategoria());</span>
+        }
+<span class="fc" id="L89">        Category cat = Category.builder()</span>
+<span class="fc" id="L90">                .nombreCategoria(peticion.getNombreCategoria().trim())</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">                .estadoActiva(peticion.getEstadoActiva() != null ? peticion.getEstadoActiva() : true)</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">                .creador(resolveCreator(idUsuarioCreador))</span>
+<span class="fc" id="L93">                .revisado(idUsuarioCreador == null)</span>
+<span class="fc" id="L94">                .build();</span>
+<span class="fc" id="L95">        cat = categoriaRepository.save(cat);</span>
+<span class="fc" id="L96">        return mapToCategoryResponse(cat);</span>
+    }
+
+    /**
+     * Actualiza el nombre y/o estado activo de una categoría; los campos {@code null} no se modifican.
+     *
+     * @param idCategoria identificador de la categoría
+     * @param peticion nuevo nombre y/o estado activo
+     * @return la categoría ya actualizada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe otra categoría con el nuevo nombre
+     */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;CATEGORIA_ACTUALIZAR&quot;, modulo = AuditModule.CATALOGO,
+            entidad = &quot;categorias&quot;, idEntidad = &quot;#idCategoria&quot;,
+            detalle = &quot;{nombreCategoria: #peticion.nombreCategoria, estadoActiva: #peticion.estadoActiva}&quot;)
+    public CategoryResponse updateCategory(Long idCategoria, UpdateCategoryRequest peticion) {
+<span class="fc" id="L114">        Category cat = categoriaRepository.findById(idCategoria)</span>
+<span class="fc" id="L115">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Category no encontrada con ID: &quot; + idCategoria));</span>
+
+<span class="pc bpc" id="L117" title="2 of 4 branches missed.">        if (peticion.getNombreCategoria() != null &amp;&amp; !peticion.getNombreCategoria().isBlank()) {</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">            if (!cat.getNombreCategoria().equalsIgnoreCase(peticion.getNombreCategoria()) &amp;&amp;</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">                    categoriaRepository.existsByNombreCategoriaIgnoreCase(peticion.getNombreCategoria())) {</span>
+<span class="fc" id="L120">                throw new BusinessRuleException(&quot;Ya existe una categoria con el nombre: &quot; + peticion.getNombreCategoria());</span>
+            }
+<span class="fc" id="L122">            cat.setNombreCategoria(peticion.getNombreCategoria().trim());</span>
+        }
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">        if (peticion.getEstadoActiva() != null) {</span>
+<span class="nc" id="L125">            cat.setEstadoActiva(peticion.getEstadoActiva());</span>
+        }
+<span class="fc" id="L127">        cat = categoriaRepository.save(cat);</span>
+<span class="fc" id="L128">        return mapToCategoryResponse(cat);</span>
+    }
+
+    /**
+     * Elimina una categoría, siempre que ninguna de sus subcategorías tenga
+     * servicios publicados. Si la categoría la creó un creador, notifica el motivo.
+     *
+     * @param idCategoria identificador de la categoría a eliminar
+     * @param motivo justificación de la eliminación; obligatorio si la categoría la creó un creador
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si alguna de sus subcategorías tiene
+     *         servicios publicados, o si la creó un creador y no se indica motivo
+     */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;CATEGORIA_ELIMINAR&quot;, modulo = AuditModule.CATALOGO,
+            entidad = &quot;categorias&quot;, idEntidad = &quot;#idCategoria&quot;, detalle = &quot;{motivo: #motivo}&quot;)
+    public void deleteCategory(Long idCategoria, String motivo) {
+<span class="fc" id="L146">        Category cat = categoriaRepository.findById(idCategoria)</span>
+<span class="fc" id="L147">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Category no encontrada con ID: &quot; + idCategoria));</span>
+        // subcategorias.id_categoria cascada al borrar la categoria, pero
+        // servicios.id_subcategoria NO cascada desde subcategorias: si alguna
+        // subcategoria de esta categoria tiene servicios, el DELETE fallaria
+        // a mitad de camino con una DataIntegrityViolationException cruda.
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        if (servicioSubcategoriaRepository.existsBySubcategoriaCategoriaIdCategoria(idCategoria)) {</span>
+<span class="fc" id="L153">            throw new BusinessRuleException(</span>
+                    &quot;No se puede eliminar la categoria: tiene servicios publicados en alguna de sus subcategorias.&quot;);
+        }
+<span class="pc bpc" id="L156" title="1 of 6 branches missed.">        if (cat.getCreador() != null &amp;&amp; (motivo == null || motivo.isBlank())) {</span>
+<span class="fc" id="L157">            throw new BusinessRuleException(&quot;Debes indicar un motivo para eliminar una categoria creada por un creador&quot;);</span>
+        }
+<span class="fc" id="L159">        categoriaRepository.deleteById(idCategoria);</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">        if (cat.getCreador() != null) {</span>
+<span class="fc" id="L161">            notificacionService.notify(cat.getCreador(), &quot;CATEGORIA_ELIMINADA&quot;,</span>
+<span class="fc" id="L162">                    &quot;Tu categoria '&quot; + cat.getNombreCategoria() + &quot;' fue eliminada por un moderador. Motivo: &quot; + motivo);</span>
+        }
+<span class="fc" id="L164">    }</span>
+
+    /**
+     * @param idCategoria identificador de la categoría
+     * @return las subcategorías de esa categoría, ordenadas alfabéticamente
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;SubcategoryResponse&gt; listSubcategoriesByCategory(Long idCategoria) {
+<span class="fc bfc" id="L174" title="All 2 branches covered.">        if (!categoriaRepository.existsById(idCategoria)) {</span>
+<span class="fc" id="L175">            throw new ResourceNotFoundException(&quot;Category no encontrada con ID: &quot; + idCategoria);</span>
+        }
+<span class="fc" id="L177">        return subcategoriaRepository.findByCategoriaIdCategoriaOrderByNombreSubcategoriaAsc(idCategoria)</span>
+<span class="fc" id="L178">                .stream()</span>
+<span class="fc" id="L179">                .map(this::mapToSubcategoryResponse)</span>
+<span class="fc" id="L180">                .collect(Collectors.toList());</span>
+    }
+
+    /** @return todas las subcategorías del catálogo, ordenadas alfabéticamente */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;SubcategoryResponse&gt; listAllSubcategories() {
+<span class="fc" id="L187">        return subcategoriaRepository.findAllByOrderByNombreSubcategoriaAsc()</span>
+<span class="fc" id="L188">                .stream()</span>
+<span class="fc" id="L189">                .map(this::mapToSubcategoryResponse)</span>
+<span class="fc" id="L190">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Crea una subcategoría bajo una categoría existente. Si {@code idUsuarioCreador} no es
+     * {@code null} (autoservicio de un creador), queda sin revisar; si es {@code null} (admin/moderador),
+     * queda ya revisada.
+     *
+     * @param idUsuarioCreador identificador del creador que la crea; {@code null} si la crea un admin/moderador
+     * @param peticion categoría a la que pertenece y nombre de la subcategoría
+     * @return la subcategoría creada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe esa subcategoría en esa categoría
+     */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;SUBCATEGORIA_CREAR&quot;, modulo = AuditModule.CATALOGO,
+            entidad = &quot;subcategorias&quot;, idEntidad = &quot;#resultado.idSubcategoria&quot;,
+            detalle = &quot;{idCategoria: #peticion.idCategoria, nombreSubcategoria: #peticion.nombreSubcategoria}&quot;)
+    public SubcategoryResponse createSubcategory(Long idUsuarioCreador, CreateSubcategoryRequest peticion) {
+<span class="fc" id="L210">        Category cat = categoriaRepository.findById(peticion.getIdCategoria())</span>
+<span class="fc" id="L211">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Category no encontrada con ID: &quot; + peticion.getIdCategoria()));</span>
+
+<span class="fc bfc" id="L213" title="All 2 branches covered.">        if (subcategoriaRepository.existsByCategoriaIdCategoriaAndNombreSubcategoriaIgnoreCase(</span>
+<span class="fc" id="L214">                cat.getIdCategoria(), peticion.getNombreSubcategoria())) {</span>
+<span class="fc" id="L215">            throw new BusinessRuleException(&quot;Ya existe la subcategoria &quot; + peticion.getNombreSubcategoria() + &quot; en esta categoria&quot;);</span>
+        }
+
+<span class="fc" id="L218">        Subcategory sub = Subcategory.builder()</span>
+<span class="fc" id="L219">                .categoria(cat)</span>
+<span class="fc" id="L220">                .nombreSubcategoria(peticion.getNombreSubcategoria().trim())</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">                .creador(resolveCreator(idUsuarioCreador))</span>
+<span class="fc" id="L222">                .revisado(idUsuarioCreador == null)</span>
+<span class="fc" id="L223">                .build();</span>
+<span class="fc" id="L224">        sub = subcategoriaRepository.save(sub);</span>
+<span class="fc" id="L225">        return mapToSubcategoryResponse(sub);</span>
+    }
+
+    /**
+     * Elimina una subcategoría, siempre que no tenga servicios publicados. Si
+     * la creó un creador, notifica el motivo.
+     *
+     * @param idSubcategoria identificador de la subcategoría a eliminar
+     * @param motivo justificación de la eliminación; obligatorio si la subcategoría la creó un creador
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la subcategoría no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si tiene servicios publicados,
+     *         o si la creó un creador y no se indica motivo
+     */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;SUBCATEGORIA_ELIMINAR&quot;, modulo = AuditModule.CATALOGO,
+            entidad = &quot;subcategorias&quot;, idEntidad = &quot;#idSubcategoria&quot;, detalle = &quot;{motivo: #motivo}&quot;)
+    public void deleteSubcategory(Long idSubcategoria, String motivo) {
+<span class="fc" id="L243">        Subcategory sub = subcategoriaRepository.findById(idSubcategoria)</span>
+<span class="fc" id="L244">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Subcategory no encontrada con ID: &quot; + idSubcategoria));</span>
+<span class="fc bfc" id="L245" title="All 2 branches covered.">        if (servicioSubcategoriaRepository.existsBySubcategoriaIdSubcategoria(idSubcategoria)) {</span>
+<span class="fc" id="L246">            throw new BusinessRuleException(</span>
+                    &quot;No se puede eliminar la subcategoria: tiene servicios publicados.&quot;);
+        }
+<span class="pc bpc" id="L249" title="1 of 6 branches missed.">        if (sub.getCreador() != null &amp;&amp; (motivo == null || motivo.isBlank())) {</span>
+<span class="fc" id="L250">            throw new BusinessRuleException(&quot;Debes indicar un motivo para eliminar una subcategoria creada por un creador&quot;);</span>
+        }
+<span class="fc" id="L252">        subcategoriaRepository.deleteById(idSubcategoria);</span>
+<span class="fc bfc" id="L253" title="All 2 branches covered.">        if (sub.getCreador() != null) {</span>
+<span class="fc" id="L254">            notificacionService.notify(sub.getCreador(), &quot;SUBCATEGORIA_ELIMINADA&quot;,</span>
+<span class="fc" id="L255">                    &quot;Tu subcategoria '&quot; + sub.getNombreSubcategoria() + &quot;' fue eliminada por un moderador. Motivo: &quot; + motivo);</span>
+        }
+<span class="fc" id="L257">    }</span>
+
+    /** @return las categorías creadas por creadores aún sin revisar, más recientes primero */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;CategoryResponse&gt; listCategoriesPendingReview() {
+<span class="fc" id="L263">        return categoriaRepository.findByRevisadoFalseOrderByActualizadoEnDesc()</span>
+<span class="fc" id="L264">                .stream()</span>
+<span class="fc" id="L265">                .map(this::mapToCategoryResponse)</span>
+<span class="fc" id="L266">                .collect(Collectors.toList());</span>
+    }
+
+    /** @return las subcategorías creadas por creadores aún sin revisar, más recientes primero */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;SubcategoryResponse&gt; listSubcategoriesPendingReview() {
+<span class="nc" id="L273">        return subcategoriaRepository.findByRevisadoFalseOrderByActualizadoEnDesc()</span>
+<span class="nc" id="L274">                .stream()</span>
+<span class="nc" id="L275">                .map(this::mapToSubcategoryResponse)</span>
+<span class="nc" id="L276">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Marca una categoría creada por un creador como ya revisada por un moderador.
+     *
+     * @param idCategoria identificador de la categoría
+     * @return la categoría ya marcada como revisada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
+     */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;CATEGORIA_REVISAR&quot;, modulo = AuditModule.CATALOGO,
+            entidad = &quot;categorias&quot;, idEntidad = &quot;#idCategoria&quot;)
+    public CategoryResponse markCategoryReviewed(Long idCategoria) {
+<span class="fc" id="L291">        Category cat = categoriaRepository.findById(idCategoria)</span>
+<span class="pc" id="L292">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Category no encontrada con ID: &quot; + idCategoria));</span>
+<span class="fc" id="L293">        cat.setRevisado(true);</span>
+<span class="fc" id="L294">        cat = categoriaRepository.save(cat);</span>
+<span class="fc" id="L295">        return mapToCategoryResponse(cat);</span>
+    }
+
+    /**
+     * Marca una subcategoría creada por un creador como ya revisada por un moderador.
+     *
+     * @param idSubcategoria identificador de la subcategoría
+     * @return la subcategoría ya marcada como revisada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la subcategoría no existe
+     */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;SUBCATEGORIA_REVISAR&quot;, modulo = AuditModule.CATALOGO,
+            entidad = &quot;subcategorias&quot;, idEntidad = &quot;#idSubcategoria&quot;)
+    public SubcategoryResponse markSubcategoryReviewed(Long idSubcategoria) {
+<span class="nc" id="L310">        Subcategory sub = subcategoriaRepository.findById(idSubcategoria)</span>
+<span class="nc" id="L311">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Subcategory no encontrada con ID: &quot; + idSubcategoria));</span>
+<span class="nc" id="L312">        sub.setRevisado(true);</span>
+<span class="nc" id="L313">        sub = subcategoriaRepository.save(sub);</span>
+<span class="nc" id="L314">        return mapToSubcategoryResponse(sub);</span>
+    }
+
+    private User resolveCreator(Long idUsuarioCreador) {
+<span class="fc bfc" id="L318" title="All 2 branches covered.">        if (idUsuarioCreador == null) {</span>
+<span class="fc" id="L319">            return null;</span>
+        }
+<span class="fc" id="L321">        return usuarioRepository.findById(idUsuarioCreador)</span>
+<span class="pc" id="L322">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User no encontrado con ID: &quot; + idUsuarioCreador));</span>
+    }
+
+    private CategoryResponse mapToCategoryResponse(Category cat) {
+<span class="fc" id="L326">        return CategoryResponse.builder()</span>
+<span class="fc" id="L327">                .idCategoria(cat.getIdCategoria())</span>
+<span class="fc" id="L328">                .nombreCategoria(cat.getNombreCategoria())</span>
+<span class="fc" id="L329">                .estadoActiva(cat.getEstadoActiva())</span>
+<span class="fc bfc" id="L330" title="All 2 branches covered.">                .idUsuarioCreador(cat.getCreador() != null ? cat.getCreador().getIdUsuario() : null)</span>
+<span class="fc bfc" id="L331" title="All 2 branches covered.">                .nombreCreador(cat.getCreador() != null ? cat.getCreador().getNombres() + &quot; &quot; + cat.getCreador().getApellidos() : null)</span>
+<span class="fc" id="L332">                .revisado(cat.getRevisado())</span>
+<span class="fc" id="L333">                .actualizadoEn(cat.getActualizadoEn())</span>
+<span class="fc" id="L334">                .build();</span>
+    }
+
+    private SubcategoryResponse mapToSubcategoryResponse(Subcategory sub) {
+<span class="fc" id="L338">        return SubcategoryResponse.builder()</span>
+<span class="fc" id="L339">                .idSubcategoria(sub.getIdSubcategoria())</span>
+<span class="fc" id="L340">                .idCategoria(sub.getCategoria().getIdCategoria())</span>
+<span class="fc" id="L341">                .nombreCategoria(sub.getCategoria().getNombreCategoria())</span>
+<span class="fc" id="L342">                .nombreSubcategoria(sub.getNombreSubcategoria())</span>
+<span class="fc bfc" id="L343" title="All 2 branches covered.">                .idUsuarioCreador(sub.getCreador() != null ? sub.getCreador().getIdUsuario() : null)</span>
+<span class="fc bfc" id="L344" title="All 2 branches covered.">                .nombreCreador(sub.getCreador() != null ? sub.getCreador().getNombres() + &quot; &quot; + sub.getCreador().getApellidos() : null)</span>
+<span class="fc" id="L345">                .revisado(sub.getRevisado())</span>
+<span class="fc" id="L346">                .actualizadoEn(sub.getActualizadoEn())</span>
+<span class="fc" id="L347">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

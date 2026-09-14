@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContractReportController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.legal</a> &gt; <span class="el_source">ContractReportController.java</span></div><h1>ContractReportController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.legal;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.request.legal.ContractReportFilter;
+import uteq.edu.ec.artisync.dto.response.legal.ContractReportRow;
+import uteq.edu.ec.artisync.service.legal.IContractReportService;
+import uteq.edu.ec.artisync.service.shared.report.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.report.ReportFormat;
+import uteq.edu.ec.artisync.util.PagedResponse;
+import uteq.edu.ec.artisync.util.DocumentResponse;
+
+/**
+ * Reporte de contratos formalizados. Cierra el permiso huérfano
+ * REPORTE_CONTRATO_EXPORTAR (V19__permisos_reportes.sql): sembrado junto con
+ * el motor de reportes pero sin controlador hasta ahora.
+ *
+ * La vista usa TRANSACCION_VER (no CONTRATO_VER) porque CONTRATO_VER también
+ * lo tienen CLIENTE y CREADOR sobre sus propios contratos — este endpoint es
+ * un listado administrativo transversal, no la ficha de un contrato propio.
+ */
+@Tag(name = &quot;Reportes — Contratos&quot;, description = &quot;Reporte de contratos formalizados: servicio, partes, precio y estado de firma&quot;)
+@RestController
+@RequestMapping(&quot;/api/v1/admin/reportes/contratos&quot;)
+@RequiredArgsConstructor
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+public class ContractReportController {
+
+    private final IContractReportService reporteContratoServicio;
+
+    /**
+     * Lista de forma paginada los contratos formalizados, con filtros opcionales.
+     *
+     * @param filtro criterios opcionales para filtrar el reporte
+     * @param page número de página solicitada (base 0)
+     * @param size tamaño de la página
+     * @return página con las filas del reporte de contratos
+     */
+    @Operation(summary = &quot;Listado paginado y filtrado de contratos formalizados&quot;)
+    @GetMapping
+    @PreAuthorize(&quot;hasAuthority('TRANSACCION_VER') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;PagedResponse&lt;ContractReportRow&gt;&gt; list(
+            ContractReportFilter filtro,
+            @RequestParam(defaultValue = &quot;0&quot;) int page,
+            @RequestParam(defaultValue = &quot;20&quot;) int size) {
+<span class="fc" id="L52">        return ResponseEntity.ok(reporteContratoServicio.list(filtro, page, size));</span>
+    }
+
+    /**
+     * Exporta el reporte de contratos formalizados en el formato solicitado, con soporte de paginación/división en partes.
+     *
+     * @param filtro criterios opcionales para filtrar el reporte
+     * @param formato formato del documento a generar (CSV, XLSX o PDF)
+     * @param page número de página / parte solicitada (base 0, opcional)
+     * @param size tamaño del lote / página (opcional)
+     * @param authentication autenticación del usuario que solicita la exportación
+     * @return el documento generado con el reporte de contratos
+     */
+    @Operation(summary = &quot;Exportar el reporte de contratos en CSV, XLSX o PDF con soporte de paginación / división por partes&quot;)
+    @GetMapping(&quot;/exportar&quot;)
+    @PreAuthorize(&quot;hasAuthority('REPORTE_CONTRATO_EXPORTAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;byte[]&gt; export(
+            ContractReportFilter filtro,
+            @RequestParam ReportFormat formato,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            Authentication authentication) {
+<span class="pc bpc" id="L74" title="1 of 4 branches missed.">        GeneratedDocument documento = (page != null || size != null)</span>
+<span class="fc" id="L75">                ? reporteContratoServicio.export(filtro, formato, page, size, authentication.getName())</span>
+<span class="fc" id="L76">                : reporteContratoServicio.export(filtro, formato, authentication.getName());</span>
+<span class="fc" id="L77">        return DocumentResponse.de(documento);</span>
+    }
+
+    /**
+     * Sobrecarga de conveniencia para export el reporte de contratos sin paginación (documento completo).
+     *
+     * @param filtro criterios opcionales para filtrar el reporte
+     * @param formato formato del documento a generar (CSV, XLSX o PDF)
+     * @param authentication autenticación del usuario actual
+     * @return el documento generado con la totalidad de los contratos que cumplen el filtro
+     */
+    @PreAuthorize(&quot;hasAuthority('REPORTE_CONTRATO_EXPORTAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;byte[]&gt; export(
+            ContractReportFilter filtro,
+            ReportFormat formato,
+            Authentication authentication) {
+<span class="fc" id="L93">        return export(filtro, formato, null, null, authentication);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

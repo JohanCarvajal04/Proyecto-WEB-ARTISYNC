@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AsyncBackupJobService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.scheduler</a> &gt; <span class="el_source">AsyncBackupJobService.java</span></div><h1>AsyncBackupJobService.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.scheduler;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Component;
+import uteq.edu.ec.artisync.entity.backup.BackupStatus;
+import uteq.edu.ec.artisync.entity.backup.Backup;
+import uteq.edu.ec.artisync.entity.backup.BackupType;
+import uteq.edu.ec.artisync.repository.backup.BackupRepository;
+import uteq.edu.ec.artisync.service.backup.impl.IncrementalBackupExporter;
+import uteq.edu.ec.artisync.service.backup.impl.PgDumpExecutor;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+
+/**
+ * Trabajo @Async real de un respaldo (FULL vía PgDumpExecutor, INCREMENTAL
+ * vía IncrementalBackupExporter). Bean separado de
+ * BackupExecutorService a propósito: @Async no aplica en auto-invocación
+ * (this.metodo()), así que el método anotado debe vivir en un bean distinto
+ * del que lo invoca — mismo motivo por el que RaffleScheduler delega en
+ * RaffleExecutorService en vez de hacerlo todo en una clase.
+ *
+ * Sin @Transactional de clase/método a propósito: envolver todo el
+ * pg_dump/COPY (que puede tardar minutos) en una única transacción Spring
+ * dejaría una conexión del pool ociosa todo ese tiempo. El save() final hace
+ * su propio commit implícito.
+ */
+<span class="fc" id="L32">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class AsyncBackupJobService {
+
+    private final BackupRepository respaldoRepository;
+    private final PgDumpExecutor pgDumpEjecutor;
+    private final IncrementalBackupExporter incrementalExportador;
+
+    /**
+     * Ejecuta en un hilo del pool {@code backupTaskExecutor} el volcado real
+     * (FULL vía {@code PgDumpExecutor}, INCREMENTAL vía {@code IncrementalBackupExporter})
+     * y actualiza el registro con el resultado (archivo generado, tamaño, duración,
+     * o mensaje de error si falla).
+     *
+     * @param idRespaldo identificador del respaldo a execute; si no existe,
+     *                    se registra un error y no se hace nada más
+     */
+    @Async(&quot;backupTaskExecutor&quot;)
+    public void execute(Long idRespaldo) {
+<span class="fc" id="L52">        Backup respaldo = respaldoRepository.findById(idRespaldo).orElse(null);</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (respaldo == null) {</span>
+<span class="fc" id="L54">            log.error(&quot;[AsyncBackupJobService] Backup {} no encontrado para ejecución async&quot;, idRespaldo);</span>
+<span class="fc" id="L55">            return;</span>
+        }
+
+<span class="fc" id="L58">        long inicioNanos = System.nanoTime();</span>
+        try {
+<span class="fc bfc" id="L60" title="All 2 branches covered.">            Path archivo = respaldo.getTipoRespaldo() == BackupType.FULL</span>
+<span class="fc" id="L61">                    ? pgDumpEjecutor.execute(respaldo)</span>
+<span class="fc" id="L62">                    : incrementalExportador.execute(respaldo);</span>
+
+<span class="fc" id="L64">            respaldo.setEstadoRespaldo(BackupStatus.COMPLETADO);</span>
+<span class="fc" id="L65">            respaldo.setNombreArchivo(archivo.getFileName().toString());</span>
+<span class="fc" id="L66">            respaldo.setRutaArchivo(archivo.toString());</span>
+<span class="fc" id="L67">            respaldo.setTamanoBytes(Files.size(archivo));</span>
+<span class="fc" id="L68">        } catch (Exception e) {</span>
+<span class="fc" id="L69">            log.error(&quot;[AsyncBackupJobService] Falló el respaldo {}: {}&quot;, idRespaldo, e.getMessage(), e);</span>
+<span class="fc" id="L70">            respaldo.setEstadoRespaldo(BackupStatus.FALLIDO);</span>
+<span class="fc" id="L71">            respaldo.setMensajeError(truncate(e.getMessage(), 500));</span>
+        } finally {
+<span class="fc" id="L73">            respaldo.setFechaFin(LocalDateTime.now());</span>
+<span class="fc" id="L74">            respaldo.setDuracionMs((int) ((System.nanoTime() - inicioNanos) / 1_000_000));</span>
+<span class="fc" id="L75">            respaldoRepository.save(respaldo);</span>
+        }
+<span class="fc" id="L77">    }</span>
+
+    private String truncate(String mensaje, int maximo) {
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">        if (mensaje == null) {</span>
+<span class="nc" id="L81">            return &quot;Error desconocido&quot;;</span>
+        }
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">        return mensaje.length() &gt; maximo ? mensaje.substring(0, maximo) : mensaje;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

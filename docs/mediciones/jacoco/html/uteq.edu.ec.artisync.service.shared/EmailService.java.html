@@ -14,7 +14,7 @@ import org.thymeleaf.context.Context;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Componente de Servicio Transversal para notificaciones por correo electronico.
+ * Componente de Offering Transversal para notificaciones por correo electronico.
  * 
  * Propósito: Proveer una abstracción asíncrona para la composicion y envio de correos 
  * transaccionales utilizando JavaMailSender y plantillas HTML de Thymeleaf.
@@ -37,29 +37,39 @@ public class EmailService {
     @Value(&quot;${app.frontend.url}&quot;)
     private String frontendUrl;
 
+    /**
+     * Compone y envía de forma asíncrona el correo de recuperación de contraseña,
+     * renderizando la plantilla Thymeleaf {@code email/recuperacion} con el enlace de
+     * restablecimiento embebido. Los errores de envío solo se registran en el log —
+     * nunca se propagan, para no exponer al llamante detalles de la infraestructura SMTP.
+     *
+     * @param destinatario correo del usuario que recibirá el enlace de recuperación
+     * @param nombres nombres del usuario, usados para personalizar la plantilla
+     * @param tokenPlano token de recuperación en texto plano, incluido en el enlace del correo
+     */
     @Async
-    public void enviarCorreoRecuperacion(String destinatario, String nombres, String tokenPlano) {
+    public void sendRecoveryEmail(String destinatario, String nombres, String tokenPlano) {
         try {
-<span class="nc" id="L43">            MimeMessage mensaje = mailSender.createMimeMessage();</span>
-<span class="nc" id="L44">            MimeMessageHelper helper = new MimeMessageHelper(mensaje, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());</span>
+<span class="nc" id="L53">            MimeMessage mensaje = mailSender.createMimeMessage();</span>
+<span class="nc" id="L54">            MimeMessageHelper helper = new MimeMessageHelper(mensaje, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());</span>
 
-<span class="nc" id="L46">            Context contexto = new Context();</span>
-<span class="nc" id="L47">            contexto.setVariable(&quot;nombres&quot;, nombres);</span>
-<span class="nc" id="L48">            contexto.setVariable(&quot;enlaceRecuperacion&quot;, frontendUrl + &quot;/auth/reset-password?token=&quot; + tokenPlano);</span>
+<span class="nc" id="L56">            Context contexto = new Context();</span>
+<span class="nc" id="L57">            contexto.setVariable(&quot;nombres&quot;, nombres);</span>
+<span class="nc" id="L58">            contexto.setVariable(&quot;enlaceRecuperacion&quot;, frontendUrl + &quot;/auth/reset-password?token=&quot; + tokenPlano);</span>
 
-<span class="nc" id="L50">            String contenidoHtml = templateEngine.process(&quot;email/recuperacion&quot;, contexto);</span>
+<span class="nc" id="L60">            String contenidoHtml = templateEngine.process(&quot;email/recuperacion&quot;, contexto);</span>
 
-<span class="nc" id="L52">            helper.setFrom(remitente, &quot;Artisync Soporte&quot;);</span>
-<span class="nc" id="L53">            helper.setTo(destinatario);</span>
-<span class="nc" id="L54">            helper.setSubject(&quot;🔒 Restablece tu contraseña en Artisync&quot;);</span>
-<span class="nc" id="L55">            helper.setText(contenidoHtml, true);</span>
+<span class="nc" id="L62">            helper.setFrom(remitente, &quot;Artisync Soporte&quot;);</span>
+<span class="nc" id="L63">            helper.setTo(destinatario);</span>
+<span class="nc" id="L64">            helper.setSubject(&quot;🔒 Restablece tu contraseña en Artisync&quot;);</span>
+<span class="nc" id="L65">            helper.setText(contenidoHtml, true);</span>
 
-<span class="nc" id="L57">            mailSender.send(mensaje);</span>
-<span class="nc" id="L58">            log.info(&quot;Correo de recuperación enviado exitosamente a: {}&quot;, destinatario);</span>
+<span class="nc" id="L67">            mailSender.send(mensaje);</span>
+<span class="nc" id="L68">            log.info(&quot;Correo de recuperación enviado exitosamente a: {}&quot;, destinatario);</span>
 
-<span class="nc" id="L60">        } catch (Exception e) {</span>
-<span class="nc" id="L61">            log.error(&quot;Error al enviar el correo de recuperación a {}: {}&quot;, destinatario, e.getMessage());</span>
-<span class="nc" id="L62">        }</span>
-<span class="nc" id="L63">    }</span>
+<span class="nc" id="L70">        } catch (Exception e) {</span>
+<span class="nc" id="L71">            log.error(&quot;Error al enviar el correo de recuperación a {}: {}&quot;, destinatario, e.getMessage());</span>
+<span class="nc" id="L72">        }</span>
+<span class="nc" id="L73">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

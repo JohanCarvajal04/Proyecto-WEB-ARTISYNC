@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared</a> &gt; <span class="el_source">UserMapper.java</span></div><h1>UserMapper.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import uteq.edu.ec.artisync.dto.security.response.UserResponse;
+import uteq.edu.ec.artisync.entity.security.TwoFactorAuthentication;
+import uteq.edu.ec.artisync.entity.security.Permission;
+import uteq.edu.ec.artisync.entity.security.User;
+import uteq.edu.ec.artisync.entity.security.UserRole;
+import uteq.edu.ec.artisync.repository.security.TwoFactorAuthenticationRepository;
+import uteq.edu.ec.artisync.repository.security.UserRoleRepository;
+import uteq.edu.ec.artisync.service.shared.storage.ProfilePhotoUrl;
+
+import uteq.edu.ec.artisync.service.profile.IVerificationService;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Component
+@RequiredArgsConstructor
+public class UserMapper {
+
+    private final UserRoleRepository usuarioRolRepository;
+    private final TwoFactorAuthenticationRepository autenticacionDosFactoresRepository;
+    private final IVerificationService verificacionServicio;
+
+    /**
+     * Mapea un único {@link User} a su {@link UserResponse}, resolviendo sus roles,
+     * si tiene 2FA habilitado y si su identidad está verificada. Pensado para el
+     * mapeo de una sola fila (por ejemplo {@code getUserById}, o tras crear/editar
+     * un usuario): las consultas adicionales que dispara son aceptables aquí porque
+     * ocurren una sola vez, a diferencia de {@link #toUserResponseList(List)}.
+     *
+     * @param usuario entidad de usuario a mapear
+     * @return la representación de respuesta del usuario, con roles, permisos y estado de verificación
+     */
+    public UserResponse toUserResponse(User usuario) {
+<span class="fc" id="L41">        List&lt;UserRole&gt; usuarioRoles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario());</span>
+<span class="fc" id="L42">        boolean dosFactoresHabilitado = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L43">                .map(TwoFactorAuthentication::getEstaHabilitado)</span>
+<span class="fc" id="L44">                .map(Boolean.TRUE::equals)</span>
+<span class="fc" id="L45">                .orElse(false);</span>
+<span class="fc" id="L46">        boolean identidadVerificada = verificacionServicio.isIdentityVerified(usuario.getIdUsuario());</span>
+<span class="fc" id="L47">        return build(usuario, usuarioRoles, dosFactoresHabilitado, identidadVerificada);</span>
+    }
+
+    /**
+     * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §8) - mapea
+     * una PAGINA completa de usuarios con solo dos consultas adicionales
+     * (findByUsuarioIdUsuarioIn de roles y de 2FA), en vez de invocar
+     * toUserResponse() por cada fila -- eso disparaba dos consultas por
+     * usuario (N+1): con una pagina de 20 usuarios, ~40 consultas en vez de 2.
+     */
+    public List&lt;UserResponse&gt; toUserResponseList(List&lt;User&gt; usuarios) {
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        if (usuarios.isEmpty()) {</span>
+<span class="fc" id="L59">            return List.of();</span>
+        }
+
+<span class="fc" id="L62">        List&lt;Long&gt; idsUsuario = usuarios.stream().map(User::getIdUsuario).toList();</span>
+
+<span class="fc" id="L64">        Map&lt;Long, List&lt;UserRole&gt;&gt; rolesPorUsuario = usuarioRolRepository.findByUsuarioIdUsuarioIn(idsUsuario).stream()</span>
+<span class="fc" id="L65">                .collect(Collectors.groupingBy(ur -&gt; ur.getUsuario().getIdUsuario()));</span>
+
+<span class="fc" id="L67">        Set&lt;Long&gt; con2faHabilitado = autenticacionDosFactoresRepository.findByUsuarioIdUsuarioIn(idsUsuario).stream()</span>
+<span class="fc" id="L68">                .filter(df -&gt; Boolean.TRUE.equals(df.getEstaHabilitado()))</span>
+<span class="fc" id="L69">                .map(df -&gt; df.getUsuario().getIdUsuario())</span>
+<span class="fc" id="L70">                .collect(Collectors.toCollection(HashSet::new));</span>
+
+        // En un caso ideal deberiamos consultar todas las verificaciones de una en vez de N consultas,
+        // pero por ahora reutilizamos el servicio.
+<span class="fc" id="L74">        return usuarios.stream()</span>
+<span class="fc" id="L75">                .map(usuario -&gt; build(</span>
+                        usuario,
+<span class="fc" id="L77">                        rolesPorUsuario.getOrDefault(usuario.getIdUsuario(), List.of()),</span>
+<span class="fc" id="L78">                        con2faHabilitado.contains(usuario.getIdUsuario()),</span>
+<span class="fc" id="L79">                        verificacionServicio.isIdentityVerified(usuario.getIdUsuario())))</span>
+<span class="fc" id="L80">                .toList();</span>
+    }
+
+    private UserResponse build(User usuario, List&lt;UserRole&gt; usuarioRoles, boolean dosFactoresHabilitado, boolean identidadVerificada) {
+<span class="fc" id="L84">        List&lt;String&gt; roles = usuarioRoles.stream()</span>
+<span class="fc" id="L85">                .map(ur -&gt; ur.getRol().getNombreRol())</span>
+<span class="fc" id="L86">                .toList();</span>
+
+<span class="fc" id="L88">        List&lt;String&gt; permisos = usuarioRoles.stream()</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">                .filter(ur -&gt; ur.getRol().getPermisos() != null)</span>
+<span class="fc" id="L90">                .flatMap(ur -&gt; ur.getRol().getPermisos().stream())</span>
+<span class="fc" id="L91">                .map(Permission::getNombrePermiso)</span>
+<span class="fc" id="L92">                .distinct()</span>
+<span class="fc" id="L93">                .toList();</span>
+
+<span class="fc" id="L95">        return UserResponse.builder()</span>
+<span class="fc" id="L96">                .idUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L97">                .nombres(usuario.getNombres())</span>
+<span class="fc" id="L98">                .apellidos(usuario.getApellidos())</span>
+<span class="fc" id="L99">                .correo(usuario.getCorreo())</span>
+<span class="fc" id="L100">                .fechaNacimiento(usuario.getFechaNacimiento())</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">                .idPais(usuario.getPais() != null ? usuario.getPais().getIdPais() : null)</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">                .nombrePais(usuario.getPais() != null ? usuario.getPais().getNombrePais() : null)</span>
+<span class="fc" id="L103">                .fechaRegistro(usuario.getFechaRegistro())</span>
+<span class="fc" id="L104">                .estadoCuenta(usuario.getEstadoCuenta())</span>
+<span class="fc" id="L105">                .roles(roles)</span>
+<span class="fc" id="L106">                .permisos(permisos)</span>
+<span class="fc" id="L107">                .dosFactoresHabilitado(dosFactoresHabilitado)</span>
+<span class="fc" id="L108">                .urlFotoPerfil(ProfilePhotoUrl.build(usuario.getUrlFotoPerfil()))</span>
+<span class="fc" id="L109">                .identidadVerificada(identidadVerificada)</span>
+<span class="fc" id="L110">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

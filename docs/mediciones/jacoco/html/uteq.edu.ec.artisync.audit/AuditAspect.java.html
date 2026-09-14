@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuditAspect.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.audit</a> &gt; <span class="el_source">AuditAspect.java</span></div><h1>AuditAspect.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.audit;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.core.DefaultParameterNameDiscoverer;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.expression.EvaluationException;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.ParseException;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Component;
+import uteq.edu.ec.artisync.service.audit.IAuditService;
+import uteq.edu.ec.artisync.service.shared.AuthenticatedActor;
+import uteq.edu.ec.artisync.service.shared.RequestContext;
+
+import java.lang.reflect.Method;
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+/**
+ * Captura transversal de eventos de auditoría (REQ-NF-013). Anotar un método
+ * de servicio con {@link Auditable} basta para que aquí se registre actor,
+ * IP, resultado y detalle del cambio, sin ensuciar la lógica de negocio.
+ *
+ * El {@code @Order} es la pieza crítica de este aspecto: el interceptor de
+ * {@code @Transactional} de Spring corre con Ordered.LOWEST_PRECEDENCE, así que con
+ * HIGHEST_PRECEDENCE + 20 este aspecto queda MÁS EXTERNO. Cuando el método de
+ * negocio lanza, su transacción ya hizo rollback y se cerró ANTES de que este
+ * aspecto intente record el evento; el REQUIRES_NEW de
+ * AuditServiceImpl.record() abre entonces una transacción limpia. Si
+ * el aspecto estuviera por dentro de @Transactional, escribir en una
+ * transacción ya marcada rollback-only lanzaría UnexpectedRollbackException
+ * al confirmar la externa. No cambiar este @Order sin repetir el test de
+ * &quot;evento FALLIDO persiste tras rollback&quot; en AspectoAuditoriaTest.
+ */
+@Aspect
+@Component
+@RequiredArgsConstructor
+<span class="fc" id="L48">@Slf4j</span>
+@Order(Ordered.HIGHEST_PRECEDENCE + 20)
+public class AuditAspect {
+
+<span class="fc" id="L52">    private static final ExpressionParser PARSER = new SpelExpressionParser();</span>
+<span class="fc" id="L53">    private static final DefaultParameterNameDiscoverer DESCUBRIDOR_PARAMETROS = new DefaultParameterNameDiscoverer();</span>
+
+    private final IAuditService auditoriaServicio;
+
+    /**
+     * Envuelve la ejecución de cualquier método anotado con {@link Auditable}
+     * y registra un evento de auditoría con el resultado (éxito, denegado o
+     * fallido), sin alterar el valor devuelto ni la excepción lanzada por el
+     * método real. El registro ocurre siempre en el {@code finally}, incluso
+     * si el método lanza, y nunca puede tumbar la operación de negocio (un
+     * fallo al record solo se deja constando en el log como
+     * {@code AUDITORIA_PERDIDA}).
+     *
+     * @param pjp punto de unión del método interceptado
+     * @param auditable metadatos de la anotación (acción, módulo, expresiones SpEL)
+     * @return el mismo valor que devuelve el método interceptado
+     * @throws Throwable la misma excepción que lance el método interceptado, sin envolver
+     */
+    @Around(&quot;@annotation(auditable)&quot;)
+    public Object audit(ProceedingJoinPoint pjp, Auditable auditable) throws Throwable {
+<span class="fc" id="L73">        long inicioNanos = System.nanoTime();</span>
+
+        // Snapshot ANTES de proceder, mientras el hilo aún tiene el contexto
+        // HTTP y de seguridad del llamante original.
+<span class="fc" id="L77">        AuthenticatedActor.Actor actorSesion = AuthenticatedActor.actual();</span>
+<span class="fc" id="L78">        RequestContext.Data solicitud = RequestContext.current();</span>
+
+<span class="fc" id="L80">        Object resultado = null;</span>
+<span class="fc" id="L81">        Throwable error = null;</span>
+        // Inicializado a un valor conservador: javac no puede probar por
+        // análisis estático que este try/catch/finally SIEMPRE asigna
+        // resultadoEvento antes del finally (es una limitación conocida del
+        // compilador con este patrón), aunque en tiempo de ejecución los tres
+        // caminos (return, ambos catch) lo asignan siempre.
+<span class="fc" id="L87">        AuditResult resultadoEvento = AuditResult.FALLIDO;</span>
+
+        try {
+<span class="fc" id="L90">            resultado = pjp.proceed();</span>
+<span class="fc" id="L91">            resultadoEvento = AuditResult.EXITO;</span>
+<span class="fc" id="L92">            return resultado;</span>
+<span class="fc" id="L93">        } catch (AccessDeniedException e) {</span>
+<span class="fc" id="L94">            error = e;</span>
+<span class="fc" id="L95">            resultadoEvento = AuditResult.DENEGADO;</span>
+<span class="fc" id="L96">            throw e;</span>
+<span class="fc" id="L97">        } catch (Throwable t) {</span>
+<span class="fc" id="L98">            error = t;</span>
+<span class="fc" id="L99">            resultadoEvento = AuditResult.FALLIDO;</span>
+<span class="fc" id="L100">            throw t;</span>
+        } finally {
+            try {
+<span class="fc" id="L103">                recordEvent(pjp, auditable, actorSesion, solicitud, resultado, error, resultadoEvento, inicioNanos);</span>
+            } finally {
+                // Siempre se limpia, incluso si recordEvent explota: una fuga
+                // de este ThreadLocal contaminaría la siguiente petición atendida
+                // por el mismo hilo del pool de Tomcat.
+<span class="fc" id="L108">                AuditContext.clear();</span>
+            }
+        }
+    }
+
+    private void recordEvent(
+            ProceedingJoinPoint pjp, Auditable auditable,
+            AuthenticatedActor.Actor actorSesion, RequestContext.Data solicitud,
+            Object resultado, Throwable error, AuditResult resultadoEvento,
+            long inicioNanos) {
+        try {
+<span class="fc" id="L119">            StandardEvaluationContext contextoSpel = buildSpelContext(pjp, resultado, error);</span>
+
+<span class="fc" id="L121">            String correoActor = resolveActorEmail(auditable, actorSesion, contextoSpel);</span>
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">            Long idActor = actorSesion.correo().equals(correoActor) ? actorSesion.id() : null;</span>
+
+<span class="fc" id="L124">            Long idEntidad = evaluarLong(auditable.idEntidad(), contextoSpel);</span>
+<span class="fc" id="L125">            Map&lt;String, Object&gt; detalle = evaluarDetalle(auditable.detalle(), contextoSpel);</span>
+<span class="fc" id="L126">            Map&lt;String, Object&gt; detalleConAntes = mergeWithAuditContext(detalle);</span>
+
+<span class="fc bfc" id="L128" title="All 2 branches covered.">            String mensajeError = error != null</span>
+<span class="fc" id="L129">                    ? truncate(error.getClass().getSimpleName() + &quot;: &quot; + error.getMessage(), 480)</span>
+<span class="fc" id="L130">                    : null;</span>
+
+<span class="fc" id="L132">            int duracionMs = (int) ((System.nanoTime() - inicioNanos) / 1_000_000);</span>
+
+<span class="fc" id="L134">            AuditEventData datos = new AuditEventData(</span>
+<span class="fc" id="L135">                    LocalDateTime.now(),</span>
+                    idActor,
+                    correoActor,
+<span class="fc" id="L138">                    auditable.modulo(),</span>
+<span class="fc" id="L139">                    auditable.accion(),</span>
+                    resultadoEvento,
+<span class="fc" id="L141">                    blankToNull(auditable.entidad()),</span>
+                    idEntidad,
+<span class="fc" id="L143">                    AuditSanitizer.sanitize(detalleConAntes),</span>
+                    mensajeError,
+<span class="fc" id="L145">                    solicitud.direccionIp(),</span>
+<span class="fc" id="L146">                    truncate(solicitud.agenteUsuario(), 255),</span>
+<span class="fc" id="L147">                    solicitud.metodoHttp(),</span>
+<span class="fc" id="L148">                    truncate(solicitud.rutaSolicitud(), 255),</span>
+<span class="fc" id="L149">                    duracionMs</span>
+            );
+
+<span class="fc" id="L152">            auditoriaServicio.record(datos);</span>
+<span class="fc" id="L153">        } catch (Exception e) {</span>
+            // Auditar nunca puede tumbar la operación de negocio: el resultado o
+            // la excepción del método ya se resolvió por encima de este bloque.
+<span class="fc" id="L156">            log.error(&quot;AUDITORIA_PERDIDA accion={} metodo={} motivo={}&quot;,</span>
+<span class="fc" id="L157">                    auditable.accion(), pjp.getSignature().toShortString(), e.toString(), e);</span>
+<span class="fc" id="L158">        }</span>
+<span class="fc" id="L159">    }</span>
+
+    private StandardEvaluationContext buildSpelContext(ProceedingJoinPoint pjp, Object resultado, Throwable error) {
+<span class="fc" id="L162">        StandardEvaluationContext contexto = new StandardEvaluationContext();</span>
+
+<span class="fc" id="L164">        MethodSignature firma = (MethodSignature) pjp.getSignature();</span>
+<span class="fc" id="L165">        Method metodo = firma.getMethod();</span>
+<span class="fc" id="L166">        String[] nombresParametros = DESCUBRIDOR_PARAMETROS.getParameterNames(metodo);</span>
+<span class="fc" id="L167">        Object[] argumentos = pjp.getArgs();</span>
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">        if (nombresParametros != null) {</span>
+<span class="pc bpc" id="L169" title="1 of 4 branches missed.">            for (int i = 0; i &lt; nombresParametros.length &amp;&amp; i &lt; argumentos.length; i++) {</span>
+<span class="fc" id="L170">                contexto.setVariable(nombresParametros[i], argumentos[i]);</span>
+            }
+        }
+
+<span class="fc" id="L174">        contexto.setVariable(&quot;resultado&quot;, resultado);</span>
+<span class="fc" id="L175">        contexto.setVariable(&quot;error&quot;, error);</span>
+<span class="fc" id="L176">        return contexto;</span>
+    }
+
+    private String resolveActorEmail(Auditable auditable, AuthenticatedActor.Actor actorSesion, StandardEvaluationContext contextoSpel) {
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">        if (!auditable.correoActor().isBlank()) {</span>
+            try {
+<span class="nc" id="L182">                Object valor = PARSER.parseExpression(auditable.correoActor()).getValue(contextoSpel);</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">                if (valor != null) {</span>
+<span class="nc" id="L184">                    return String.valueOf(valor);</span>
+                }
+<span class="nc" id="L186">            } catch (ParseException | EvaluationException e) {</span>
+<span class="nc" id="L187">                log.warn(&quot;No se pudo evaluar correoActor '{}' de @Auditable en {}: {}&quot;,</span>
+<span class="nc" id="L188">                        auditable.correoActor(), auditable.accion(), e.getMessage());</span>
+<span class="nc" id="L189">            }</span>
+        }
+<span class="fc" id="L191">        return actorSesion.correo();</span>
+    }
+
+    private Long evaluarLong(String expresionSpel, StandardEvaluationContext contexto) {
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        if (expresionSpel.isBlank()) {</span>
+<span class="fc" id="L196">            return null;</span>
+        }
+        try {
+<span class="fc" id="L199">            Object valor = PARSER.parseExpression(expresionSpel).getValue(contexto);</span>
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">            if (valor == null) {</span>
+<span class="nc" id="L201">                return null;</span>
+            }
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">            if (valor instanceof Number numero) {</span>
+<span class="fc" id="L204">                return numero.longValue();</span>
+            }
+<span class="nc" id="L206">            return Long.valueOf(String.valueOf(valor));</span>
+<span class="nc" id="L207">        } catch (ParseException | EvaluationException | NumberFormatException e) {</span>
+<span class="nc" id="L208">            log.warn(&quot;No se pudo evaluar idEntidad '{}': {}&quot;, expresionSpel, e.getMessage());</span>
+<span class="nc" id="L209">            return null;</span>
+        }
+    }
+
+    @SuppressWarnings(&quot;unchecked&quot;)
+    private Map&lt;String, Object&gt; evaluarDetalle(String expresionSpel, StandardEvaluationContext contexto) {
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">        if (expresionSpel.isBlank()) {</span>
+<span class="nc" id="L216">            return new LinkedHashMap&lt;&gt;();</span>
+        }
+        try {
+<span class="fc" id="L219">            Expression expresion = PARSER.parseExpression(expresionSpel);</span>
+<span class="fc" id="L220">            Object valor = expresion.getValue(contexto);</span>
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">            if (valor instanceof Map&lt;?, ?&gt; mapa) {</span>
+<span class="fc" id="L222">                return (Map&lt;String, Object&gt;) mapa;</span>
+            }
+<span class="nc bnc" id="L224" title="All 2 branches missed.">            if (valor == null) {</span>
+<span class="nc" id="L225">                return new LinkedHashMap&lt;&gt;();</span>
+            }
+<span class="nc" id="L227">            Map&lt;String, Object&gt; envuelto = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc" id="L228">            envuelto.put(&quot;valor&quot;, valor);</span>
+<span class="nc" id="L229">            return envuelto;</span>
+<span class="fc" id="L230">        } catch (ParseException | EvaluationException e) {</span>
+            // Una expresión SpEL rota (p. ej. NPE en #resultado.campo cuando el
+            // método lanzó antes de construir el resultado) NUNCA debe hacer
+            // perder el evento entero: se registra igual, dejando constancia.
+<span class="fc" id="L234">            Map&lt;String, Object&gt; conError = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L235">            conError.put(&quot;_error_detalle&quot;, &quot;No se pudo evaluar la expresión de detalle: &quot; + e.getMessage());</span>
+<span class="fc" id="L236">            return conError;</span>
+        }
+    }
+
+    private Map&lt;String, Object&gt; mergeWithAuditContext(Map&lt;String, Object&gt; detalle) {
+<span class="fc" id="L241">        Map&lt;String, Object&gt; aportadoPorElServicio = AuditContext.drenar();</span>
+<span class="fc bfc" id="L242" title="All 2 branches covered.">        if (aportadoPorElServicio.isEmpty()) {</span>
+<span class="fc" id="L243">            return detalle;</span>
+        }
+<span class="fc" id="L245">        Map&lt;String, Object&gt; fusionado = new LinkedHashMap&lt;&gt;(detalle);</span>
+<span class="fc" id="L246">        fusionado.putAll(aportadoPorElServicio);</span>
+<span class="fc" id="L247">        return fusionado;</span>
+    }
+
+    private static String truncate(String texto, int maximo) {
+<span class="pc bpc" id="L251" title="1 of 4 branches missed.">        if (texto == null || texto.length() &lt;= maximo) {</span>
+<span class="fc" id="L252">            return texto;</span>
+        }
+<span class="nc" id="L254">        return texto.substring(0, maximo) + &quot;…&quot;;</span>
+    }
+
+    private static String blankToNull(String texto) {
+<span class="pc bpc" id="L258" title="1 of 4 branches missed.">        return (texto == null || texto.isBlank()) ? null : texto;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

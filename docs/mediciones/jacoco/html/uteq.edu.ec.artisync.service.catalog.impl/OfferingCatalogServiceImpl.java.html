@@ -1,0 +1,766 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OfferingCatalogServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.catalog.impl</a> &gt; <span class="el_source">OfferingCatalogServiceImpl.java</span></div><h1>OfferingCatalogServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.catalog.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.dto.request.catalog.*;
+import uteq.edu.ec.artisync.dto.response.catalog.*;
+import uteq.edu.ec.artisync.entity.catalog.*;
+import uteq.edu.ec.artisync.entity.communication.BriefingTemplate;
+import uteq.edu.ec.artisync.entity.order.ContractTemplate;
+import uteq.edu.ec.artisync.entity.profile.CreatorProfile;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.repository.catalog.*;
+import uteq.edu.ec.artisync.repository.communication.BriefingTemplateRepository;
+import uteq.edu.ec.artisync.repository.order.ContractTemplateRepository;
+import uteq.edu.ec.artisync.repository.profile.CreatorProfileRepository;
+import uteq.edu.ec.artisync.service.catalog.IOfferingCatalogService;
+import uteq.edu.ec.artisync.service.profile.IVerificationService;
+import uteq.edu.ec.artisync.specification.catalog.OfferingSpecification;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
+
+    private final OfferingRepository servicioRepository;
+    private final CreatorProfileRepository perfilRepository;
+    private final SubcategoryRepository subcategoriaRepository;
+    private final DynamicAttributeRepository atributoRepository;
+    private final OfferingAttributeRepository servicioAtributoRepository;
+    private final TagRepository etiquetaRepository;
+    private final OfferingTagRepository servicioEtiquetaRepository;
+    private final OfferingSubcategoryRepository servicioSubcategoriaRepository;
+    private final IVerificationService verificacionServicio;
+    private final WorkflowRepository flujoTrabajoRepository;
+    private final ContractTemplateRepository plantillaContratoRepository;
+    private final BriefingTemplateRepository briefingPlantillaRepository;
+    private final uteq.edu.ec.artisync.service.shared.storage.DocumentStorage almacenamientoDocumentos;
+
+    /**
+     * Crea un servicio para el perfil de creador indicado, con sus
+     * subcategorías y etiquetas, en estado {@code ACTIVO}.
+     *
+     * @param idPerfilCreador identificador del perfil de creador dueño del servicio
+     * @param peticion título, descripción, precio, subcategorías y demás datos del servicio
+     * @return el servicio creado, con su detalle completo
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe,
+     *         o si alguna subcategoría indicada no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el precio es menor a 0.01 USD,
+     *         si quien llama no es dueño del perfil ni admin, o si la identidad del creador no está verificada
+     */
+    @Override
+    @Transactional
+    @CacheEvict(cacheNames = &quot;catalogo&quot;, allEntries = true)
+    @Auditable(accion = &quot;SERVICIO_CREAR&quot;, modulo = AuditModule.CATALOGO,
+            entidad = &quot;servicios&quot;, idEntidad = &quot;#resultado.idServicio&quot;,
+            detalle = &quot;{tituloServicio: #peticion.tituloServicio, precioBase: #peticion.precioBase}&quot;)
+    public OfferingResponse createOffering(Long idPerfilCreador, CreateOfferingRequest peticion) {
+<span class="pc bpc" id="L79" title="1 of 4 branches missed.">        if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal(&quot;0.01&quot;)) &lt; 0) {</span>
+<span class="fc" id="L80">            throw new BusinessRuleException(&quot;El precio debe ser de al menos 0.01 USD&quot;);</span>
+        }
+
+<span class="fc" id="L83">        CreatorProfile perfil = perfilRepository.findById(idPerfilCreador)</span>
+<span class="fc" id="L84">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Perfil creador no encontrado con ID: &quot; + idPerfilCreador));</span>
+
+<span class="fc" id="L86">        validateOwnershipOrAdmin(perfil);</span>
+<span class="fc" id="L87">        validateVerifiedIdentity(perfil);</span>
+
+<span class="fc" id="L89">        List&lt;Subcategory&gt; subcategorias = resolveSubcategories(peticion.getIdsSubcategoria());</span>
+
+<span class="fc" id="L91">        Offering servicio = Offering.builder()</span>
+<span class="fc" id="L92">                .perfil(perfil)</span>
+<span class="fc" id="L93">                .tituloServicio(peticion.getTituloServicio().trim())</span>
+<span class="fc" id="L94">                .descripcionDetallada(peticion.getDescripcionDetallada().trim())</span>
+<span class="fc" id="L95">                .precioBase(peticion.getPrecioBase())</span>
+<span class="fc" id="L96">                .urlMiniatura(peticion.getUrlMiniatura())</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">                .tipoItem(peticion.getTipoItem() != null ? peticion.getTipoItem() : &quot;SERVICIO&quot;)</span>
+<span class="fc" id="L98">                .estadoPublicacion(&quot;ACTIVO&quot;)</span>
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">                .cargoRevisionAdicional(peticion.getCargoRevisionAdicional() != null ? peticion.getCargoRevisionAdicional() : BigDecimal.ZERO)</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">                .limiteRevisionesBase(peticion.getLimiteRevisionesBase() != null ? peticion.getLimiteRevisionesBase() : 0)</span>
+<span class="fc" id="L101">                .flujo(resolveOwnWorkflow(peticion.getIdFlujo(), perfil))</span>
+<span class="fc" id="L102">                .plantillaContrato(resolveActiveContractTemplate(peticion.getIdPlantillaContrato(), perfil))</span>
+<span class="fc" id="L103">                .briefingPlantilla(resolveOwnBriefingTemplate(peticion.getIdBriefingPlantilla(), perfil))</span>
+<span class="fc" id="L104">                .build();</span>
+
+<span class="fc" id="L106">        Offering guardado = servicioRepository.save(servicio);</span>
+
+<span class="fc" id="L108">        saveOfferingSubcategories(guardado, subcategorias);</span>
+<span class="fc" id="L109">        saveOfferingTags(guardado, peticion.getEtiquetaIds());</span>
+
+<span class="fc" id="L111">        return getOfferingById(guardado.getIdServicio());</span>
+    }
+
+    /**
+     * Actualiza un servicio existente: reemplaza subcategorías y etiquetas
+     * solo si vienen informadas, y exige identidad verificada si el nuevo
+     * estado de publicación es {@code ACTIVO}.
+     *
+     * @param idServicio identificador del servicio a actualizar
+     * @param peticion nuevos datos del servicio; los campos {@code null} no se modifican
+     * @return el servicio ya actualizado, con su detalle completo
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el precio es menor a 0.01 USD,
+     *         si se envía una lista vacía de subcategorías, si quien llama no es dueño del perfil ni admin,
+     *         o si se activa el servicio sin identidad verificada
+     */
+    @Override
+    @Transactional
+    @CacheEvict(cacheNames = &quot;catalogo&quot;, allEntries = true)
+    @Auditable(accion = &quot;SERVICIO_ACTUALIZAR&quot;, modulo = AuditModule.CATALOGO,
+            entidad = &quot;servicios&quot;, idEntidad = &quot;#idServicio&quot;,
+            detalle = &quot;{estadoPublicacion: #peticion.estadoPublicacion, precioBase: #peticion.precioBase}&quot;)
+    public OfferingResponse updateOffering(Long idServicio, UpdateOfferingRequest peticion) {
+<span class="pc bpc" id="L134" title="1 of 4 branches missed.">        if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal(&quot;0.01&quot;)) &lt; 0) {</span>
+<span class="fc" id="L135">            throw new BusinessRuleException(&quot;El precio debe ser de al menos 0.01 USD&quot;);</span>
+        }
+
+<span class="fc" id="L138">        Offering servicio = servicioRepository.findById(idServicio)</span>
+<span class="fc" id="L139">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Offering no encontrado con ID: &quot; + idServicio));</span>
+
+<span class="fc" id="L141">        validateOwnershipOrAdmin(servicio.getPerfil());</span>
+
+<span class="fc" id="L143">        List&lt;Subcategory&gt; nuevasSubcategorias = null;</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">        if (peticion.getIdsSubcategoria() != null) {</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">            if (peticion.getIdsSubcategoria().isEmpty()) {</span>
+<span class="fc" id="L146">                throw new BusinessRuleException(&quot;El servicio necesita al menos una subcategoria&quot;);</span>
+            }
+<span class="fc" id="L148">            nuevasSubcategorias = resolveSubcategories(peticion.getIdsSubcategoria());</span>
+        }
+
+<span class="fc bfc" id="L151" title="All 4 branches covered.">        if (peticion.getTituloServicio() != null &amp;&amp; !peticion.getTituloServicio().isBlank()) {</span>
+<span class="fc" id="L152">            servicio.setTituloServicio(peticion.getTituloServicio().trim());</span>
+        }
+<span class="fc bfc" id="L154" title="All 4 branches covered.">        if (peticion.getDescripcionDetallada() != null &amp;&amp; !peticion.getDescripcionDetallada().isBlank()) {</span>
+<span class="fc" id="L155">            servicio.setDescripcionDetallada(peticion.getDescripcionDetallada().trim());</span>
+        }
+<span class="fc" id="L157">        servicio.setPrecioBase(peticion.getPrecioBase());</span>
+<span class="fc bfc" id="L158" title="All 4 branches covered.">        if (peticion.getTipoItem() != null &amp;&amp; !peticion.getTipoItem().isBlank()) {</span>
+<span class="fc" id="L159">            servicio.setTipoItem(peticion.getTipoItem());</span>
+        }
+<span class="fc bfc" id="L161" title="All 4 branches covered.">        if (peticion.getEstadoPublicacion() != null &amp;&amp; !peticion.getEstadoPublicacion().isBlank()) {</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">            if (&quot;ACTIVO&quot;.equals(peticion.getEstadoPublicacion())) {</span>
+<span class="fc" id="L163">                validateVerifiedIdentity(servicio.getPerfil());</span>
+            }
+<span class="fc" id="L165">            servicio.setEstadoPublicacion(peticion.getEstadoPublicacion());</span>
+        }
+<span class="fc" id="L167">        servicio.setUrlMiniatura(peticion.getUrlMiniatura());</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        if (peticion.getCargoRevisionAdicional() != null) {</span>
+<span class="fc" id="L169">            servicio.setCargoRevisionAdicional(peticion.getCargoRevisionAdicional());</span>
+        }
+<span class="fc bfc" id="L171" title="All 2 branches covered.">        if (peticion.getLimiteRevisionesBase() != null) {</span>
+<span class="fc" id="L172">            servicio.setLimiteRevisionesBase(peticion.getLimiteRevisionesBase());</span>
+        }
+<span class="fc" id="L174">        servicio.setFlujo(resolveOwnWorkflow(peticion.getIdFlujo(), servicio.getPerfil()));</span>
+<span class="fc" id="L175">        servicio.setPlantillaContrato(resolveActiveContractTemplate(peticion.getIdPlantillaContrato(), servicio.getPerfil()));</span>
+<span class="fc" id="L176">        servicio.setBriefingPlantilla(resolveOwnBriefingTemplate(peticion.getIdBriefingPlantilla(), servicio.getPerfil()));</span>
+
+<span class="fc" id="L178">        Offering guardado = servicioRepository.save(servicio);</span>
+
+<span class="fc bfc" id="L180" title="All 2 branches covered.">        if (nuevasSubcategorias != null) {</span>
+<span class="fc" id="L181">            servicioSubcategoriaRepository.deleteByServicioIdServicio(idServicio);</span>
+            // Flush obligatorio: Hibernate ordena inserciones antes que eliminaciones
+            // dentro del mismo flush, así que sin esto el INSERT de una subcategoria
+            // que ya estaba asociada choca con la fila vieja (todavía no borrada en la
+            // base) contra la restricción única id_servicio+id_subcategoria.
+<span class="fc" id="L186">            servicioSubcategoriaRepository.flush();</span>
+<span class="fc" id="L187">            saveOfferingSubcategories(guardado, nuevasSubcategorias);</span>
+        }
+
+<span class="fc bfc" id="L190" title="All 2 branches covered.">        if (peticion.getEtiquetaIds() != null) {</span>
+<span class="fc" id="L191">            servicioEtiquetaRepository.deleteByServicioIdServicio(idServicio);</span>
+<span class="fc" id="L192">            saveOfferingTags(guardado, peticion.getEtiquetaIds());</span>
+        }
+
+<span class="fc" id="L195">        return getOfferingById(guardado.getIdServicio());</span>
+    }
+
+    /**
+     * Obtiene el detalle completo de un servicio del catálogo.
+     *
+     * @param idServicio identificador del servicio
+     * @return el servicio, con sus subcategorías, etiquetas y atributos
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public OfferingResponse getOfferingById(Long idServicio) {
+<span class="fc" id="L208">        Offering servicio = servicioRepository.findById(idServicio)</span>
+<span class="fc" id="L209">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Offering no encontrado con ID: &quot; + idServicio));</span>
+<span class="fc" id="L210">        return mapToFullOfferingResponse(servicio);</span>
+    }
+
+    /**
+     * Elimina un servicio del catálogo, junto con sus asociaciones de
+     * etiquetas y subcategorías.
+     *
+     * @param idServicio identificador del servicio a eliminar
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien llama no es dueño del perfil ni admin
+     */
+    @Override
+    @Transactional
+    @CacheEvict(cacheNames = &quot;catalogo&quot;, allEntries = true)
+    @Auditable(accion = &quot;SERVICIO_ELIMINAR&quot;, modulo = AuditModule.CATALOGO,
+            entidad = &quot;servicios&quot;, idEntidad = &quot;#idServicio&quot;)
+    public void deleteOffering(Long idServicio) {
+<span class="fc" id="L227">        Offering servicio = servicioRepository.findById(idServicio)</span>
+<span class="pc" id="L228">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Offering no encontrado con ID: &quot; + idServicio));</span>
+
+<span class="fc" id="L230">        validateOwnershipOrAdmin(servicio.getPerfil());</span>
+
+<span class="fc" id="L232">        servicioEtiquetaRepository.deleteByServicioIdServicio(idServicio);</span>
+<span class="fc" id="L233">        servicioSubcategoriaRepository.deleteByServicioIdServicio(idServicio);</span>
+<span class="fc" id="L234">        servicioRepository.delete(servicio);</span>
+<span class="fc" id="L235">    }</span>
+
+    /**
+     * Quita una subcategoría de un servicio, siempre que le quede al menos una.
+     *
+     * @param idServicio identificador del servicio
+     * @param idSubcategoria identificador de la subcategoría a quitar
+     * @return el servicio ya actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el servicio se quedaría sin ninguna subcategoría
+     */
+    @Override
+    @Transactional
+    @CacheEvict(cacheNames = &quot;catalogo&quot;, allEntries = true)
+    @Auditable(accion = &quot;SERVICIO_QUITAR_SUBCATEGORIA&quot;, modulo = AuditModule.CATALOGO,
+            entidad = &quot;servicios&quot;, idEntidad = &quot;#idServicio&quot;, detalle = &quot;{idSubcategoria: #idSubcategoria}&quot;)
+    public OfferingResponse removeSubcategory(Long idServicio, Long idSubcategoria) {
+<span class="pc bpc" id="L252" title="1 of 2 branches missed.">        if (!servicioRepository.existsById(idServicio)) {</span>
+<span class="nc" id="L253">            throw new ResourceNotFoundException(&quot;Offering no encontrado con ID: &quot; + idServicio);</span>
+        }
+<span class="fc bfc" id="L255" title="All 2 branches covered.">        if (servicioSubcategoriaRepository.countByServicioIdServicio(idServicio) &lt;= 1) {</span>
+<span class="fc" id="L256">            throw new BusinessRuleException(&quot;Un servicio necesita al menos una subcategoria&quot;);</span>
+        }
+<span class="fc" id="L258">        servicioSubcategoriaRepository.deleteByServicioIdServicioAndSubcategoriaIdSubcategoria(idServicio, idSubcategoria);</span>
+<span class="fc" id="L259">        return getOfferingById(idServicio);</span>
+    }
+
+    /**
+     * Lista servicios para el panel de moderación, en cualquier estado de
+     * publicación (a diferencia del catálogo público, que solo muestra {@code ACTIVO}).
+     *
+     * @param textoBusqueda coincidencia parcial sobre título o descripción; {@code null} no filtra
+     * @param page número de página (0-index)
+     * @param size tamaño de página
+     * @return la página de servicios resumidos, más recientes primero
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Page&lt;OfferingSummaryResponse&gt; listForModeration(String textoBusqueda, int page, int size) {
+<span class="nc" id="L274">        Specification&lt;Offering&gt; spec = OfferingSpecification.conFiltros(</span>
+                null, null, null, null, null, textoBusqueda, null);
+<span class="nc" id="L276">        Pageable pageable = PageRequest.of(page, size, Sort.by(&quot;idServicio&quot;).descending());</span>
+<span class="nc" id="L277">        return servicioRepository.findAll(spec, pageable).map(this::mapToOfferingSummary);</span>
+    }
+
+    /**
+     * Sube la miniatura de un servicio al almacenamiento configurado.
+     *
+     * @param archivo imagen de miniatura, validada contra {@code FilePolicy.PERFIL}
+     * @return la URL pública desde la que se sirve la miniatura
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el archivo no cumple la política de tipo/tamaño
+     */
+    @Override
+    public String uploadThumbnail(org.springframework.web.multipart.MultipartFile archivo) {
+<span class="nc" id="L289">        uteq.edu.ec.artisync.service.shared.storage.FilePolicy.PERFIL.validate(archivo);</span>
+<span class="nc" id="L290">        String referencia = almacenamientoDocumentos.save(archivo, uteq.edu.ec.artisync.service.shared.storage.StoragePrefix.SERVICIOS);</span>
+<span class="nc" id="L291">        return &quot;/api/v1/servicios/miniatura/&quot; + referencia;</span>
+    }
+
+    /**
+     * Lista los servicios de un perfil de creador, opcionalmente filtrados
+     * por estado de publicación.
+     *
+     * @param idPerfilCreador identificador del perfil de creador
+     * @param estadoPublicacion estado a filtrar; {@code null} o vacío lista todos los estados
+     * @return los servicios resumidos del creador
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;OfferingSummaryResponse&gt; listOfferingsByCreator(Long idPerfilCreador, String estadoPublicacion) {
+<span class="fc bfc" id="L306" title="All 2 branches covered.">        if (!perfilRepository.existsById(idPerfilCreador)) {</span>
+<span class="fc" id="L307">            throw new ResourceNotFoundException(&quot;Perfil creador no encontrado con ID: &quot; + idPerfilCreador);</span>
+        }
+        List&lt;Offering&gt; servicios;
+<span class="fc bfc" id="L310" title="All 4 branches covered.">        if (estadoPublicacion != null &amp;&amp; !estadoPublicacion.isBlank()) {</span>
+<span class="fc" id="L311">            servicios = servicioRepository.findByPerfilIdPerfilAndEstadoPublicacion(idPerfilCreador, estadoPublicacion);</span>
+        } else {
+<span class="fc" id="L313">            servicios = servicioRepository.findByPerfilIdPerfil(idPerfilCreador);</span>
+        }
+<span class="fc" id="L315">        return servicios.stream()</span>
+<span class="fc" id="L316">                .map(this::mapToOfferingSummary)</span>
+<span class="fc" id="L317">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Busca el catálogo público (solo servicios {@code ACTIVO}), con
+     * etiquetas y subcategorías de cada resultado resueltas en lote (evita el
+     * N+1 de resolverlas fila por fila). Cacheada bajo la clave {@code catalogo}.
+     *
+     * @param categoriaId si no es {@code null}, restringe a esa categoría
+     * @param subcategoriaId si no es {@code null}, restringe a esa subcategoría
+     * @param precioMin precio base mínimo (inclusive)
+     * @param precioMax precio base máximo (inclusive)
+     * @param etiquetaIds si no es vacío, restringe a servicios con alguna de esas etiquetas
+     * @param textoBusqueda coincidencia parcial sobre título o descripción
+     * @param sortParam orden solicitado (&quot;precioBase,asc/desc&quot;, &quot;tituloServicio,asc&quot;); cualquier otro
+     *                  valor (o {@code null}) ordena por id descendente
+     * @param page número de página (0-index)
+     * @param size tamaño de página
+     * @return la página de servicios resumidos que cumplen los filtros
+     */
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(cacheNames = &quot;catalogo&quot;)
+    public Page&lt;OfferingSummaryResponse&gt; searchCatalogOfferings(
+            Long categoriaId,
+            Long subcategoriaId,
+            BigDecimal precioMin,
+            BigDecimal precioMax,
+            List&lt;Long&gt; etiquetaIds,
+            String textoBusqueda,
+            String sortParam,
+            int page,
+            int size) {
+
+<span class="fc" id="L351">        Specification&lt;Offering&gt; spec = OfferingSpecification.conFiltros(</span>
+                categoriaId, subcategoriaId, precioMin, precioMax, etiquetaIds, textoBusqueda, &quot;ACTIVO&quot;);
+
+<span class="fc" id="L354">        Sort sort = Sort.by(&quot;idServicio&quot;).descending();</span>
+<span class="pc bpc" id="L355" title="1 of 4 branches missed.">        if (sortParam != null &amp;&amp; !sortParam.isBlank()) {</span>
+<span class="pc bpc" id="L356" title="1 of 4 branches missed.">            if (&quot;precioBase,asc&quot;.equalsIgnoreCase(sortParam) || &quot;precioAsc&quot;.equalsIgnoreCase(sortParam)) {</span>
+<span class="fc" id="L357">                sort = Sort.by(&quot;precioBase&quot;).ascending();</span>
+<span class="pc bpc" id="L358" title="1 of 4 branches missed.">            } else if (&quot;precioBase,desc&quot;.equalsIgnoreCase(sortParam) || &quot;precioDesc&quot;.equalsIgnoreCase(sortParam)) {</span>
+<span class="fc" id="L359">                sort = Sort.by(&quot;precioBase&quot;).descending();</span>
+<span class="pc bpc" id="L360" title="1 of 2 branches missed.">            } else if (&quot;tituloServicio,asc&quot;.equalsIgnoreCase(sortParam)) {</span>
+<span class="fc" id="L361">                sort = Sort.by(&quot;tituloServicio&quot;).ascending();</span>
+            }
+        }
+
+<span class="fc" id="L365">        Pageable pageable = PageRequest.of(page, size, sort);</span>
+<span class="fc" id="L366">        Page&lt;Offering&gt; paginaServicios = servicioRepository.findAll(spec, pageable);</span>
+
+<span class="fc" id="L368">        List&lt;Long&gt; idsServicios = paginaServicios.getContent().stream()</span>
+<span class="fc" id="L369">                .map(Offering::getIdServicio)</span>
+<span class="fc" id="L370">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L372">        Map&lt;Long, List&lt;TagResponse&gt;&gt; etiquetasPorServicio = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L373">        Map&lt;Long, List&lt;SubcategoryResponse&gt;&gt; subcategoriasPorServicio = new HashMap&lt;&gt;();</span>
+<span class="pc bpc" id="L374" title="1 of 2 branches missed.">        if (!idsServicios.isEmpty()) {</span>
+<span class="fc" id="L375">            List&lt;OfferingTag&gt; todasEtiquetas = servicioEtiquetaRepository.findByServicioIdServicioIn(idsServicios);</span>
+<span class="fc" id="L376">            etiquetasPorServicio = todasEtiquetas.stream()</span>
+<span class="fc" id="L377">                    .collect(Collectors.groupingBy(</span>
+<span class="fc" id="L378">                            se -&gt; se.getServicio().getIdServicio(),</span>
+<span class="fc" id="L379">                            Collectors.mapping(se -&gt; TagResponse.builder()</span>
+<span class="fc" id="L380">                                    .idEtiqueta(se.getEtiqueta().getIdEtiqueta())</span>
+<span class="fc" id="L381">                                    .nombreEtiqueta(se.getEtiqueta().getNombreEtiqueta())</span>
+<span class="fc" id="L382">                                    .actualizadoEn(se.getEtiqueta().getActualizadoEn())</span>
+<span class="fc" id="L383">                                    .build(), Collectors.toList())</span>
+                    ));
+
+<span class="fc" id="L386">            List&lt;OfferingSubcategory&gt; todasSubcategorias = servicioSubcategoriaRepository.findByServicioIdServicioIn(idsServicios);</span>
+<span class="fc" id="L387">            subcategoriasPorServicio = todasSubcategorias.stream()</span>
+<span class="fc" id="L388">                    .collect(Collectors.groupingBy(</span>
+<span class="nc" id="L389">                            ss -&gt; ss.getServicio().getIdServicio(),</span>
+<span class="fc" id="L390">                            Collectors.mapping(this::mapToSubcategoryResponse, Collectors.toList())</span>
+                    ));
+        }
+
+<span class="fc" id="L394">        final Map&lt;Long, List&lt;TagResponse&gt;&gt; etiquetasFinales = etiquetasPorServicio;</span>
+<span class="fc" id="L395">        final Map&lt;Long, List&lt;SubcategoryResponse&gt;&gt; subcategoriasFinales = subcategoriasPorServicio;</span>
+<span class="fc" id="L396">        return paginaServicios.map(s -&gt; mapToOfferingSummary(s,</span>
+<span class="fc" id="L397">                etiquetasFinales.getOrDefault(s.getIdServicio(), Collections.emptyList()),</span>
+<span class="fc" id="L398">                subcategoriasFinales.getOrDefault(s.getIdServicio(), Collections.emptyList())));</span>
+    }
+
+    /**
+     * Lista los atributos dinámicos (valor por atributo) asignados a un servicio.
+     *
+     * @param idServicio identificador del servicio
+     * @return los atributos asignados
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;AttributeResponse&gt; listAttributesByOffering(Long idServicio) {
+<span class="fc bfc" id="L411" title="All 2 branches covered.">        if (!servicioRepository.existsById(idServicio)) {</span>
+<span class="fc" id="L412">            throw new ResourceNotFoundException(&quot;Offering no encontrado con ID: &quot; + idServicio);</span>
+        }
+<span class="fc" id="L414">        return servicioAtributoRepository.findByServicioIdServicio(idServicio)</span>
+<span class="fc" id="L415">                .stream()</span>
+<span class="fc" id="L416">                .map(this::mapToAttributeResponse)</span>
+<span class="fc" id="L417">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Agrega un atributo dinámico a un servicio (reutilizando el atributo
+     * maestro si ya existe uno con ese nombre), hasta un máximo de 10 por servicio.
+     *
+     * @param idServicio identificador del servicio
+     * @param peticion nombre del atributo, tipo de dato y valor asignado
+     * @return el atributo ya asociado al servicio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien llama no es dueño del perfil ni admin,
+     *         si el servicio ya tiene 10 atributos, o si ese atributo ya está asociado a este servicio
+     */
+    @Override
+    @Transactional
+    public AttributeResponse addAttribute(Long idServicio, CreateAttributeRequest peticion) {
+<span class="fc" id="L434">        Offering servicio = servicioRepository.findById(idServicio)</span>
+<span class="pc" id="L435">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Offering no encontrado con ID: &quot; + idServicio));</span>
+
+<span class="fc" id="L437">        validateOwnershipOrAdmin(servicio.getPerfil());</span>
+
+<span class="fc" id="L439">        long count = servicioAtributoRepository.countByServicioIdServicio(idServicio);</span>
+<span class="fc bfc" id="L440" title="All 2 branches covered.">        if (count &gt;= 10) {</span>
+<span class="fc" id="L441">            throw new BusinessRuleException(&quot;Se ha alcanzado el límite de 10 atributos personalizados por ítem&quot;);</span>
+        }
+
+<span class="fc" id="L444">        DynamicAttribute atributo = atributoRepository.findByNombreAtributoIgnoreCase(peticion.getNombreAtributo().trim())</span>
+<span class="fc" id="L445">                .orElseGet(() -&gt; {</span>
+<span class="fc" id="L446">                    DynamicAttribute nuevoAttr = DynamicAttribute.builder()</span>
+<span class="fc" id="L447">                            .nombreAtributo(peticion.getNombreAtributo().trim())</span>
+<span class="pc bpc" id="L448" title="1 of 2 branches missed.">                            .tipoDato(peticion.getTipoDato() != null ? peticion.getTipoDato().trim() : &quot;TEXTO&quot;)</span>
+<span class="fc" id="L449">                            .build();</span>
+<span class="fc" id="L450">                    return atributoRepository.save(nuevoAttr);</span>
+                });
+
+<span class="fc bfc" id="L453" title="All 2 branches covered.">        if (servicioAtributoRepository.findByServicioIdServicioAndAtributoIdAtributo(idServicio, atributo.getIdAtributo()).isPresent()) {</span>
+<span class="fc" id="L454">            throw new BusinessRuleException(&quot;El atributo '&quot; + atributo.getNombreAtributo() + &quot;' ya se encuentra asociado a este servicio&quot;);</span>
+        }
+
+<span class="fc" id="L457">        OfferingAttribute sa = OfferingAttribute.builder()</span>
+<span class="fc" id="L458">                .servicio(servicio)</span>
+<span class="fc" id="L459">                .atributo(atributo)</span>
+<span class="fc" id="L460">                .valorAsignado(peticion.getValorAsignado().trim())</span>
+<span class="fc" id="L461">                .build();</span>
+<span class="fc" id="L462">        sa = servicioAtributoRepository.save(sa);</span>
+
+<span class="fc" id="L464">        return mapToAttributeResponse(sa);</span>
+    }
+
+    /**
+     * Actualiza el valor de un atributo dinámico ya asignado a un servicio.
+     *
+     * @param idServicio identificador del servicio
+     * @param idServicioAtributo identificador de la asignación atributo-servicio a actualizar
+     * @param peticion nuevo valor asignado
+     * @return el atributo ya actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio o la asignación no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien llama no es dueño del perfil ni admin,
+     *         o si la asignación no pertenece a este servicio
+     */
+    @Override
+    @Transactional
+    public AttributeResponse updateAttribute(Long idServicio, Long idServicioAtributo, UpdateAttributeRequest peticion) {
+<span class="fc" id="L481">        Offering servicio = servicioRepository.findById(idServicio)</span>
+<span class="pc" id="L482">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Offering no encontrado con ID: &quot; + idServicio));</span>
+
+<span class="fc" id="L484">        validateOwnershipOrAdmin(servicio.getPerfil());</span>
+
+<span class="fc" id="L486">        OfferingAttribute sa = servicioAtributoRepository.findById(idServicioAtributo)</span>
+<span class="fc" id="L487">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Atributo del servicio no encontrado con ID: &quot; + idServicioAtributo));</span>
+
+<span class="fc bfc" id="L489" title="All 2 branches covered.">        if (!sa.getServicio().getIdServicio().equals(idServicio)) {</span>
+<span class="fc" id="L490">            throw new BusinessRuleException(&quot;El atributo no pertenece a este servicio&quot;);</span>
+        }
+
+<span class="fc" id="L493">        sa.setValorAsignado(peticion.getValorAsignado().trim());</span>
+<span class="fc" id="L494">        sa = servicioAtributoRepository.save(sa);</span>
+
+<span class="fc" id="L496">        return mapToAttributeResponse(sa);</span>
+    }
+
+    /**
+     * Quita un atributo dinámico de un servicio.
+     *
+     * @param idServicio identificador del servicio
+     * @param idServicioAtributo identificador de la asignación atributo-servicio a eliminar
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio o la asignación no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien llama no es dueño del perfil ni admin,
+     *         o si la asignación no pertenece a este servicio
+     */
+    @Override
+    @Transactional
+    public void deleteAttribute(Long idServicio, Long idServicioAtributo) {
+<span class="fc" id="L511">        Offering servicio = servicioRepository.findById(idServicio)</span>
+<span class="pc" id="L512">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Offering no encontrado con ID: &quot; + idServicio));</span>
+
+<span class="fc" id="L514">        validateOwnershipOrAdmin(servicio.getPerfil());</span>
+
+<span class="fc" id="L516">        OfferingAttribute sa = servicioAtributoRepository.findById(idServicioAtributo)</span>
+<span class="pc" id="L517">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Atributo del servicio no encontrado con ID: &quot; + idServicioAtributo));</span>
+
+<span class="fc bfc" id="L519" title="All 2 branches covered.">        if (!sa.getServicio().getIdServicio().equals(idServicio)) {</span>
+<span class="fc" id="L520">            throw new BusinessRuleException(&quot;El atributo no pertenece a este servicio&quot;);</span>
+        }
+
+<span class="fc" id="L523">        servicioAtributoRepository.delete(sa);</span>
+<span class="fc" id="L524">    }</span>
+
+    private void saveOfferingTags(Offering servicio, List&lt;Long&gt; etiquetaIds) {
+<span class="fc bfc" id="L527" title="All 4 branches covered.">        if (etiquetaIds != null &amp;&amp; !etiquetaIds.isEmpty()) {</span>
+<span class="fc" id="L528">            List&lt;Tag&gt; etiquetas = etiquetaRepository.findAllById(etiquetaIds);</span>
+<span class="fc bfc" id="L529" title="All 2 branches covered.">            for (Tag et : etiquetas) {</span>
+<span class="fc" id="L530">                OfferingTag se = OfferingTag.builder()</span>
+<span class="fc" id="L531">                        .servicio(servicio)</span>
+<span class="fc" id="L532">                        .etiqueta(et)</span>
+<span class="fc" id="L533">                        .build();</span>
+<span class="fc" id="L534">                servicioEtiquetaRepository.save(se);</span>
+<span class="fc" id="L535">            }</span>
+        }
+<span class="fc" id="L537">    }</span>
+
+    private List&lt;Subcategory&gt; resolveSubcategories(List&lt;Long&gt; idsSubcategoria) {
+<span class="fc" id="L540">        List&lt;Subcategory&gt; subcategorias = subcategoriaRepository.findAllById(idsSubcategoria);</span>
+<span class="fc bfc" id="L541" title="All 2 branches covered.">        if (subcategorias.size() != new java.util.HashSet&lt;&gt;(idsSubcategoria).size()) {</span>
+<span class="fc" id="L542">            throw new ResourceNotFoundException(&quot;Una o más subcategorias indicadas no existen&quot;);</span>
+        }
+<span class="fc" id="L544">        return subcategorias;</span>
+    }
+
+    private void saveOfferingSubcategories(Offering servicio, List&lt;Subcategory&gt; subcategorias) {
+<span class="fc bfc" id="L548" title="All 2 branches covered.">        for (Subcategory sub : subcategorias) {</span>
+<span class="fc" id="L549">            OfferingSubcategory ss = OfferingSubcategory.builder()</span>
+<span class="fc" id="L550">                    .servicio(servicio)</span>
+<span class="fc" id="L551">                    .subcategoria(sub)</span>
+<span class="fc" id="L552">                    .build();</span>
+<span class="fc" id="L553">            servicioSubcategoriaRepository.save(ss);</span>
+<span class="fc" id="L554">        }</span>
+<span class="fc" id="L555">    }</span>
+
+    private OfferingResponse mapToFullOfferingResponse(Offering servicio) {
+<span class="fc" id="L558">        List&lt;AttributeResponse&gt; atributos = servicioAtributoRepository.findByServicioIdServicio(servicio.getIdServicio())</span>
+<span class="fc" id="L559">                .stream()</span>
+<span class="fc" id="L560">                .map(this::mapToAttributeResponse)</span>
+<span class="fc" id="L561">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L563">        List&lt;TagResponse&gt; etiquetas = servicioEtiquetaRepository.findByServicioIdServicio(servicio.getIdServicio())</span>
+<span class="fc" id="L564">                .stream()</span>
+<span class="fc" id="L565">                .map(se -&gt; TagResponse.builder()</span>
+<span class="fc" id="L566">                        .idEtiqueta(se.getEtiqueta().getIdEtiqueta())</span>
+<span class="fc" id="L567">                        .nombreEtiqueta(se.getEtiqueta().getNombreEtiqueta())</span>
+<span class="fc" id="L568">                        .actualizadoEn(se.getEtiqueta().getActualizadoEn())</span>
+<span class="fc" id="L569">                        .build())</span>
+<span class="fc" id="L570">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L572">        List&lt;SubcategoryResponse&gt; subcategorias = servicioSubcategoriaRepository.findByServicioIdServicio(servicio.getIdServicio())</span>
+<span class="fc" id="L573">                .stream()</span>
+<span class="fc" id="L574">                .map(this::mapToSubcategoryResponse)</span>
+<span class="fc" id="L575">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L577">        String nombreCreador = &quot;Creador&quot;;</span>
+<span class="fc bfc" id="L578" title="All 2 branches covered.">        if (servicio.getPerfil().getUsuario() != null) {</span>
+<span class="fc" id="L579">            nombreCreador = servicio.getPerfil().getUsuario().getNombres() + &quot; &quot; + servicio.getPerfil().getUsuario().getApellidos();</span>
+        }
+
+<span class="fc" id="L582">        return OfferingResponse.builder()</span>
+<span class="fc" id="L583">                .idServicio(servicio.getIdServicio())</span>
+<span class="fc" id="L584">                .tituloServicio(servicio.getTituloServicio())</span>
+<span class="fc" id="L585">                .descripcionDetallada(servicio.getDescripcionDetallada())</span>
+<span class="fc" id="L586">                .precioBase(servicio.getPrecioBase())</span>
+<span class="fc" id="L587">                .tipoItem(servicio.getTipoItem())</span>
+<span class="fc" id="L588">                .estadoPublicacion(servicio.getEstadoPublicacion())</span>
+<span class="fc" id="L589">                .urlMiniatura(servicio.getUrlMiniatura())</span>
+<span class="fc" id="L590">                .cargoRevisionAdicional(servicio.getCargoRevisionAdicional())</span>
+<span class="fc" id="L591">                .limiteRevisionesBase(servicio.getLimiteRevisionesBase())</span>
+<span class="fc" id="L592">                .subcategorias(subcategorias)</span>
+<span class="fc" id="L593">                .idPerfilCreador(servicio.getPerfil().getIdPerfil())</span>
+<span class="fc" id="L594">                .nombreCreador(nombreCreador)</span>
+<span class="pc bpc" id="L595" title="1 of 2 branches missed.">                .idFlujo(servicio.getFlujo() != null ? servicio.getFlujo().getIdFlujo() : null)</span>
+<span class="pc bpc" id="L596" title="1 of 2 branches missed.">                .nombreFlujo(servicio.getFlujo() != null ? servicio.getFlujo().getNombreFlujo() : null)</span>
+<span class="pc bpc" id="L597" title="1 of 2 branches missed.">                .idPlantillaContrato(servicio.getPlantillaContrato() != null ? servicio.getPlantillaContrato().getIdPlantilla() : null)</span>
+<span class="pc bpc" id="L598" title="1 of 2 branches missed.">                .nombrePlantillaContrato(servicio.getPlantillaContrato() != null ? servicio.getPlantillaContrato().getNombrePlantilla() : null)</span>
+<span class="pc bpc" id="L599" title="1 of 2 branches missed.">                .idBriefingPlantilla(servicio.getBriefingPlantilla() != null ? servicio.getBriefingPlantilla().getIdBriefingPlantilla() : null)</span>
+<span class="pc bpc" id="L600" title="1 of 2 branches missed.">                .nombreBriefingPlantilla(servicio.getBriefingPlantilla() != null ? servicio.getBriefingPlantilla().getNombrePlantilla() : null)</span>
+<span class="fc" id="L601">                .preguntasBriefing(mapBriefingQuestions(servicio.getBriefingPlantilla()))</span>
+<span class="fc" id="L602">                .atributos(atributos)</span>
+<span class="fc" id="L603">                .etiquetas(etiquetas)</span>
+<span class="fc" id="L604">                .actualizadoEn(servicio.getActualizadoEn())</span>
+<span class="fc" id="L605">                .build();</span>
+    }
+
+    private List&lt;OfferingResponse.PreguntaBriefingItem&gt; mapBriefingQuestions(BriefingTemplate plantilla) {
+<span class="pc bpc" id="L609" title="1 of 2 branches missed.">        if (plantilla == null) {</span>
+<span class="fc" id="L610">            return List.of();</span>
+        }
+<span class="nc" id="L612">        return plantilla.getPreguntas().stream()</span>
+<span class="nc" id="L613">                .map(p -&gt; OfferingResponse.PreguntaBriefingItem.builder()</span>
+<span class="nc" id="L614">                        .idPregunta(p.getIdPregunta())</span>
+<span class="nc" id="L615">                        .textoPregunta(p.getTextoPregunta())</span>
+<span class="nc" id="L616">                        .numeroOrden(p.getNumeroOrden())</span>
+<span class="nc" id="L617">                        .build())</span>
+<span class="nc" id="L618">                .collect(Collectors.toList());</span>
+    }
+
+    private SubcategoryResponse mapToSubcategoryResponse(OfferingSubcategory ss) {
+<span class="nc" id="L622">        Subcategory sub = ss.getSubcategoria();</span>
+<span class="nc" id="L623">        return SubcategoryResponse.builder()</span>
+<span class="nc" id="L624">                .idSubcategoria(sub.getIdSubcategoria())</span>
+<span class="nc" id="L625">                .idCategoria(sub.getCategoria().getIdCategoria())</span>
+<span class="nc" id="L626">                .nombreCategoria(sub.getCategoria().getNombreCategoria())</span>
+<span class="nc" id="L627">                .nombreSubcategoria(sub.getNombreSubcategoria())</span>
+<span class="nc bnc" id="L628" title="All 2 branches missed.">                .idUsuarioCreador(sub.getCreador() != null ? sub.getCreador().getIdUsuario() : null)</span>
+<span class="nc bnc" id="L629" title="All 2 branches missed.">                .nombreCreador(sub.getCreador() != null ? sub.getCreador().getNombres() + &quot; &quot; + sub.getCreador().getApellidos() : null)</span>
+<span class="nc" id="L630">                .revisado(sub.getRevisado())</span>
+<span class="nc" id="L631">                .actualizadoEn(sub.getActualizadoEn())</span>
+<span class="nc" id="L632">                .build();</span>
+    }
+
+    /**
+     * `null` es una respuesta válida: significa &quot;sin flujo asignado&quot;, y el
+     * servicio de pedidos cae a un flujo por defecto en ese caso. Un id que no
+     * existe, o que existe pero pertenece a otro creador, se rechaza: un
+     * creador solo puede asignarle a su servicio uno de sus propios flujos.
+     */
+    private Workflow resolveOwnWorkflow(Long idFlujo, CreatorProfile perfil) {
+<span class="pc bpc" id="L642" title="1 of 2 branches missed.">        if (idFlujo == null) {</span>
+<span class="fc" id="L643">            return null;</span>
+        }
+<span class="nc" id="L645">        return flujoTrabajoRepository.findByIdFlujoAndCreadorIdUsuario(idFlujo, perfil.getUsuario().getIdUsuario())</span>
+<span class="nc" id="L646">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;Flujo de trabajo no encontrado con ID: &quot; + idFlujo));
+    }
+
+    /**
+     * `null` es válido: el contrato cae a la plantilla predeterminada del
+     * catálogo (ver ContractServiceImpl). Si la plantilla es del catálogo
+     * general (idCreador NULL) no hay chequeo de propiedad, porque lo
+     * administra ADMIN, no el creador. Si es una plantilla privada (V45),
+     * debe pertenecerle a este mismo creador — un creador no puede asignarle
+     * a su servicio la plantilla privada de otro.
+     */
+    private ContractTemplate resolveActiveContractTemplate(Long idPlantillaContrato, CreatorProfile perfil) {
+<span class="pc bpc" id="L659" title="1 of 2 branches missed.">        if (idPlantillaContrato == null) {</span>
+<span class="fc" id="L660">            return null;</span>
+        }
+<span class="nc" id="L662">        ContractTemplate plantilla = plantillaContratoRepository.findById(idPlantillaContrato)</span>
+<span class="nc" id="L663">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;Plantilla de contrato no encontrada con ID: &quot; + idPlantillaContrato));
+<span class="nc bnc" id="L665" title="All 4 branches missed.">        if (plantilla.getIdCreador() != null &amp;&amp; !plantilla.getIdCreador().equals(perfil.getUsuario().getIdUsuario())) {</span>
+<span class="nc" id="L666">            throw new ResourceNotFoundException(</span>
+                    &quot;Plantilla de contrato no encontrada con ID: &quot; + idPlantillaContrato);
+        }
+<span class="nc bnc" id="L669" title="All 2 branches missed.">        if (!Boolean.TRUE.equals(plantilla.getActiva())) {</span>
+<span class="nc" id="L670">            throw new BusinessRuleException(&quot;La plantilla de contrato elegida ya no está activa&quot;);</span>
+        }
+<span class="nc" id="L672">        return plantilla;</span>
+    }
+
+    /**
+     * `null` es válido: el servicio queda sin cuestionario y crear un pedido
+     * no pide preguntas extra (ver OrderServiceImpl.createOrder). Un id que
+     * no existe, o que pertenece a otro creador, se rechaza: un creador solo
+     * puede asignarle a su servicio uno de sus propios cuestionarios.
+     */
+    private BriefingTemplate resolveOwnBriefingTemplate(Long idBriefingPlantilla, CreatorProfile perfil) {
+<span class="pc bpc" id="L682" title="1 of 2 branches missed.">        if (idBriefingPlantilla == null) {</span>
+<span class="fc" id="L683">            return null;</span>
+        }
+<span class="nc" id="L685">        return briefingPlantillaRepository.findByIdBriefingPlantillaAndPerfilCreadorIdPerfil(</span>
+<span class="nc" id="L686">                        idBriefingPlantilla, perfil.getIdPerfil())</span>
+<span class="nc" id="L687">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;Cuestionario de briefing no encontrado con ID: &quot; + idBriefingPlantilla));
+    }
+
+    private OfferingSummaryResponse mapToOfferingSummary(Offering servicio) {
+<span class="fc" id="L692">        List&lt;TagResponse&gt; etiquetas = servicioEtiquetaRepository.findByServicioIdServicio(servicio.getIdServicio())</span>
+<span class="fc" id="L693">                .stream()</span>
+<span class="fc" id="L694">                .map(se -&gt; TagResponse.builder()</span>
+<span class="fc" id="L695">                        .idEtiqueta(se.getEtiqueta().getIdEtiqueta())</span>
+<span class="fc" id="L696">                        .nombreEtiqueta(se.getEtiqueta().getNombreEtiqueta())</span>
+<span class="fc" id="L697">                        .actualizadoEn(se.getEtiqueta().getActualizadoEn())</span>
+<span class="fc" id="L698">                        .build())</span>
+<span class="fc" id="L699">                .collect(Collectors.toList());</span>
+<span class="fc" id="L700">        List&lt;SubcategoryResponse&gt; subcategorias = servicioSubcategoriaRepository.findByServicioIdServicio(servicio.getIdServicio())</span>
+<span class="fc" id="L701">                .stream()</span>
+<span class="fc" id="L702">                .map(this::mapToSubcategoryResponse)</span>
+<span class="fc" id="L703">                .collect(Collectors.toList());</span>
+<span class="fc" id="L704">        return mapToOfferingSummary(servicio, etiquetas, subcategorias);</span>
+    }
+
+    private OfferingSummaryResponse mapToOfferingSummary(Offering servicio, List&lt;TagResponse&gt; etiquetas, List&lt;SubcategoryResponse&gt; subcategorias) {
+<span class="fc" id="L708">        String nombreCreador = &quot;Creador&quot;;</span>
+<span class="pc bpc" id="L709" title="1 of 2 branches missed.">        if (servicio.getPerfil().getUsuario() != null) {</span>
+<span class="fc" id="L710">            nombreCreador = servicio.getPerfil().getUsuario().getNombres() + &quot; &quot; + servicio.getPerfil().getUsuario().getApellidos();</span>
+        }
+
+<span class="fc" id="L713">        return OfferingSummaryResponse.builder()</span>
+<span class="fc" id="L714">                .idServicio(servicio.getIdServicio())</span>
+<span class="fc" id="L715">                .tituloServicio(servicio.getTituloServicio())</span>
+<span class="fc" id="L716">                .precioBase(servicio.getPrecioBase())</span>
+<span class="fc" id="L717">                .tipoItem(servicio.getTipoItem())</span>
+<span class="fc" id="L718">                .estadoPublicacion(servicio.getEstadoPublicacion())</span>
+<span class="fc" id="L719">                .urlMiniatura(servicio.getUrlMiniatura())</span>
+<span class="fc" id="L720">                .subcategorias(subcategorias)</span>
+<span class="fc" id="L721">                .idPerfilCreador(servicio.getPerfil().getIdPerfil())</span>
+<span class="fc" id="L722">                .nombreCreador(nombreCreador)</span>
+<span class="fc" id="L723">                .etiquetas(etiquetas)</span>
+<span class="fc" id="L724">                .build();</span>
+    }
+
+    private AttributeResponse mapToAttributeResponse(OfferingAttribute sa) {
+<span class="fc" id="L728">        return AttributeResponse.builder()</span>
+<span class="fc" id="L729">                .idServicioAtributo(sa.getIdServicioAtributo())</span>
+<span class="fc" id="L730">                .idAtributo(sa.getAtributo().getIdAtributo())</span>
+<span class="fc" id="L731">                .nombreAtributo(sa.getAtributo().getNombreAtributo())</span>
+<span class="fc" id="L732">                .tipoDato(sa.getAtributo().getTipoDato())</span>
+<span class="fc" id="L733">                .valorAsignado(sa.getValorAsignado())</span>
+<span class="fc" id="L734">                .actualizadoEn(sa.getActualizadoEn())</span>
+<span class="fc" id="L735">                .build();</span>
+    }
+
+    /**
+     * Un servicio nace y se reactiva siempre en estado ACTIVO (no hay borrador
+     * intermedio aquí), así que este es el único punto de la aplicación donde
+     * &quot;crear/publicar un servicio&quot; ocurre de verdad. Exigir identidad
+     * verificada aquí es exigirla para publicar, tal como pide el requisito.
+     */
+    private void validateVerifiedIdentity(CreatorProfile perfil) {
+<span class="fc bfc" id="L745" title="All 2 branches covered.">        Long idUsuario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;</span>
+<span class="fc bfc" id="L746" title="All 4 branches covered.">        if (idUsuario == null || !verificacionServicio.isIdentityVerified(idUsuario)) {</span>
+<span class="fc" id="L747">            throw new BusinessRuleException(</span>
+                    &quot;Debes verificar tu identidad antes de publicar un servicio. Sube tu documento de identidad desde tu perfil.&quot;);
+        }
+<span class="fc" id="L750">    }</span>
+
+    private void validateOwnershipOrAdmin(CreatorProfile perfil) {
+<span class="fc" id="L753">        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="pc bpc" id="L754" title="1 of 6 branches missed.">        if (auth != null &amp;&amp; auth.isAuthenticated() &amp;&amp; !&quot;anonymousUser&quot;.equals(auth.getPrincipal())) {</span>
+<span class="fc" id="L755">            boolean esAdmin = auth.getAuthorities().stream()</span>
+<span class="fc" id="L756">                    .anyMatch(a -&gt; a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
+<span class="pc bpc" id="L757" title="1 of 4 branches missed.">            if (!esAdmin &amp;&amp; perfil.getUsuario() != null) {</span>
+<span class="fc" id="L758">                String correoActual = auth.getName();</span>
+<span class="pc bpc" id="L759" title="1 of 2 branches missed.">                if (!correoActual.equalsIgnoreCase(perfil.getUsuario().getCorreo())) {</span>
+<span class="fc" id="L760">                    throw new BusinessRuleException(&quot;No tiene permisos para gestionar servicios de este perfil del creador&quot;);</span>
+                }
+            }
+        }
+<span class="fc" id="L764">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

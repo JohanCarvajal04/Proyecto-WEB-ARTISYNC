@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AiServiceUnavailableException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.exception</a> &gt; <span class="el_source">AiServiceUnavailableException.java</span></div><h1>AiServiceUnavailableException.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.exception;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+/**
+ * Componente de Excepciones: Error de integracion.
+ * 
+ * Propósito: Alertar de fallos o indisponibilidad temporal en los servicios externos de Inteligencia Artificial.
+ * 
+ * Flujo interno: Traducida a HTTP 502 Bad Gateway o 503 Service Unavailable, alertando al cliente de un problema de terceros.
+ */
+@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+public class AiServiceUnavailableException extends RuntimeException {
+
+    /**
+     * Solo true para fallos transitorios (429, timeout): un segundo intento
+     * puede tener éxito. Para 401/413 el segundo intento fallaría igual y
+     * solo duplicaría la espera del moderador.
+     */
+    private final boolean reintentable;
+
+    /**
+     * Crea la excepción marcándola como no reintentable por defecto (p. ej.
+     * 401/413, donde un segundo intento fallaría igual).
+     *
+     * @param mensaje descripción del fallo del proveedor de IA
+     * @param causa excepción original que originó el fallo
+     */
+    public AiServiceUnavailableException(String mensaje, Throwable causa) {
+<span class="fc" id="L31">        this(mensaje, causa, false);</span>
+<span class="fc" id="L32">    }</span>
+
+    /**
+     * Crea la excepción indicando explícitamente si el fallo es transitorio.
+     *
+     * @param mensaje descripción del fallo del proveedor de IA
+     * @param causa excepción original que originó el fallo
+     * @param reintentable {@code true} si el fallo es transitorio (429, timeout) y
+     *                      un reintento razonable podría tener éxito
+     */
+    public AiServiceUnavailableException(String mensaje, Throwable causa, boolean reintentable) {
+<span class="fc" id="L43">        super(mensaje, causa);</span>
+<span class="fc" id="L44">        this.reintentable = reintentable;</span>
+<span class="fc" id="L45">    }</span>
+
+    /**
+     * @return {@code true} si el fallo es transitorio (429, timeout) y un
+     *         reintento razonable podría tener éxito; {@code false} para
+     *         fallos que un reintento no resolvería (401, 413)
+     */
+    public boolean isReintentable() {
+<span class="fc" id="L53">        return reintentable;</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

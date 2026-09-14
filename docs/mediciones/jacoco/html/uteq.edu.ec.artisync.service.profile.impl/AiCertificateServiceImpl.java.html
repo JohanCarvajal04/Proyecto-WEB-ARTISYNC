@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AiCertificateServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.profile.impl</a> &gt; <span class="el_source">AiCertificateServiceImpl.java</span></div><h1>AiCertificateServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.profile.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.dto.request.profile.CreateAiCertificateRequest;
+import uteq.edu.ec.artisync.dto.response.profile.AiCertificateResponse;
+import uteq.edu.ec.artisync.entity.profile.AiCertificate;
+import uteq.edu.ec.artisync.entity.profile.VerificationStatus;
+import uteq.edu.ec.artisync.entity.security.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.repository.profile.AiCertificateRepository;
+import uteq.edu.ec.artisync.repository.profile.VerificationStatusRepository;
+import uteq.edu.ec.artisync.repository.security.UserRepository;
+import uteq.edu.ec.artisync.service.profile.IAiCertificateService;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class AiCertificateServiceImpl implements IAiCertificateService {
+
+    private final AiCertificateRepository certificadoRepository;
+    private final UserRepository usuarioRepository;
+    private final VerificationStatusRepository estadoRepository;
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;CERTIFICADO_EMITIR&quot;, modulo = AuditModule.PORTAFOLIO,
+            entidad = &quot;certificados_ia&quot;, idEntidad = &quot;#resultado.idCertificado&quot;,
+            detalle = &quot;{idUsuario: #peticion.idUsuario, idEstadoVerificacion: #peticion.idEstadoVerificacion}&quot;)
+    public AiCertificateResponse issueCertificate(CreateAiCertificateRequest peticion) {
+<span class="fc" id="L37">        User usuario = usuarioRepository.findById(peticion.idUsuario())</span>
+<span class="fc" id="L38">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User no encontrado con ID: &quot; + peticion.idUsuario()));</span>
+
+<span class="fc" id="L40">        VerificationStatus estado = estadoRepository.findById(peticion.idEstadoVerificacion())</span>
+<span class="fc" id="L41">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Estado de verificación no encontrado con ID: &quot; + peticion.idEstadoVerificacion()));</span>
+
+<span class="fc" id="L43">        AiCertificate certificado = AiCertificate.builder()</span>
+<span class="fc" id="L44">                .usuario(usuario)</span>
+<span class="fc" id="L45">                .estadoVerificacion(estado)</span>
+<span class="fc" id="L46">                .urlDocumentoS3(peticion.urlDocumentoS3())</span>
+<span class="fc" id="L47">                .puntajeConfianzaIa(peticion.puntajeConfianzaIa())</span>
+<span class="fc" id="L48">                .build();</span>
+
+<span class="fc" id="L50">        AiCertificate guardado = certificadoRepository.save(certificado);</span>
+<span class="fc" id="L51">        return mapToResponse(guardado);</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(readOnly = true)
+    public AiCertificateResponse getCertificateById(Long idCertificado) {
+<span class="fc" id="L58">        AiCertificate certificado = certificadoRepository.findById(idCertificado)</span>
+<span class="fc" id="L59">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Certificado IA no encontrado con ID: &quot; + idCertificado));</span>
+<span class="fc" id="L60">        return mapToResponse(certificado);</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;AiCertificateResponse&gt; listCertificatesByUser(Long idUsuario) {
+<span class="fc" id="L67">        return certificadoRepository.findByUsuarioIdUsuario(idUsuario).stream()</span>
+<span class="fc" id="L68">                .map(this::mapToResponse)</span>
+<span class="fc" id="L69">                .collect(Collectors.toList());</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;AiCertificateResponse&gt; listAllCertificates() {
+<span class="fc" id="L76">        return certificadoRepository.findAll().stream()</span>
+<span class="fc" id="L77">                .map(this::mapToResponse)</span>
+<span class="fc" id="L78">                .collect(Collectors.toList());</span>
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;CERTIFICADO_ELIMINAR&quot;, modulo = AuditModule.PORTAFOLIO,
+            entidad = &quot;certificados_ia&quot;, idEntidad = &quot;#idCertificado&quot;)
+    public void deleteCertificate(Long idCertificado) {
+<span class="fc bfc" id="L87" title="All 2 branches covered.">        if (!certificadoRepository.existsById(idCertificado)) {</span>
+<span class="fc" id="L88">            throw new ResourceNotFoundException(&quot;Certificado IA no encontrado con ID: &quot; + idCertificado);</span>
+        }
+<span class="fc" id="L90">        certificadoRepository.deleteById(idCertificado);</span>
+<span class="fc" id="L91">    }</span>
+
+    private AiCertificateResponse mapToResponse(AiCertificate certificado) {
+<span class="fc" id="L94">        return AiCertificateResponse.builder()</span>
+<span class="fc" id="L95">                .idCertificado(certificado.getIdCertificado())</span>
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">                .idUsuario(certificado.getUsuario() != null ? certificado.getUsuario().getIdUsuario() : null)</span>
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">                .idEstadoVerificacion(certificado.getEstadoVerificacion() != null ? certificado.getEstadoVerificacion().getIdEstadoVerificacion() : null)</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">                .nombreEstadoVerificacion(certificado.getEstadoVerificacion() != null ? certificado.getEstadoVerificacion().getNombreEstado() : null)</span>
+<span class="fc" id="L99">                .urlDocumentoS3(certificado.getUrlDocumentoS3())</span>
+<span class="fc" id="L100">                .puntajeConfianzaIa(certificado.getPuntajeConfianzaIa())</span>
+<span class="fc" id="L101">                .fechaAnalisis(certificado.getFechaAnalisis())</span>
+<span class="fc" id="L102">                .build();</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

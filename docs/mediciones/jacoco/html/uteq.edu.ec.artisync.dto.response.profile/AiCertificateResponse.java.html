@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AiCertificateResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.dto.response.profile</a> &gt; <span class="el_source">AiCertificateResponse.java</span></div><h1>AiCertificateResponse.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.dto.response.profile;
+
+import lombok.Builder;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+/**
+ * Objeto de transferencia de datos (DTO) utilizado como carga útil de respuesta (Response).
+ * 
+ * Propósito: Proyeccion de la declaracion de uso de herramientas de IA del creador.
+ * 
+ * Este DTO se encarga de serializar la información hacia el cliente, enmascarando 
+ * el modelo de dominio interno (Entidades JPA) y exponiendo estrictamente los 
+ * atributos necesarios para cumplir con el contrato de esta vista del API.
+ *
+ * @param idCertificado id del certificado
+ * @param idUsuario id del usuario creador que lo declaró
+ * @param idEstadoVerificacion id del estado de verificación actual
+ * @param nombreEstadoVerificacion nombre legible del estado de verificación
+ * @param urlDocumentoS3 referencia de almacenamiento del documento
+ * @param puntajeConfianzaIa puntaje de confianza devuelto por el análisis de IA
+ * @param fechaAnalisis fecha en que se analizó el documento
+ */
+@Builder
+<span class="fc" id="L25">public record AiCertificateResponse(</span>
+        Long idCertificado,
+        Long idUsuario,
+        Long idEstadoVerificacion,
+        String nombreEstadoVerificacion,
+        String urlDocumentoS3,
+        BigDecimal puntajeConfianzaIa,
+        LocalDateTime fechaAnalisis
+) {
+}
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PortfolioController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.profile</a> &gt; <span class="el_source">PortfolioController.java</span></div><h1>PortfolioController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.profile;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.request.profile.CreatePortfolioRequest;
+import uteq.edu.ec.artisync.dto.request.profile.UpdatePortfolioRequest;
+import uteq.edu.ec.artisync.dto.response.comun.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.profile.PortfolioResponse;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.profile.IPortfolioService;
+
+import java.util.List;
+
+/** Gestión del portafolio de un creador. */
+@RestController
+@RequestMapping(&quot;/api/v1/portafolios&quot;)
+@RequiredArgsConstructor
+public class PortfolioController {
+
+    private final IPortfolioService portafolioServicio;
+
+    /**
+     * Crea el portafolio de un perfil de creador.
+     *
+     * @param peticion datos del portafolio a crear
+     * @param userDetails usuario autenticado que crea el portafolio
+     * @return el portafolio creado, con estado 201
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el perfil de creador ya cuenta con un portafolio registrado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil de creador no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no tiene permisos para crear un portafolio para ese perfil
+     */
+    @PostMapping
+    @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;PortfolioResponse&gt; createPortfolio(
+            @Valid @RequestBody CreatePortfolioRequest peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L42">        PortfolioResponse respuesta = portafolioServicio.createPortfolio(peticion, userDetails.getIdUsuario());</span>
+<span class="fc" id="L43">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+    }
+
+    /**
+     * Obtiene un portafolio por su identificador.
+     *
+     * @param id identificador del portafolio
+     * @return el portafolio solicitado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
+     */
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;PortfolioResponse&gt; getPortfolioById(@PathVariable Long id) {
+<span class="fc" id="L55">        return ResponseEntity.ok(portafolioServicio.getPortfolioById(id));</span>
+    }
+
+    /**
+     * Obtiene el portafolio asociado a un perfil de creador.
+     *
+     * @param idPerfil identificador del perfil de creador
+     * @return el portafolio del perfil
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si no existe portafolio para el perfil
+     */
+    @GetMapping(&quot;/perfil/{idPerfil}&quot;)
+    public ResponseEntity&lt;PortfolioResponse&gt; getPortfolioByProfile(@PathVariable Long idPerfil) {
+<span class="fc" id="L67">        return ResponseEntity.ok(portafolioServicio.getPortfolioByProfile(idPerfil));</span>
+    }
+
+    /**
+     * Lista todos los portafolios del sistema.
+     *
+     * @return listado de portafolios
+     */
+    @GetMapping
+    public ResponseEntity&lt;List&lt;PortfolioResponse&gt; &gt; listPortfolios() {
+<span class="fc" id="L77">        return ResponseEntity.ok(portafolioServicio.listPortfolios());</span>
+    }
+
+    /**
+     * Actualiza los datos de un portafolio existente.
+     *
+     * @param id identificador del portafolio a actualizar
+     * @param peticion datos actualizados del portafolio
+     * @param userDetails usuario autenticado que solicita la actualización
+     * @return el portafolio actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no tiene permisos para modificar el portafolio
+     */
+    @PutMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;PortfolioResponse&gt; updatePortfolio(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdatePortfolioRequest peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L96">        return ResponseEntity.ok(portafolioServicio.updatePortfolio(id, peticion, userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Registra una visita al portafolio, incrementando su contador de visitas.
+     *
+     * @param id identificador del portafolio visitado
+     * @param userDetails usuario autenticado que registra la visita
+     * @return mensaje de confirmación del registro de la visita
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
+     */
+    @PostMapping(&quot;/{id}/visita&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;MessageResponse&gt; recordVisit(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L112">        portafolioServicio.incrementVisits(id, userDetails.getIdUsuario());</span>
+<span class="fc" id="L113">        return ResponseEntity.ok(new MessageResponse(&quot;Visita al portafolio incrementada&quot;));</span>
+    }
+
+    /**
+     * Elimina un portafolio como acción de moderación.
+     *
+     * @param id identificador del portafolio a eliminar
+     * @return mensaje de confirmación de la eliminación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
+     */
+    @DeleteMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_MODERAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;MessageResponse&gt; deletePortfolio(@PathVariable Long id) {
+<span class="fc" id="L126">        portafolioServicio.deletePortfolio(id);</span>
+<span class="fc" id="L127">        return ResponseEntity.ok(new MessageResponse(&quot;Portfolio eliminado exitosamente&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

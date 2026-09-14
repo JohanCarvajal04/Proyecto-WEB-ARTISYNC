@@ -22,26 +22,42 @@ import org.springframework.context.annotation.Configuration;
     @Value(&quot;${paypal.webhook-id:webhook_id}&quot;)
     private String webhookId;
 
+    /**
+     * @return el Client ID de la app de PayPal (variable de entorno {@code paypal.client-id})
+     */
     public String getClientId() {
-<span class="nc" id="L26">        return clientId;</span>
+<span class="nc" id="L29">        return clientId;</span>
     }
 
+    /**
+     * @return el Client Secret de la app de PayPal (variable de entorno {@code paypal.client-secret})
+     */
     public String getClientSecret() {
-<span class="nc" id="L30">        return clientSecret;</span>
+<span class="nc" id="L36">        return clientSecret;</span>
     }
 
+    /**
+     * @return {@code &quot;sandbox&quot;} o {@code &quot;live&quot;}, según {@code paypal.mode}; determina la URL base
+     */
     public String getMode() {
-<span class="nc" id="L34">        return mode;</span>
+<span class="nc" id="L43">        return mode;</span>
     }
 
+    /**
+     * @return el identificador del webhook de PayPal, usado para verificar la
+     *         firma de los eventos entrantes
+     */
     public String getWebhookId() {
-<span class="nc" id="L38">        return webhookId;</span>
+<span class="nc" id="L51">        return webhookId;</span>
     }
 
+    /**
+     * @return la URL base de la API de PayPal Orders v2 que corresponde al {@link #mode} configurado
+     */
     public String getBaseUrl() {
-<span class="nc bnc" id="L42" title="All 2 branches missed.">        return &quot;sandbox&quot;.equalsIgnoreCase(mode)</span>
-<span class="nc" id="L43">                ? &quot;https://api-m.sandbox.paypal.com&quot;</span>
-<span class="nc" id="L44">                : &quot;https://api-m.paypal.com&quot;;</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        return &quot;sandbox&quot;.equalsIgnoreCase(mode)</span>
+<span class="nc" id="L59">                ? &quot;https://api-m.sandbox.paypal.com&quot;</span>
+<span class="nc" id="L60">                : &quot;https://api-m.paypal.com&quot;;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

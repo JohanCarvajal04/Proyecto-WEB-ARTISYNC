@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PortfolioLikeServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.communication.impl</a> &gt; <span class="el_source">PortfolioLikeServiceImpl.java</span></div><h1>PortfolioLikeServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.communication.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.dto.response.communication.LikeStatusResponse;
+import uteq.edu.ec.artisync.entity.communication.PortfolioLike;
+import uteq.edu.ec.artisync.entity.profile.PortfolioItem;
+import uteq.edu.ec.artisync.entity.security.User;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.repository.communication.PortfolioLikeRepository;
+import uteq.edu.ec.artisync.repository.profile.PortfolioItemRepository;
+import uteq.edu.ec.artisync.repository.security.UserRepository;
+import uteq.edu.ec.artisync.service.communication.PortfolioLikeService;
+
+/**
+ * Implementación del servicio de &quot;me gusta&quot; sobre ítems de portafolio.
+ */
+<span class="fc" id="L23">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class PortfolioLikeServiceImpl implements PortfolioLikeService {
+
+    private final PortfolioLikeRepository likeRepository;
+    private final PortfolioItemRepository portafolioItemRepository;
+    private final UserRepository usuarioRepository;
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;LIKE_DAR&quot;, modulo = AuditModule.COMUNICACION,
+            entidad = &quot;likes_portafolio&quot;, idEntidad = &quot;#idItemPortafolio&quot;)
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idItemPortafolio identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public LikeStatusResponse like(Long idItemPortafolio, Long idUsuario) {
+<span class="fc" id="L45">        PortfolioItem item = getItem(idItemPortafolio);</span>
+
+        // La restricción UNIQUE de la tabla ya lo impide; se comprueba antes
+        // para devolver un 409 con mensaje de dominio en vez de un error de
+        // integridad de base de datos.
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        if (likeRepository.existsByItemPortafolioIdItemPortafolioAndUsuarioIdUsuario(idItemPortafolio, idUsuario)) {</span>
+<span class="fc" id="L51">            throw new DuplicateResourceException(&quot;Ya le diste like a esta obra&quot;);</span>
+        }
+
+<span class="fc" id="L54">        User usuario = usuarioRepository.findById(idUsuario)</span>
+<span class="fc" id="L55">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User no encontrado: &quot; + idUsuario));</span>
+
+<span class="fc" id="L57">        likeRepository.save(PortfolioLike.builder()</span>
+<span class="fc" id="L58">                .itemPortafolio(item)</span>
+<span class="fc" id="L59">                .usuario(usuario)</span>
+<span class="fc" id="L60">                .build());</span>
+
+<span class="fc" id="L62">        log.info(&quot;User {} dio like al ítem de portafolio {}&quot;, idUsuario, idItemPortafolio);</span>
+<span class="fc" id="L63">        return buildStatus(idItemPortafolio, true);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;LIKE_QUITAR&quot;, modulo = AuditModule.COMUNICACION,
+            entidad = &quot;likes_portafolio&quot;, idEntidad = &quot;#idItemPortafolio&quot;)
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idItemPortafolio identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public LikeStatusResponse unlike(Long idItemPortafolio, Long idUsuario) {
+<span class="fc" id="L79">        PortfolioLike like = likeRepository</span>
+<span class="fc" id="L80">                .findByItemPortafolioIdItemPortafolioAndUsuarioIdUsuario(idItemPortafolio, idUsuario)</span>
+<span class="fc" id="L81">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;No le has dado like a esta obra&quot;));</span>
+
+<span class="fc" id="L83">        likeRepository.delete(like);</span>
+<span class="fc" id="L84">        log.info(&quot;User {} quitó el like del ítem de portafolio {}&quot;, idUsuario, idItemPortafolio);</span>
+<span class="fc" id="L85">        return buildStatus(idItemPortafolio, false);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idItemPortafolio identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public LikeStatusResponse getStatus(Long idItemPortafolio, Long idUsuario) {
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        boolean meGusta = idUsuario != null</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">                &amp;&amp; likeRepository.existsByItemPortafolioIdItemPortafolioAndUsuarioIdUsuario(idItemPortafolio, idUsuario);</span>
+<span class="fc" id="L101">        return buildStatus(idItemPortafolio, meGusta);</span>
+    }
+
+    // -------------------------------------------------------------------------
+    private PortfolioItem getItem(Long idItemPortafolio) {
+<span class="fc" id="L106">        return portafolioItemRepository.findById(idItemPortafolio)</span>
+<span class="fc" id="L107">                .orElseThrow(() -&gt; new ResourceNotFoundException(</span>
+                        &quot;Ítem de portafolio no encontrado: &quot; + idItemPortafolio));
+    }
+
+    private LikeStatusResponse buildStatus(Long idItemPortafolio, boolean meGusta) {
+<span class="fc" id="L112">        long total = likeRepository.countByItemPortafolioIdItemPortafolio(idItemPortafolio);</span>
+<span class="fc" id="L113">        return LikeStatusResponse.builder()</span>
+<span class="fc" id="L114">                .idItemPortafolio(idItemPortafolio)</span>
+<span class="fc" id="L115">                .totalLikes(total)</span>
+<span class="fc" id="L116">                .meGusta(meGusta)</span>
+<span class="fc" id="L117">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
