@@ -87,3 +87,35 @@ curl -sD - -o /dev/null -X POST https://artisync-frontend.onrender.com/api/v1/au
 
 (cuenta semilla documentada en `README.md` §"Credenciales de arranque",
 pensada para este tipo de verificación).
+
+## 5. Captura real (14-09-2026, backend activo) — SameSite todavía sin actualizar
+
+El backend volvió a estar activo y respondió con el `Set-Cookie` real:
+
+```
+$ curl -sD - -o /dev/null -X POST https://artisync-frontend.onrender.com/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"correo":"admin@artisync.com","contrasena":"ArtisyncAdmin2026!"}'
+HTTP/1.1 200 OK
+...
+Set-Cookie: refreshToken=<jwt>; Path=/api/v1/auth; Max-Age=604800;
+  Expires=Mon, 21 Sep 2026 06:24:14 GMT; Secure; HttpOnly; SameSite=Lax
+```
+
+Capturado 2026-09-14 06:24 UTC. Confirma `Secure`, `HttpOnly`, `Path` y
+`Max-Age` en producción — pero `SameSite=Lax`, no `Strict`.
+
+**Causa:** Render despliega `origin/main`, que sigue apuntando a `a92629cd`
+— el mismo commit evaluado por el docente, anterior al cambio de la Fase 2
+de este plan (`SameSite("Lax")` → `SameSite("Strict")` en
+`AuthController.escribirCookie`). El trabajo de las fases 2 a 6 vive en la
+rama local `examen-final-100`, que todavía no se ha empujado a `origin` ni
+fusionado a `main`; por eso el backend en vivo no refleja el cambio.
+
+**Pendiente, bloqueado en esta sesión:** empujar `examen-final-100` (o
+fusionarla a `main`) y disparar el redespliegue en Render requiere acceso
+autenticado a Render que esta sesión no tiene, además de ser una acción con
+efecto en un sistema compartido (push público + despliegue de producción)
+que corresponde confirmar explícitamente antes de ejecutarla. Una vez
+autorizado y desplegado, repetir el `curl` de arriba y reemplazar esta
+sección con `SameSite=Strict`.
