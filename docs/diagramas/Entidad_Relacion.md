@@ -2,12 +2,11 @@
 
 Este documento contiene el diagrama Entidad-Relación (ER) del modelo de dominio del
 backend de Artisync, construido a partir de las clases @Entity reales en
-rtisync/Backend/src/main/java/uteq/edu/ec/artisync/entity/.
+Artisync/Backend/src/main/java/uteq/edu/ec/artisync/entity/.
 
-**Nota sobre idiomas:** Las clases de dominio (Entity) en el código fuente de Java están en **inglés** (ej. User, Country, Role), por lo que los bloques del diagrama utilizan estos nombres. Sin embargo, los atributos internos y las columnas mapeadas a la base de datos están en **español** (ej. idUsuario, 
-ombres, pellidos), lo cual se refleja fielmente en los campos de cada entidad.
+**Nota sobre idiomas:** Las clases de dominio (Entity) en el código fuente de Java están en **inglés** (ej. User, Country, Role), por lo que los bloques del diagrama utilizan estos nombres. Los atributos internos y las columnas mapeadas a la base de datos están, en el código fuente actual, todavía en **español** (ej. `idUsuario`, `nombres`, `apellidos`); en este diagrama se muestran **traducidos al inglés** (ej. `userId`, `firstName`, `lastName`) para mantener toda la documentación de figuras en inglés.
 
-`mermaid
+```mermaid
 erDiagram
     CreatorProfile ||--o{ Offering : "profile"
     Workflow ||--o{ Offering : "workflow"
@@ -79,414 +78,414 @@ erDiagram
     RafflePrize ||--o{ RaffleParticipant : "prize"
     Raffle ||--o{ RafflePrize : "raffle"
     AuditEvent {
-        Long idEventoAuditoria PK
-        LocalDateTime fechaEvento
-        Long idUsuarioActor PK
-        String correoActor
-        String moduloAuditoria
-        String accionAuditoria
-        String resultadoEvento
-        String entidadAfectada
-        Long idEntidadAfectada PK
-        Json detalleCambio
-        String mensajeError
-        String direccionIp
-        String agenteUsuario
-        String metodoHttp
-        String rutaSolicitud
-        Integer duracionMs
+        Long auditEventId PK
+        LocalDateTime eventDate
+        Long actorUserId PK
+        String actorEmail
+        String auditModule
+        String auditAction
+        String eventResult
+        String affectedEntity
+        Long affectedEntityId PK
+        Json changeDetail
+        String errorMessage
+        String ipAddress
+        String userAgent
+        String httpMethod
+        String requestPath
+        Integer durationMs
     }
     Category {
-        Long idCategoria PK
-        String nombreCategoria
+        Long categoryId PK
+        String categoryName
     }
     DynamicAttribute {
-        Long idAtributo PK
-        String nombreAtributo
-        String tipoDato
+        Long attributeId PK
+        String attributeName
+        String dataType
     }
     Offering {
-        Long idServicio PK
-        Long perfilId FK
-        String tituloServicio
-        String descripcionDetallada
-        BigDecimal precioBase
-        String urlMiniatura
-        Long flujoId FK
-        Long plantillaContratoId FK
-        Long briefingPlantillaId FK
+        Long offeringId PK
+        Long profileId FK
+        String title
+        String detailedDescription
+        BigDecimal basePrice
+        String thumbnailUrl
+        Long workflowId FK
+        Long contractTemplateId FK
+        Long briefingTemplateId FK
     }
     OfferingAttribute {
-        Long idServicioAtributo PK
-        Long servicioId FK
-        Long atributoId FK
-        String valorAsignado
+        Long offeringAttributeId PK
+        Long offeringId FK
+        Long attributeId FK
+        String assignedValue
     }
     OfferingSubcategory {
-        Long idServicioSubcategoria PK
-        Long servicioId FK
-        Long subcategoriaId FK
+        Long offeringSubcategoryId PK
+        Long offeringId FK
+        Long subcategoryId FK
     }
     OfferingTag {
-        Long idServicioEtiqueta PK
-        Long servicioId FK
-        Long etiquetaId FK
+        Long offeringTagId PK
+        Long offeringId FK
+        Long tagId FK
     }
     Subcategory {
-        Long idSubcategoria PK
-        Long categoriaId FK
-        String nombreSubcategoria
+        Long subcategoryId PK
+        Long categoryId FK
+        String subcategoryName
     }
     Tag {
-        Long idEtiqueta PK
-        String nombreEtiqueta
+        Long tagId PK
+        String tagName
     }
     Workflow {
-        Long idFlujo PK
-        String nombreFlujo
-        String descripcionFlujo
+        Long workflowId PK
+        String workflowName
+        String workflowDescription
     }
     BriefingAnswer {
-        Long idRespuesta PK
-        Long briefingEnviadoId FK
-        Long preguntaId FK
-        String textoRespuesta
-        LocalDateTime fechaRespuesta
+        Long answerId PK
+        Long sentBriefingId FK
+        Long questionId FK
+        String answerText
+        LocalDateTime answerDate
     }
     BriefingQuestion {
-        Long idPregunta PK
-        Long plantillaId FK
-        String textoPregunta
-        Integer numeroOrden
+        Long questionId PK
+        Long templateId FK
+        String questionText
+        Integer orderNumber
     }
     BriefingTemplate {
-        Long idBriefingPlantilla PK
-        Long perfilCreadorId FK
-        String nombrePlantilla
-        LocalDateTime fechaCreacion
+        Long briefingTemplateId PK
+        Long creatorProfileId FK
+        String templateName
+        LocalDateTime creationDate
     }
     Follower {
-        Long idSeguimiento PK
-        Long usuarioSeguidorId FK
-        Long perfilCreadorId FK
-        LocalDateTime fechaSeguimiento
+        Long followId PK
+        Long followerUserId FK
+        Long creatorProfileId FK
+        LocalDateTime followDate
     }
     MessageViolation {
-        Long idInfraccion PK
-        Long usuarioId FK
-        Long pedidoId FK
-        String mensajeOriginal
-        String patronDetectado
-        LocalDateTime fechaInfraccion
+        Long violationId PK
+        Long userId FK
+        Long orderId FK
+        String originalMessage
+        String detectedPattern
+        LocalDateTime violationDate
     }
     NotificationType {
-        Long idTipoNotificacion PK
-        String nombreEvento
-        String formatoMensaje
+        Long notificationTypeId PK
+        String eventName
+        String messageFormat
     }
     PortfolioComment {
-        Long idComentario PK
-        Long itemPortafolioId FK
-        Long usuarioAutorId FK
-        String textoComentario
-        LocalDateTime fechaPublicacion
+        Long commentId PK
+        Long portfolioItemId FK
+        Long authorUserId FK
+        String commentText
+        LocalDateTime publicationDate
     }
     PortfolioLike {
-        Long idLike PK
-        Long itemPortafolioId FK
-        Long usuarioId FK
-        LocalDateTime fechaLike
+        Long likeId PK
+        Long portfolioItemId FK
+        Long userId FK
+        LocalDateTime likeDate
     }
     SentBriefing {
-        Long idBriefingEnviado PK
-        Long pedidoId FK
-        Long plantillaId FK
-        LocalDateTime fechaEnvio
+        Long sentBriefingId PK
+        Long orderId FK
+        Long templateId FK
+        LocalDateTime sentDate
     }
     SystemNotification {
-        Long idNotificacion PK
-        Long usuarioId FK
-        Long tipoNotificacionId FK
-        String mensaje
-        LocalDateTime fechaEmision
+        Long notificationId PK
+        Long userId FK
+        Long notificationTypeId FK
+        String message
+        LocalDateTime issueDate
     }
     ChatRoom {
-        Long idSala PK
-        Long pedidoId FK
-        LocalDateTime fechaApertura
+        Long roomId PK
+        Long orderId FK
+        LocalDateTime openDate
     }
     Contract {
-        Long idContrato PK
-        Long pedidoId FK
-        Long plantillaId FK
-        String hashFirmaCliente
-        String hashFirmaCreador
-        LocalDateTime fechaFormalizacion
-        String urlDocumentoPdf
-        String contenidoCongelado
-        String hashContenido
-        LocalDateTime fechaHashContenido
-        LocalDateTime fechaLimiteRetencion
+        Long contractId PK
+        Long orderId FK
+        Long templateId FK
+        String clientSignatureHash
+        String creatorSignatureHash
+        LocalDateTime formalizationDate
+        String pdfDocumentUrl
+        String frozenContent
+        String contentHash
+        LocalDateTime contentHashDate
+        LocalDateTime retentionDeadline
     }
     EscrowPayment {
-        Long idPago PK
-        Long contratoId FK
-        String idOrdenPaypal PK
-        BigDecimal montoRetenido
-        String mensajeError
-        LocalDateTime fechaCreacion
-        LocalDateTime fechaActualizacion
+        Long paymentId PK
+        Long contractId FK
+        String paypalOrderId PK
+        BigDecimal heldAmount
+        String errorMessage
+        LocalDateTime creationDate
+        LocalDateTime updateDate
     }
     FinalDeliverable {
-        Long idEntregable PK
-        Long pedidoId FK
-        String urlVersionMarcaAgua
-        String urlVersionLimpia
+        Long deliverableId PK
+        Long orderId FK
+        String watermarkedVersionUrl
+        String cleanVersionUrl
     }
     Message {
-        Long idMensaje PK
-        Long salaId FK
-        Long remitenteId FK
-        String cuerpoMensaje
-        LocalDateTime fechaHoraEnvio
+        Long messageId PK
+        Long roomId FK
+        Long senderId FK
+        String messageBody
+        LocalDateTime sentAt
     }
     PaymentTransaction {
-        Long idTransaccion PK
-        Long pagoId FK
-        String tipoTransaccion
-        BigDecimal monto
-        LocalDateTime fechaEjecucion
+        Long transactionId PK
+        Long paymentId FK
+        String transactionType
+        BigDecimal amount
+        LocalDateTime executionDate
     }
     RevisionTicketPayment {
-        Long idPagoTicket PK
+        Long ticketPaymentId PK
         Long ticketId FK
-        String idOrdenPaypal PK
-        String urlAprobacion
-        BigDecimal monto
-        String mensajeError
-        LocalDateTime fechaCreacion
-        LocalDateTime fechaActualizacion
+        String paypalOrderId PK
+        String approvalUrl
+        BigDecimal amount
+        String errorMessage
+        LocalDateTime creationDate
+        LocalDateTime updateDate
     }
     WithdrawalRequest {
-        Long idSolicitud PK
-        Long usuarioCreadorId FK
-        BigDecimal montoSolicitado
-        String correoPaypalDestino
-        String idPayoutPaypal PK
-        String idItemPayoutPaypal PK
-        String notaAdmin
-        String mensajeError
-        LocalDateTime fechaSolicitud
-        LocalDateTime fechaDecision
-        LocalDateTime fechaPago
-        Long adminDecisorId FK
+        Long requestId PK
+        Long creatorUserId FK
+        BigDecimal requestedAmount
+        String destinationPaypalEmail
+        String paypalPayoutId PK
+        String paypalPayoutItemId PK
+        String adminNote
+        String errorMessage
+        LocalDateTime requestDate
+        LocalDateTime decisionDate
+        LocalDateTime paymentDate
+        Long adminDeciderId FK
     }
     ContractTemplate {
-        Long idPlantilla PK
-        String versionLegal
-        String cuerpoHtmlPlantilla
-        String nombrePlantilla
-        Long idCreador PK
+        Long templateId PK
+        String legalVersion
+        String templateHtmlBody
+        String templateName
+        Long creatorId PK
     }
     Order {
-        Long idPedido PK
-        Long usuarioClienteId FK
-        Long servicioId FK
-        Long flujoId FK
-        LocalDateTime fechaInicio
-        LocalDateTime fechaEntregaEstimada
-        BigDecimal precioPactado
+        Long orderId PK
+        Long clientUserId FK
+        Long offeringId FK
+        Long workflowId FK
+        LocalDateTime startDate
+        LocalDateTime estimatedDeliveryDate
+        BigDecimal agreedPrice
     }
     OrderStatusHistory {
-        Long idHistorialEstado PK
-        Long pedidoId FK
-        Long etapaId FK
-        LocalDateTime fechaTransicion
-        String observacion
+        Long statusHistoryId PK
+        Long orderId FK
+        Long stageId FK
+        LocalDateTime transitionDate
+        String remark
     }
     OrderTermsProposal {
-        Long idPropuesta PK
-        Long pedidoId FK
-        Long propuestoPorId FK
-        BigDecimal precioPropuesto
-        LocalDateTime fechaEntregaPropuesta
-        LocalDateTime fechaCreacion
-        LocalDateTime fechaResolucion
+        Long proposalId PK
+        Long orderId FK
+        Long proposedById FK
+        BigDecimal proposedPrice
+        LocalDateTime proposedDeliveryDate
+        LocalDateTime creationDate
+        LocalDateTime resolutionDate
     }
     RejectionReason {
-        Long idMotivo PK
-        String descripcionMotivo
+        Long reasonId PK
+        String reasonDescription
     }
     RevisionTicket {
-        Long idTicket PK
-        Long pedidoId FK
-        Long motivoId FK
-        String descripcionCliente
-        LocalDateTime fechaCreacion
+        Long ticketId PK
+        Long orderId FK
+        Long reasonId FK
+        String clientDescription
+        LocalDateTime creationDate
     }
     WorkflowStage {
-        Long idEtapa PK
-        String nombreEtapa
+        Long stageId PK
+        String stageName
     }
     WorkflowStageConfig {
-        Long idFlujoEtapa PK
-        Long flujoId FK
-        Long etapaId FK
-        Integer numeroOrden
+        Long workflowStageId PK
+        Long workflowId FK
+        Long stageId FK
+        Integer orderNumber
     }
     AiCertificate {
-        Long idCertificado PK
-        Long usuarioId FK
-        Long estadoVerificacionId FK
-        String urlDocumentoS3
-        BigDecimal puntajeConfianzaIa
-        String hashDocumento
-        String veredictoIa
-        String razonIa
-        String datosExtraidosIa
-        LocalDateTime fechaDictamenIa
-        Long moderadorId FK
-        LocalDateTime fechaDecision
-        String notaModerador
-        LocalDateTime fechaAnalisis
+        Long certificateId PK
+        Long userId FK
+        Long verificationStatusId FK
+        String documentS3Url
+        BigDecimal aiConfidenceScore
+        String documentHash
+        String aiVerdict
+        String aiReason
+        String aiExtractedData
+        LocalDateTime aiAssessmentDate
+        Long moderatorId FK
+        LocalDateTime decisionDate
+        String moderatorNote
+        LocalDateTime analysisDate
     }
     CreatorPaymentDetails {
-        Long idDatosPago PK
-        Long usuarioId FK
-        String correoPaypal
-        LocalDateTime fechaActualizacion
+        Long paymentDetailsId PK
+        Long userId FK
+        String paypalEmail
+        LocalDateTime updateDate
     }
     CreatorProfile {
-        Long idPerfil PK
-        Long usuarioId FK
-        String biografia
-        String urlRedSocial
-        String urlPortada
-        String tituloProfesional
+        Long profileId PK
+        Long userId FK
+        String biography
+        String socialMediaUrl
+        String coverUrl
+        String professionalTitle
     }
     Portfolio {
-        Long idPortafolio PK
-        Long perfilId FK
-        LocalDateTime fechaCreacion
+        Long portfolioId PK
+        Long profileId FK
+        LocalDateTime creationDate
     }
     PortfolioItem {
-        Long idItemPortafolio PK
-        Long portafolioId FK
-        String tituloObra
-        String descripcionObra
-        String urlArchivoMultimedia
-        LocalDateTime fechaSubida
+        Long portfolioItemId PK
+        Long portfolioId FK
+        String workTitle
+        String workDescription
+        String mediaFileUrl
+        LocalDateTime uploadDate
     }
     VerificationStatus {
-        Long idEstadoVerificacion PK
-        String nombreEstado
+        Long verificationStatusId PK
+        String statusName
     }
     Backup {
-        Long idRespaldo PK
-        BackupType tipoRespaldo
+        Long backupId PK
+        BackupType backupType
         BackupOrigin origen
-        Long programacionId FK
-        Long idRespaldoFullBase PK
-        String nombreArchivo
-        String rutaArchivo
-        Long tamanoBytes
-        LocalDateTime fechaInicio
-        LocalDateTime fechaFin
-        Integer duracionMs
-        String mensajeError
-        String correoSolicitante
-        LocalDateTime fechaDesdeIncremental
+        Long scheduleId FK
+        Long baseFullBackupId PK
+        String fileName
+        String filePath
+        Long sizeBytes
+        LocalDateTime startDate
+        LocalDateTime endDate
+        Integer durationMs
+        String errorMessage
+        String requesterEmail
+        LocalDateTime incrementalSinceDate
     }
     BackupSchedule {
-        Long idProgramacion PK
-        String nombre
-        BackupType tipoRespaldo
-        String expresionCron
-        Integer retencionDias
-        LocalDateTime proximaEjecucion
-        LocalDateTime ultimaEjecucion
-        String creadoPor
-        LocalDateTime fechaCreacion
-        LocalDateTime actualizadoEn
+        Long scheduleId PK
+        String name
+        BackupType backupType
+        String cronExpression
+        Integer retentionDays
+        LocalDateTime nextRun
+        LocalDateTime lastRun
+        String createdBy
+        LocalDateTime creationDate
+        LocalDateTime updatedAt
     }
     Country {
-        Long idPais PK
-        String nombrePais
+        Long countryId PK
+        String countryName
     }
     Permission {
-        Long idPermiso PK
-        String nombrePermiso
-        String moduloAplicacion
+        Long permissionId PK
+        String permissionName
+        String applicationModule
     }
     Role {
-        Long idRol PK
-        String nombreRol
-        String descripcionRol
+        Long roleId PK
+        String roleName
+        String roleDescription
     }
     TwoFactorAuthentication {
-        Long id2fa PK
-        Long usuarioId FK
-        String llaveSecreta
+        Long twoFaId PK
+        Long userId FK
+        String secretKey
     }
     TwoFactorBackupCode {
-        Long idCodigo PK
-        Long usuarioId FK
-        String codigoHash
+        Long codeId PK
+        Long userId FK
+        String codeHash
     }
     User {
-        Long idUsuario PK
-        String nombres
-        String apellidos
-        String correo
-        String contrasenaHash
+        Long userId PK
+        String firstName
+        String lastName
+        String email
+        String passwordHash
         Long paisId FK
-        LocalDateTime fechaRegistro
-        LocalDateTime actualizadoEn
-        LocalDate fechaNacimiento
-        String urlFotoPerfil
+        LocalDateTime registrationDate
+        LocalDateTime updatedAt
+        LocalDate birthDate
+        String profilePhotoUrl
     }
     UserRole {
-        Long idUsuarioRol PK
-        Long usuarioId FK
-        Long rolId FK
+        Long userRoleId PK
+        Long userId FK
+        Long roleId FK
     }
     UserSession {
-        Long idSesion PK
-        Long usuarioId FK
+        Long sessionId PK
+        Long userId FK
         String jti
-        String direccionIp
-        LocalDateTime fechaCreacion
-        LocalDateTime fechaExpiracion
+        String ipAddress
+        LocalDateTime creationDate
+        LocalDateTime expirationDate
     }
     OfferingReview {
-        Long idResena PK
-        Long pedidoId FK
-        Integer calificacionEstrellas
-        String textoResena
-        LocalDateTime fechaResena
+        Long reviewId PK
+        Long orderId FK
+        Integer starRating
+        String reviewText
+        LocalDateTime reviewDate
     }
     Raffle {
-        Long idSorteo PK
-        Long perfilCreadorId FK
-        String tituloSorteo
-        LocalDateTime fechaInicio
-        LocalDateTime fechaCierre
+        Long raffleId PK
+        Long creatorProfileId FK
+        String raffleTitle
+        LocalDateTime startDate
+        LocalDateTime closeDate
     }
     RaffleParticipant {
-        Long idParticipacion PK
-        Long sorteoId FK
-        Long usuarioId FK
-        LocalDateTime fechaInscripcion
-        LocalDateTime fechaNotificacionPremio
-        Long premioId FK
+        Long participationId PK
+        Long raffleId FK
+        Long userId FK
+        LocalDateTime registrationDate
+        LocalDateTime prizeNotificationDate
+        Long prizeId FK
     }
     RafflePrize {
-        Long idPremio PK
-        Long sorteoId FK
-        String descripcionPremio
-        Integer orden
+        Long prizeId PK
+        Long raffleId FK
+        String prizeDescription
+        Integer order
     }
-`
+```
 
 ## Mapeo de Entidades
 

@@ -31,26 +31,26 @@ sequenceDiagram
 
     Client->>AuthCtrl: POST /auth/login (email, password)
     AuthCtrl->>AuthSvc: login(request)
-    AuthSvc->>AuthSvc: authenticate + resolverEstadoLogin(email)
+    AuthSvc->>AuthSvc: authenticate + resolveLoginState(email)
 
     alt 2FA disabled
         AuthSvc->>UDS: loadUserByUsername(email)
-        AuthSvc->>JwtSvc: generarToken() / generarRefreshToken()
+        AuthSvc->>JwtSvc: generateToken() / generateRefreshToken()
         JwtSvc-->>AuthSvc: accessToken, refreshToken
         AuthSvc->>SessionRepo: save(UserSession)
         AuthSvc-->>Client: 200 OK + Set-Cookie refreshToken
     else 2FA enabled
-        AuthSvc->>Ticket: emitir(idUsuario, email)
+        AuthSvc->>Ticket: issue(userId, email)
         Ticket-->>AuthSvc: preAuthTicket
-        AuthSvc-->>Client: 200 OK requiere2fa=true + Set-Cookie preAuth2fa
+        AuthSvc-->>Client: 200 OK requires2fa=true + Set-Cookie preAuth2fa
         Client->>AuthCtrl: POST /auth/verify-2fa (code)
         AuthCtrl->>AuthSvc: verify2Fa(preAuth2fa cookie, code)
-        AuthSvc->>Ticket: resolver(preAuthTicket)
-        AuthSvc->>TwoFa: validarCodigoOBackup(email, code)
+        AuthSvc->>Ticket: resolve(preAuthTicket)
+        AuthSvc->>TwoFa: validateCodeOrBackup(email, code)
         TwoFa-->>AuthSvc: valid
-        AuthSvc->>Ticket: consumir(preAuthTicket)
+        AuthSvc->>Ticket: consume(preAuthTicket)
         AuthSvc->>UDS: loadUserByUsername(email)
-        AuthSvc->>JwtSvc: generarToken() / generarRefreshToken()
+        AuthSvc->>JwtSvc: generateToken() / generateRefreshToken()
         JwtSvc-->>AuthSvc: accessToken, refreshToken
         AuthSvc->>SessionRepo: save(UserSession)
         AuthSvc-->>Client: 200 OK + Set-Cookie refreshToken
@@ -65,7 +65,7 @@ sequenceDiagram
     else jti blacklisted
         Filter-->>Client: 401 Unauthorized (revoked token)
     else jti valid
-        Filter->>JwtSvc: esAccessTokenValido(token)
+        Filter->>JwtSvc: isAccessTokenValid(token)
         Filter->>Filter: populate SecurityContext
         Filter-->>Client: request proceeds
     end
@@ -73,15 +73,15 @@ sequenceDiagram
     Note over Client,Redis: Refresh and logout
     Client->>AuthCtrl: POST /auth/refresh (refreshToken cookie)
     AuthCtrl->>AuthSvc: refreshToken(token)
-    AuthSvc->>Revoke: revocarToken(oldJti)
-    Revoke->>Redis: SET jti:<oldJti>=revocado
+    AuthSvc->>Revoke: revokeToken(oldJti)
+    Revoke->>Redis: SET jti:<oldJti>=revoked
     AuthSvc->>SessionRepo: delete(oldSession) + save(newSession)
     AuthSvc-->>Client: 200 OK new accessToken/refreshToken
 
     Client->>AuthCtrl: POST /auth/logout
     AuthCtrl->>AuthSvc: logout(accessToken, refreshToken)
-    AuthSvc->>Revoke: revocarTokenPorCabecera(accessToken) + revocarToken(refreshToken)
-    Revoke->>Redis: SET jti:<accessJti>=revocado / jti:<refreshJti>=revocado
+    AuthSvc->>Revoke: revokeTokenFromHeader(accessToken) + revokeToken(refreshToken)
+    Revoke->>Redis: SET jti:<accessJti>=revoked / jti:<refreshJti>=revoked
     AuthSvc->>SessionRepo: deleteByJti(refreshJti)
     AuthSvc-->>Client: 200 OK (cookies cleared)
 ```
@@ -111,19 +111,19 @@ sequenceDiagram
     AuthSvc->>AuthMgr: authenticate(credentials)
     alt invalid credentials
         AuthMgr-->>AuthSvc: AuthenticationException
-        AuthSvc->>Quota: verificarCuota(email)
+        AuthSvc->>Quota: checkQuota(email)
         Quota-->>AuthSvc: attempt registered / account locked
         AuthSvc-->>Client: 401 Unauthorized
     else valid credentials
         AuthMgr-->>AuthSvc: authenticated principal
-        AuthSvc->>UserRepo: resolverEstadoLogin(email)
-        UserRepo-->>AuthSvc: idUsuario, dosFactoresHabilitado, roles
-        Note over AuthSvc: dosFactoresHabilitado = false, continue below
+        AuthSvc->>UserRepo: resolveLoginState(email)
+        UserRepo-->>AuthSvc: userId, twoFactorEnabled, roles
+        Note over AuthSvc: twoFactorEnabled = false, continue below
         AuthSvc->>UDS: loadUserByUsername(email)
         UDS-->>AuthSvc: UserDetails
-        AuthSvc->>JwtSvc: generarToken(userDetails)
+        AuthSvc->>JwtSvc: generateToken(userDetails)
         JwtSvc-->>AuthSvc: accessToken (jti, type=access)
-        AuthSvc->>JwtSvc: generarRefreshToken(userDetails)
+        AuthSvc->>JwtSvc: generateRefreshToken(userDetails)
         JwtSvc-->>AuthSvc: refreshToken (jti)
         AuthSvc->>SessionRepo: save(UserSession)
         SessionRepo-->>AuthSvc: persisted
@@ -143,7 +143,7 @@ sequenceDiagram
         Filter-->>Client: 401 Unauthorized (revoked token)
     else jti not blacklisted
         Redis-->>Filter: false
-        Filter->>JwtSvc: esAccessTokenValido(token)
+        Filter->>JwtSvc: isAccessTokenValid(token)
         JwtSvc-->>Filter: valid
         Filter->>Filter: populate SecurityContext
         Filter-->>Client: request proceeds to controller
@@ -166,29 +166,29 @@ sequenceDiagram
 
     Client->>AuthCtrl: POST /auth/login (email, password)
     AuthCtrl->>AuthSvc: login(request)
-    AuthSvc->>UserRepo: resolverEstadoLogin(email)
-    UserRepo-->>AuthSvc: idUsuario, dosFactoresHabilitado=true, roles
-    AuthSvc->>Ticket: emitir(idUsuario, email)
+    AuthSvc->>UserRepo: resolveLoginState(email)
+    UserRepo-->>AuthSvc: userId, twoFactorEnabled=true, roles
+    AuthSvc->>Ticket: issue(userId, email)
     Ticket-->>AuthSvc: preAuthTicket (one-time)
-    AuthSvc-->>AuthCtrl: requiere2fa=true, preAuthTicket
+    AuthSvc-->>AuthCtrl: requires2fa=true, preAuthTicket
     AuthCtrl-->>Client: 200 OK + Set-Cookie preAuth2fa (no JWT yet)
 
     Client->>AuthCtrl: POST /auth/verify-2fa (code)
     AuthCtrl->>AuthSvc: verify2Fa(preAuth2fa cookie, code)
-    AuthSvc->>Ticket: resolver(preAuthTicket)
-    Ticket-->>AuthSvc: idUsuario, email
-    AuthSvc->>UserRepo: resolverEstadoLogin(email)
+    AuthSvc->>Ticket: resolve(preAuthTicket)
+    Ticket-->>AuthSvc: userId, email
+    AuthSvc->>UserRepo: resolveLoginState(email)
     UserRepo-->>AuthSvc: current login state
-    AuthSvc->>TwoFa: validarCodigoOBackup(email, code)
+    AuthSvc->>TwoFa: validateCodeOrBackup(email, code)
     alt invalid code
         TwoFa-->>AuthSvc: invalid
         AuthSvc-->>Client: 401 Unauthorized
     else valid code
         TwoFa-->>AuthSvc: valid
-        AuthSvc->>Ticket: consumir(preAuthTicket)
+        AuthSvc->>Ticket: consume(preAuthTicket)
         AuthSvc->>UDS: loadUserByUsername(email)
         UDS-->>AuthSvc: UserDetails
-        AuthSvc->>JwtSvc: generarToken() / generarRefreshToken()
+        AuthSvc->>JwtSvc: generateToken() / generateRefreshToken()
         JwtSvc-->>AuthSvc: accessToken, refreshToken
         AuthSvc->>SessionRepo: save(UserSession)
         AuthSvc-->>AuthCtrl: accessToken, refreshToken
@@ -212,21 +212,21 @@ sequenceDiagram
     AuthCtrl->>AuthSvc: refreshToken(token)
     AuthSvc->>SessionRepo: findByJti(jti)
     SessionRepo-->>AuthSvc: session found
-    AuthSvc->>JwtSvc: validar(refreshToken)
+    AuthSvc->>JwtSvc: isRefreshTokenValid(refreshToken)
     JwtSvc-->>AuthSvc: valid
-    AuthSvc->>Revoke: revocarToken(oldJti)
-    Revoke->>Redis: SET jti:<oldJti>=revocado (TTL = remaining expiry)
+    AuthSvc->>Revoke: revokeToken(oldJti)
+    Revoke->>Redis: SET jti:<oldJti>=revoked (TTL = remaining expiry)
     AuthSvc->>SessionRepo: delete(oldSession)
-    AuthSvc->>JwtSvc: generarToken() / generarRefreshToken() (new pair)
+    AuthSvc->>JwtSvc: generateToken() / generateRefreshToken() (new pair)
     AuthSvc-->>AuthCtrl: new accessToken, refreshToken
     AuthCtrl-->>Client: 200 OK + Set-Cookie refreshToken
 
     Client->>AuthCtrl: POST /auth/logout
     AuthCtrl->>AuthSvc: logout(accessToken, refreshToken)
-    AuthSvc->>Revoke: revocarTokenPorCabecera(accessToken)
-    Revoke->>Redis: SET jti:<accessJti>=revocado
-    AuthSvc->>Revoke: revocarToken(refreshToken)
-    Revoke->>Redis: SET jti:<refreshJti>=revocado
+    AuthSvc->>Revoke: revokeTokenFromHeader(accessToken)
+    Revoke->>Redis: SET jti:<accessJti>=revoked
+    AuthSvc->>Revoke: revokeToken(refreshToken)
+    Revoke->>Redis: SET jti:<refreshJti>=revoked
     AuthSvc->>SessionRepo: deleteByJti(refreshJti)
     AuthSvc-->>AuthCtrl: logged out
     AuthCtrl-->>Client: 200 OK (cookies cleared)

@@ -117,7 +117,7 @@ workspace "Artisync - Plataforma para Artistas y Creadores" "Diagrama C4 Nivel 3
         ormLayer -> db "Ejecuta sentencias SQL (SELECT, INSERT, UPDATE, DELETE)" "JDBC / PostgreSQL Driver / Puerto 5432"
         
         emailComponent -> smtpSystem "Transmite correo saliente en formato MIME HTML" "SMTP / TLS / Puerto 587"
-        serviceLayer -> paypalSystem "Crea y confirma órdenes de retención en garantía (Escrow)" "HTTPS / REST JSON"
+        serviceLayer -> paypalSystem "Creates and confirms escrow retention orders" "HTTPS / REST JSON"
     }
 
     views {
@@ -189,7 +189,7 @@ Rel(controllers, services, "Invocación de métodos transaccionales y paso de DT
 Rel(services, repositories, "Ejecuta queries y mutaciones transaccionales", "Llamada Java")
 Rel(services, emailService, "Solicita envío asíncrono de notificación 2FA o reseteo", "Llamada Java (@Async)")
 Rel(services, sessionRevocation, "Revoca sesiones (logout / cambio de clave)", "Llamada Java")
-Rel(services, paypal, "Crea y confirma órdenes de retención en garantía (Escrow)", "HTTPS REST v2")
+Rel(services, paypal, "Creates and confirms escrow retention orders", "HTTPS REST v2")
 
 Rel(sessionRevocation, redisClient, "Almacena/Consulta 'jti:<id>' con tiempo de vida restante", "StringRedisTemplate")
 Rel(redisClient, cache, "Ejecuta comandos RESP O(1)", "TCP (Puerto 6379)")
@@ -207,43 +207,43 @@ Rel(emailService, smtp, "Transmite mensajes MIME en formato HTML", "SMTP / TLS (
 
 ```mermaid
 flowchart TB
-    subgraph Client["🌐 Petición Entrante (Frontend / Webhook)"]
+    subgraph Client["🌐 Incoming Request (Frontend / Webhook)"]
         HTTP_IN["HTTP request: GET/POST/PUT/DELETE<br>Authorization: Bearer <jwt_token>"]
     end
 
-    subgraph SpringBoot["⚙️ Contenedor Backend Spring Boot 4.1.0 (`pfc_backend:8080`)"]
+    subgraph SpringBoot["⚙️ Spring Boot 4.1.0 Backend Container (`pfc_backend:8080`)"]
         
-        subgraph SecurityLayer["🛡️ Capa de Seguridad (Security & Filter Chain)"]
+        subgraph SecurityLayer["🛡️ Security Layer (Security & Filter Chain)"]
             SEC_CFG["SecurityConfig<br>(SecurityFilterChain / CORS)"]
             JWT_FILTER["JwtAuthenticationFilter<br>(OncePerRequestFilter)"]
             JWT_SVC["JwtService<br>(HMAC-SHA256 jjwt-0.12)"]
         end
 
-        subgraph WebLayer["🎯 Capa de Controladores (Spring MVC)"]
-            CTRL["Controladores REST & WebSockets<br>(controller.*)<br>AuthController, UserController, PagoControlador, ChatControlador"]
+        subgraph WebLayer["🎯 Controller Layer (Spring MVC)"]
+            CTRL["REST & WebSocket Controllers<br>(controller.*)<br>AuthController, UserController, PagoControlador, ChatControlador"]
         end
 
-        subgraph BusinessLayer["🧠 Capa de Lógica de Negocio (@Transactional)"]
-            SVC["Servicios de Negocio<br>(service.impl.*)<br>UserServiceImpl, PagoServicioImpl, PedidoServicioImpl, AlmacenamientoAzure, AuditoriaServicio"]
-            REV_SVC["SessionRevocationService<br>(Revocación JTI con TTL)"]
-            MAIL_SVC["EmailService (@Async)<br>(Plantillas Thymeleaf)"]
+        subgraph BusinessLayer["🧠 Business Logic Layer (@Transactional)"]
+            SVC["Business Services<br>(service.impl.*)<br>UserServiceImpl, PagoServicioImpl, PedidoServicioImpl, AlmacenamientoAzure, AuditoriaServicio"]
+            REV_SVC["SessionRevocationService<br>(JTI Revocation with TTL)"]
+            MAIL_SVC["EmailService (@Async)<br>(Thymeleaf Templates)"]
         end
 
-        subgraph DataAccessLayer["💾 Capa de Acceso a Datos & ORM"]
+        subgraph DataAccessLayer["💾 Data Access & ORM Layer"]
             REPO["Spring Data JPA Repositories<br>(repository.*)"]
-            ORM["Hibernate ORM & Entidades JPA<br>(entity.* - @Entity, @Table, @Id)"]
+            ORM["Hibernate ORM & JPA Entities<br>(entity.* - @Entity, @Table, @Id)"]
             REDIS_CLIENT["StringRedisTemplate<br>(RedisConfig)"]
         end
     end
 
-    subgraph Infrastructure["🗄️ Infraestructura & Almacenes Externos"]
+    subgraph Infrastructure["🗄️ Infrastructure & External Stores"]
         PG[("PostgreSQL 16 (`pfc_postgres:5432`)<br>Flyway Migrations ACID")]
         RD[("Redis 7 Alpine (`pfc_redis:6379`)<br>Blacklist & Cache-Aside")]
-        SMTP_EXT["Servidor SMTP TLS 587"]
+        SMTP_EXT["SMTP Server TLS 587"]
         PAY_EXT["PayPal Orders API v2"]
     end
 
-    %% Flujo de ejecución HTTP
+    %% HTTP execution flow
     HTTP_IN --> SEC_CFG
     SEC_CFG --> JWT_FILTER
     JWT_FILTER <--> JWT_SVC
@@ -251,21 +251,21 @@ flowchart TB
     REV_SVC --> REDIS_CLIENT
     REDIS_CLIENT -- "RESP Protocol (O-1)" --> RD
 
-    %% Si el token es válido, pasa al DispatcherServlet -> Controller
+    %% If the token is valid, it passes to the DispatcherServlet -> Controller
     JWT_FILTER -- "SecurityContextHolder OK" --> CTRL
-    CTRL -- "Validación DTO @Valid" --> SVC
+    CTRL -- "DTO Validation @Valid" --> SVC
 
-    %% Lógica transaccional de negocio
-    SVC <-- "Consulta / Modifica Entidades" --> REPO
-    SVC -- "Revocar por cambio contraseña / logout" --> REV_SVC
-    SVC -- "Envío Asíncrono de Correo" --> MAIL_SVC
-    SVC <-- "Integración Escrow" --> PAY_EXT
+    %% Transactional business logic
+    SVC <-- "Queries / Modifies Entities" --> REPO
+    SVC -- "Revoke on password change / logout" --> REV_SVC
+    SVC -- "Async Email Dispatch" --> MAIL_SVC
+    SVC <-- "Escrow Integration" --> PAY_EXT
 
-    %% Persistencia hacia la Base de Datos
+    %% Persistence to the Database
     REPO <-- "EntityManager" --> ORM
     ORM <-- "JDBC Driver / PostgreSQLDialect" --> PG
 
-    %% Salida SMTP
+    %% SMTP Output
     MAIL_SVC -- "JavaMailSender" --> SMTP_EXT
 
     style SpringBoot fill:#0c4d8c,stroke:#062d52,stroke-width:3px,color:#fff
