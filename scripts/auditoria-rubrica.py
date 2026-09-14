@@ -273,9 +273,23 @@ def analizar_javadoc(ruta, es_interfaz):
     total = 0
     documentados = 0
     faltantes = []
+    en_text_block = False
 
     for i, linea in enumerate(lineas):
         cuerpo = linea.strip()
+
+        # Java text blocks ("""..."""): su contenido (p.ej. JPQL multilinea en
+        # un @Query) es texto libre, no codigo -- una linea como
+        # "SELECT MAX(x) FROM ..." dentro de uno se parece a una firma de
+        # metodo y produce un falso positivo si no se salta aqui.
+        aperturas = cuerpo.count('"""')
+        if en_text_block:
+            en_text_block = (aperturas % 2 == 0)
+            continue
+        if aperturas % 2 == 1:
+            en_text_block = True
+            continue
+
         if not cuerpo or cuerpo.startswith(("//", "*", "/*")):
             continue
 
@@ -289,9 +303,36 @@ def analizar_javadoc(ruta, es_interfaz):
         nombre_metodo = m.group(1)
         total += 1
 
+        # Sube por las anotaciones que preceden al metodo hasta el /** que las
+        # antecede. Una anotacion puede ocupar varias lineas (p.ej. un @Query
+        # con concatenacion de strings): mientras vamos hacia atras seguimos
+        # dentro de ella si el balance de parentesis todavia no cierra, no
+        # solo si la linea empieza literalmente con "@".
         j = i - 1
-        while j >= 0 and (lineas[j].strip().startswith("@") or lineas[j].strip() == ""):
-            j -= 1
+        paren_depth = 0
+        while j >= 0:
+            l = lineas[j].strip()
+            if l == "":
+                j -= 1
+                continue
+            delta = l.count(")") - l.count("(")
+            if paren_depth > 0:
+                paren_depth += delta
+                j -= 1
+                continue
+            if l.startswith("@"):
+                paren_depth += delta
+                j -= 1
+                continue
+            if delta > 0:
+                # Linea de continuacion de una anotacion multilinea que no
+                # empieza con "@" (p.ej. una cadena concatenada con "+" en un
+                # @Query): cierra mas parentesis de los que abre, senal de que
+                # seguimos dentro de un grupo que se abre mas arriba.
+                paren_depth += delta
+                j -= 1
+                continue
+            break
         if j >= 0 and lineas[j].strip().endswith("*/"):
             documentados += 1
         else:

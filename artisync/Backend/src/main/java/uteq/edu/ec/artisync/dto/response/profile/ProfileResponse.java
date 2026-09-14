@@ -10,6 +10,16 @@ import lombok.Builder;
  * Este DTO se encarga de serializar la información hacia el cliente, enmascarando 
  * el modelo de dominio interno (Entidades JPA) y exponiendo estrictamente los 
  * atributos necesarios para cumplir con el contrato de esta vista del API.
+ *
+ * @param idPerfil id del perfil de creador
+ * @param idUsuario id del usuario dueño del perfil
+ * @param nombresUsuario nombres del usuario
+ * @param apellidosUsuario apellidos del usuario
+ * @param biografia biografía pública del perfil
+ * @param urlRedSocial URL de una red social del creador
+ * @param urlFotoPerfil URL de la foto de perfil
+ * @param tituloProfesional título profesional que se muestra en el perfil
+ * @param identidadVerificada si el creador tiene un certificado de identidad aprobado
  */
 @Builder
 public record ProfileResponse(

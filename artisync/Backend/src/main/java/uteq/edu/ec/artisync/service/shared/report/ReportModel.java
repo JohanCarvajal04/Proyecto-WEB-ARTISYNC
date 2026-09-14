@@ -11,6 +11,7 @@ import java.util.Map;
  * Modelo de reporte independiente del formato de salida: un dominio (auditoría,
  * finanzas, contratos...) construye uno de estos y se lo entrega a
  * {@link IExportService}, que decide cómo se ve en CSV, XLSX o PDF.
+ * @param <T> tipo de cada fila del reporte
  */
 @Getter
 @Builder

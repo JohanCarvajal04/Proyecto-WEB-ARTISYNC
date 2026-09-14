@@ -22,8 +22,17 @@ public interface DocumentStorage {
      */
     String save(MultipartFile archivo, String prefijo);
 
+    /**
+     * Lee el contenido binario de un archivo guardado.
+     * @param referencia referencia devuelta por {@link #save(MultipartFile, String)}
+     * @return el contenido del archivo
+     */
     byte[] leer(String referencia);
 
+    /**
+     * Elimina un archivo guardado. No falla si ya no existe.
+     * @param referencia referencia devuelta por {@link #save(MultipartFile, String)}
+     */
     void delete(String referencia);
 
     /**

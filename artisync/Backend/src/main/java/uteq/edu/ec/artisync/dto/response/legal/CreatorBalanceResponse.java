@@ -12,6 +12,11 @@ import java.math.BigDecimal;
  * Este DTO se encarga de serializar la información hacia el cliente, enmascarando 
  * el modelo de dominio interno (Entidades JPA) y exponiendo estrictamente los 
  * atributos necesarios para cumplir con el contrato de esta vista del API.
+ *
+ * @param saldoDisponible saldo actualmente disponible para retiro
+ * @param montoMinimoRetiro monto mínimo permitido por solicitud de retiro
+ * @param tieneCorreoPaypalConfigurado si el creador ya configuró su correo de PayPal
+ * @param tieneSolicitudPendiente si ya existe una solicitud de retiro pendiente
  */
 @Builder
 public record CreatorBalanceResponse(

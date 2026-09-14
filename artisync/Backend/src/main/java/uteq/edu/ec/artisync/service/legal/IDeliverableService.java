@@ -68,6 +68,9 @@ public interface IDeliverableService {
     /**
      * Bytes del entregable junto al tipo que declara, para que el controlador
      * responda con un Content-Type correcto en vez de octet-stream genérico.
+     * @param contenido bytes del archivo
+     * @param nombreSugerido nombre de archivo sugerido para la descarga
+     * @param contentType tipo MIME del archivo
      */
     record DownloadedFile(byte[] contenido, String nombreSugerido, String contentType) {
     }

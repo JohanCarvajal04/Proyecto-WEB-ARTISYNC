@@ -11,6 +11,9 @@ import jakarta.validation.constraints.Size;
  * Este contrato de entrada contiene reglas de validación (Jakarta Bean Validation) 
  * para asegurar la integridad estructural y de negocio de los datos recibidos 
  * por la API antes de ser delegados a la capa de servicios.
+ *
+ * @param idEstadoVerificacion nuevo estado de verificación decidido por el moderador
+ * @param notaModerador nota del moderador que justifica la decisión
  */
 public record VerificationDecisionRequest(
         @NotNull(message = "El nuevo estado de verificación es obligatorio")

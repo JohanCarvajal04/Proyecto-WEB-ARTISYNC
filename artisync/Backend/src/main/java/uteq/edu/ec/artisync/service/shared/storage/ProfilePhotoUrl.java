@@ -14,6 +14,11 @@ public final class ProfilePhotoUrl {
     private ProfilePhotoUrl() {
     }
 
+    /**
+     * Construye la URL pública de la foto de perfil a partir de su referencia de almacenamiento.
+     * @param referencia referencia cruda guardada en {@code User.getProfilePhotoUrl()}
+     * @return la URL pública servida por el backend, o {@code null} si no hay foto
+     */
     public static String construir(String referencia) {
         if (referencia == null || referencia.isBlank()) {
             return null;

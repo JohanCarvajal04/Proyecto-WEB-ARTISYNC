@@ -31,6 +31,7 @@ public class CsvGenerator implements ReportGenerator {
         return ReportFormat.CSV;
     }
 
+    /** {@inheritDoc} */
     @Override
     public <T> GeneratedDocument generate(ReportModel<T> modelo) {
         StringBuilder csv = new StringBuilder(CsvUtil.BOM_UTF8);

@@ -55,6 +55,7 @@ public class XlsxGenerator implements ReportGenerator {
         return ReportFormat.XLSX;
     }
 
+    /** {@inheritDoc} */
     @Override
     public <T> GeneratedDocument generate(ReportModel<T> modelo) {
         try (SXSSFWorkbook libro = new SXSSFWorkbook(FILAS_EN_MEMORIA)) {

@@ -29,6 +29,10 @@ public final class RequestContext {
 
     private static final Datos VACIO = new Datos(null, null, null, null);
 
+    /**
+     * Captura los metadatos HTTP de la petición en curso.
+     * @return los metadatos de la petición actual, o {@link #VACIO} si no hay una petición HTTP en el hilo actual
+     */
     public static Datos actual() {
         ServletRequestAttributes attributes =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();

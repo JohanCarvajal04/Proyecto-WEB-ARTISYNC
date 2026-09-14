@@ -6,6 +6,9 @@ import jakarta.validation.constraints.Size;
 /**
  * Metadatos de la obra. El archivo viaja aparte como MultipartFile, porque el
  * cuerpo es multipart y no JSON.
+ *
+ * @param tituloObra título de la obra
+ * @param descripcionObra descripción de la obra
  */
 public record CreatePortfolioItemRequest(
         @NotBlank(message = "El titulo de la obra es obligatorio")

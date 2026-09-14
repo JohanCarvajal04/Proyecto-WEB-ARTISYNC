@@ -11,6 +11,13 @@ import java.time.LocalDateTime;
  * Este DTO se encarga de serializar la información hacia el cliente, enmascarando 
  * el modelo de dominio interno (Entidades JPA) y exponiendo estrictamente los 
  * atributos necesarios para cumplir con el contrato de esta vista del API.
+ *
+ * @param idPortafolio id del portafolio
+ * @param idPerfil id del perfil de creador dueño del portafolio
+ * @param fechaCreacion fecha de creación del portafolio
+ * @param totalVisitasAcumuladas total de visitas acumuladas
+ * @param esPublico si el portafolio es visible públicamente
+ * @param opcionesPersonalizacion opciones de personalización visual del portafolio
  */
 @Builder
 public record PortfolioResponse(

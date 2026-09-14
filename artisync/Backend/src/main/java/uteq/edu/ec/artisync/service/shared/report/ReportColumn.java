@@ -7,6 +7,12 @@ import java.util.function.Function;
  * lógico es (decide el formato de celda) y cómo se extrae el valor de cada fila.
  * El dominio solo declara columnas; el {@link ReportGenerator} decide cómo se
  * renderizan en cada formato.
+ *
+ * @param <T> tipo de fila del modelo de reporte del que se extrae el valor
+ * @param encabezado encabezado de la columna
+ * @param tipo tipo lógico de la columna, que decide el formato de celda
+ * @param extractor función que obtiene el valor de la columna a partir de una fila
+ * @param anchoCaracteres ancho sugerido de la columna, en caracteres (usado por XLSX)
  */
 public record ReportColumn<T>(String encabezado, ColumnType tipo, Function<T, Object> extractor,
                                  int anchoCaracteres) {

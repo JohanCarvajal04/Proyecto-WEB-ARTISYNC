@@ -378,6 +378,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         return export(filtro, formato, tipoGrafica, null, null, correoSolicitante);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
     @Auditable(accion = "USUARIO_EXPORTAR", modulo = AuditModule.SEGURIDAD, entidad = "usuarios",

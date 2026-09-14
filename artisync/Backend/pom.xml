@@ -306,11 +306,28 @@
 					<encoding>UTF-8</encoding>
 					<docencoding>UTF-8</docencoding>
 					<charset>UTF-8</charset>
+					<!-- "-missing" excluido a propósito: esa categoría de doclint exige
+					     @param/@return/@throws en TODO elemento público y un comentario
+					     hasta en el constructor por defecto implícito de cada clase (DTOs,
+					     entidades, records incluidos), es decir, cientos de archivos sin
+					     valor real de documentación. failOnError SÍ atrapa errores reales:
+					     un {@link} roto (como el que encontramos y corregimos en
+					     BackupConfig.java tras el renombrado de métodos de la Fase 4) o
+					     HTML/sintaxis Javadoc inválida. -->
 					<additionalJOption>-Xdoclint:all,-missing</additionalJOption>
 					<failOnError>true</failOnError>
-					<failOnWarnings>false</failOnWarnings>
-					<quiet>true</quiet>
+					<failOnWarnings>true</failOnWarnings>
+					<quiet>false</quiet>
 				</configuration>
+				<executions>
+					<execution>
+						<id>verificar-javadoc</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>javadoc</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

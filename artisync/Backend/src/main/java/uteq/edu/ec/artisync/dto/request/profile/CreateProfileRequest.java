@@ -11,6 +11,11 @@ import jakarta.validation.constraints.Size;
  * Este contrato de entrada contiene reglas de validación (Jakarta Bean Validation) 
  * para asegurar la integridad estructural y de negocio de los datos recibidos 
  * por la API antes de ser delegados a la capa de servicios.
+ *
+ * @param idUsuario id del usuario que se convierte en creador
+ * @param biografia biografía pública del perfil
+ * @param urlRedSocial URL de una red social del creador
+ * @param tituloProfesional título profesional que se muestra en el perfil
  */
 public record CreateProfileRequest(
         @NotNull(message = "El ID del usuario es obligatorio")

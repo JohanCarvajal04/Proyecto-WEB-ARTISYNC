@@ -42,6 +42,7 @@ public class ExportServiceImpl implements IExportService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public <T> GeneratedDocument export(ReportModel<T> modelo, ReportFormat formato) {
         int totalFilas = modelo.getFilas().size();

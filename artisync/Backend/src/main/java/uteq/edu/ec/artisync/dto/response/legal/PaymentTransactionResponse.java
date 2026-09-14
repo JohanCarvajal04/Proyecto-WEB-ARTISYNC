@@ -13,6 +13,11 @@ import java.time.LocalDateTime;
  * Este DTO se encarga de serializar la información hacia el cliente, enmascarando 
  * el modelo de dominio interno (Entidades JPA) y exponiendo estrictamente los 
  * atributos necesarios para cumplir con el contrato de esta vista del API.
+ *
+ * @param idTransaccion id de la transacción
+ * @param tipoTransaccion tipo de movimiento financiero
+ * @param monto monto de la transacción
+ * @param fechaEjecucion fecha en que se ejecutó la transacción
  */
 @Builder
 public record PaymentTransactionResponse(

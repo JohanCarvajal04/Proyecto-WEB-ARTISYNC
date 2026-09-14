@@ -35,6 +35,11 @@ public final class FileExtensions {
     private FileExtensions() {
     }
 
+    /**
+     * Extensión de archivo correspondiente a un content-type conocido.
+     * @param contentType tipo MIME reportado por el archivo subido (puede incluir parámetros, p. ej. "; charset=...")
+     * @return la extensión con el punto incluido (p. ej. ".png"), o ".bin" si el tipo no está en el catálogo
+     */
     public static String desde(String contentType) {
         if (contentType == null || contentType.isBlank()) {
             return EXTENSION_DESCONOCIDA;

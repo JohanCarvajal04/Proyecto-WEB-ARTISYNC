@@ -10,6 +10,10 @@ import jakarta.validation.constraints.Size;
  * Este contrato de entrada contiene reglas de validación (Jakarta Bean Validation) 
  * para asegurar la integridad estructural y de negocio de los datos recibidos 
  * por la API antes de ser delegados a la capa de servicios.
+ *
+ * @param biografia biografía pública del perfil
+ * @param urlRedSocial URL de una red social del creador
+ * @param tituloProfesional título profesional que se muestra en el perfil
  */
 public record UpdateProfileRequest(
         @Size(max = 500, message = "La biografía no puede superar los 500 caracteres")

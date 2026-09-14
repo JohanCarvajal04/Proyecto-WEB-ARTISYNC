@@ -8,6 +8,8 @@ package uteq.edu.ec.artisync.dto.response.comun;
  * Este DTO se encarga de serializar la información hacia el cliente, enmascarando 
  * el modelo de dominio interno (Entidades JPA) y exponiendo estrictamente los 
  * atributos necesarios para cumplir con el contrato de esta vista del API.
+ *
+ * @param url el enlace temporal o firmado
  */
 public record RespuestaUrl(String url) {
 }

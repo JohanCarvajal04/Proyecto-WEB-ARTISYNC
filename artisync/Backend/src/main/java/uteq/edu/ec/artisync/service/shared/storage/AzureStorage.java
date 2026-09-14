@@ -119,6 +119,7 @@ public class AzureStorage implements DocumentStorage {
         return nombreBlob;
     }
 
+    /** {@inheritDoc} */
     @Override
     public byte[] leer(String referencia) {
         validateReference(referencia);

@@ -273,6 +273,7 @@ public class ContractServiceImpl implements IContractService {
                 .build();
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long idContrato, Long idUsuarioSolicitante) {

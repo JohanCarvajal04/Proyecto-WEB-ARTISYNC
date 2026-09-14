@@ -148,6 +148,7 @@ public class VerificationServiceImpl implements IVerificationService {
         return mapearARespuesta(certificado);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
     public byte[] getDocument(Long idCertificado) {

@@ -29,10 +29,18 @@ public final class ValueFormatter {
     private ValueFormatter() {
     }
 
+    /** @return la zona horaria fija que usa el motor de reportes ({@code America/Guayaquil}) */
     public static ZoneId zona() {
         return ZONA;
     }
 
+    /**
+     * Formatea un valor de columna según su {@link ColumnType}, con el
+     * {@link Locale} y el {@link ZoneId} fijos de esta clase.
+     * @param valor valor de la celda a formatear; {@code null} se representa como cadena vacía
+     * @param tipo tipo de columna, que determina el patrón de formateo a aplicar
+     * @return la representación textual del valor, lista para el documento exportado
+     */
     public static String texto(Object valor, ColumnType tipo) {
         if (valor == null) {
             return "";
@@ -47,6 +55,11 @@ public final class ValueFormatter {
         };
     }
 
+    /**
+     * Normaliza un valor numérico a dos decimales, redondeando hacia arriba en el punto medio.
+     * @param valor valor numérico o su representación textual
+     * @return el valor normalizado a escala 2
+     */
     public static BigDecimal moneda(Object valor) {
         BigDecimal decimal = valor instanceof BigDecimal bd ? bd : new BigDecimal(valor.toString());
         return decimal.setScale(2, RoundingMode.HALF_UP);

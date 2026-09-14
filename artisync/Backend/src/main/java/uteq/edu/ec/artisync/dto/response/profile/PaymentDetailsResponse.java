@@ -12,6 +12,9 @@ import java.time.LocalDateTime;
  * Este DTO se encarga de serializar la información hacia el cliente, enmascarando 
  * el modelo de dominio interno (Entidades JPA) y exponiendo estrictamente los 
  * atributos necesarios para cumplir con el contrato de esta vista del API.
+ *
+ * @param correoPaypal correo de PayPal configurado para recibir pagos
+ * @param fechaActualizacion fecha de la última actualización de la configuración
  */
 @Builder
 public record PaymentDetailsResponse(

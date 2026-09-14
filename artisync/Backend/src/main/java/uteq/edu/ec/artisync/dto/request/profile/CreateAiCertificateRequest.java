@@ -15,6 +15,11 @@ import java.math.BigDecimal;
  * Este contrato de entrada contiene reglas de validación (Jakarta Bean Validation) 
  * para asegurar la integridad estructural y de negocio de los datos recibidos 
  * por la API antes de ser delegados a la capa de servicios.
+ *
+ * @param idUsuario id del usuario creador que declara el uso de IA
+ * @param idEstadoVerificacion estado inicial de verificación del certificado
+ * @param urlDocumentoS3 referencia de almacenamiento del documento subido
+ * @param puntajeConfianzaIa puntaje de confianza (0.00 a 1.00) devuelto por el análisis de IA
  */
 public record CreateAiCertificateRequest(
         @NotNull(message = "El ID del usuario es obligatorio")

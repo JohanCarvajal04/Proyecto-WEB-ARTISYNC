@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream;
 @RequiredArgsConstructor
 public class PdfGenerationServiceImpl implements IPdfGenerationService {
 
+    /** {@inheritDoc} */
     @Override
     public byte[] generatePdfFromHtml(String html) {
         try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {

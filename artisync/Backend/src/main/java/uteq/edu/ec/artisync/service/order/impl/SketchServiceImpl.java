@@ -29,6 +29,7 @@ public class SketchServiceImpl implements ISketchService {
     private final DocumentStorage almacenamiento;
     private final NotificationService notificacionService;
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public SketchResponse uploadSketch(Long idPedido, Long idCreador, MultipartFile imagen) {
@@ -72,6 +73,7 @@ public class SketchServiceImpl implements ISketchService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
     public SketchResponse getSketch(Long idPedido, Long idUsuario) {
@@ -83,6 +85,7 @@ public class SketchServiceImpl implements ISketchService {
         return mapToRespuesta(boceto);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
     public DownloadedFile downloadSketch(Long idPedido, Long idUsuario) {

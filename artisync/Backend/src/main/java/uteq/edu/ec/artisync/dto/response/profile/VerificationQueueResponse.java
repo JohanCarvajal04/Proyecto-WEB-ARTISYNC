@@ -13,6 +13,15 @@ import java.time.LocalDateTime;
  * Este DTO se encarga de serializar la información hacia el cliente, enmascarando 
  * el modelo de dominio interno (Entidades JPA) y exponiendo estrictamente los 
  * atributos necesarios para cumplir con el contrato de esta vista del API.
+ *
+ * @param idCertificado id del certificado pendiente de revisión
+ * @param idUsuario id del usuario que lo solicitó
+ * @param nombreUsuario nombre completo del usuario
+ * @param tipoDocumento tipo de documento cargado
+ * @param nombreEstado nombre del estado de verificación actual
+ * @param veredictoIa veredicto emitido por el análisis de IA
+ * @param puntajeConfianzaIa puntaje de confianza devuelto por la IA
+ * @param fechaAnalisis fecha en que se analizó el documento
  */
 @Builder
 public record VerificationQueueResponse(

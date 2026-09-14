@@ -10,8 +10,17 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Supplier;
 
+/**
+ * Utilidades compartidas por las implementaciones de {@link AiService}: reintento
+ * de fallos transitorios del proveedor, sanitización de prompts, carga de
+ * plantillas y parseo defensivo de la respuesta JSON del modelo.
+ */
 @Slf4j
 public abstract class AbstractAiService {
+
+    /** Constructor por defecto, sin estado propio: toda la clase es utilitaria para las subclases. */
+    protected AbstractAiService() {
+    }
 
     /**
      * Un intento + 1 reintento, solo si el fallo es transitorio (429/timeout,
@@ -21,6 +30,10 @@ public abstract class AbstractAiService {
      * analyzeReview no descarten en silencio un 429 momentáneo del
      * proveedor (revisión técnica 2026-09-01: antes caían directo al
      * catch-all y devolvían el valor por defecto sin reintentar).
+     *
+     * @param <T> tipo del resultado de la llamada
+     * @param llamada llamada al proveedor de IA a ejecutar
+     * @return el resultado de la llamada
      */
     protected <T> T conReintentoTransitorio(Supplier<T> llamada) {
         try {
@@ -51,6 +64,9 @@ public abstract class AbstractAiService {
      * un LLM), pero cierra la vía más directa: ya no se puede cerrar el
      * delimitador de comillas de la plantilla, y se acota la longitud para
      * no inflar el payload con un intento de relleno.
+     *
+     * @param texto texto de entrada del usuario a interpolar en el prompt
+     * @return el texto acotado a 4000 caracteres y sin comillas dobles
      */
     protected String sanitizarParaPrompt(String texto) {
         if (texto == null) return "";
@@ -58,6 +74,13 @@ public abstract class AbstractAiService {
         return limitado.replace("\"", "'");
     }
 
+    /**
+     * Carga una plantilla de prompt desde {@code resources/IA/} y, si se dan argumentos,
+     * la interpola con {@link String#format}.
+     * @param nombreArchivo nombre del archivo de plantilla dentro de {@code resources/IA/}
+     * @param args argumentos a interpolar en la plantilla, en el orden de sus marcadores
+     * @return la plantilla ya interpolada, lista para enviar al proveedor de IA
+     */
     protected String loadPrompt(String nombreArchivo, Object... args) {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("IA/" + nombreArchivo)) {
             if (is == null) {
@@ -70,6 +93,12 @@ public abstract class AbstractAiService {
         }
     }
 
+    /**
+     * Extrae el objeto JSON de la respuesta cruda del modelo, tolerando que venga
+     * envuelto en un bloque de código Markdown (```json ... ```) o con texto alrededor.
+     * @param respuesta texto crudo devuelto por el proveedor de IA
+     * @return el JSON extraído, o {@code "{}"} si no se pudo identificar uno válido
+     */
     protected String extraerJson(String respuesta) {
         if (respuesta == null || respuesta.isBlank()) {
             return "{}";
@@ -101,6 +130,10 @@ public abstract class AbstractAiService {
     /**
      * Lee un campo de texto distinguiendo "vale null" y "no vino" de un valor
      * real — ambos deben mapear a null de Java, nunca a la cadena "null".
+     *
+     * @param nodo nodo JSON de la respuesta del proveedor de IA
+     * @param campo nombre del campo a leer
+     * @return el valor textual del campo, o {@code null} si es JSON {@code null} o no vino
      */
     protected String textoONull(JsonNode nodo, String campo) {
         JsonNode valor = nodo.path(campo);
@@ -110,6 +143,11 @@ public abstract class AbstractAiService {
         return valor.asString();
     }
 
+    /**
+     * Convierte un valor numérico arbitrario devuelto por el proveedor de IA a {@link BigDecimal}.
+     * @param valor el valor a convertir; puede ser un {@link Number}, su representación textual, o {@code null}
+     * @return el valor convertido, o {@link BigDecimal#ZERO} si es {@code null} o no es numérico
+     */
     protected BigDecimal toBigDecimal(Object valor) {
         if (valor == null) return BigDecimal.ZERO;
         if (valor instanceof Number n) return BigDecimal.valueOf(n.doubleValue());
@@ -120,7 +158,11 @@ public abstract class AbstractAiService {
         }
     }
 
-    /** Acota la confianza reportada por la IA a [0,1] (límite de la columna en BD). */
+    /**
+     * Acota la confianza reportada por la IA a [0,1] (límite de la columna en BD).
+     * @param confianza puntaje de confianza devuelto por el proveedor de IA
+     * @return el puntaje acotado al rango [0,1]; {@link BigDecimal#ZERO} si es {@code null}
+     */
     protected BigDecimal acotarConfianza(BigDecimal confianza) {
         if (confianza == null) return BigDecimal.ZERO;
         if (confianza.compareTo(BigDecimal.ZERO) < 0) return BigDecimal.ZERO;

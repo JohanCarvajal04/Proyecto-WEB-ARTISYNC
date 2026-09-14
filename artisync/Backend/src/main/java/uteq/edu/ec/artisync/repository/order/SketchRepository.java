@@ -15,7 +15,9 @@ import java.util.Optional;
 @Repository
 public interface SketchRepository extends JpaRepository<Sketch, Long> {
 
+    /** El boceto vigente de un pedido (relación 1:1), si existe. */
     Optional<Sketch> findByPedidoIdPedido(Long idPedido);
 
+    /** @return {@code true} si el pedido ya tiene un boceto subido */
     boolean existsByPedidoIdPedido(Long idPedido);
 }

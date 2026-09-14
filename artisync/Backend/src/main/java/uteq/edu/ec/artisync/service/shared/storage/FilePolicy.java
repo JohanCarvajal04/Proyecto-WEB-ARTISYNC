@@ -14,6 +14,10 @@ import java.util.Set;
  * <p>La validación es sobre el content-type declarado por el cliente, así que no
  * es una garantía sobre el contenido real: sirve para rechazar lo evidente antes
  * de gastar ancho de banda, no como control de seguridad.
+ *
+ * @param tiposPermitidos content-types aceptados para este caso de uso
+ * @param maxBytes tamaño máximo permitido, en bytes
+ * @param descripcion descripción legible de lo permitido, para el mensaje de error
  */
 public record FilePolicy(Set<String> tiposPermitidos, long maxBytes, String descripcion) {
 
