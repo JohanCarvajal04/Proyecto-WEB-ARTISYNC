@@ -146,3 +146,13 @@ Para estos casos, \texttt{@Query(nativeQuery = true)} contra la propia función 
 (Hibernate~7.4.1 más PostgreSQL), no una alternativa de conveniencia. El inventario completo,
 rutina por rutina, con el mecanismo usado y su justificación individual, está en
 \texttt{docs/basedatos/CATALOGO-SP.md} (\S14).
+
+De las 28 rutinas activas (26 de \texttt{db/procs/} más 2 de verificación asistida por IA), el
+reparto exacto por mecanismo de invocación --- verificable de forma reproducible con
+\texttt{python scripts/auditoria-rubrica.py p6}, que descuenta las menciones dentro de comentarios
+Javadoc --- es: \textbf{3} vía \texttt{@Procedure} (método \texttt{void}, sin parámetros
+\texttt{OUT}/\texttt{INOUT}), \textbf{0} vía \texttt{@NamedStoredProcedureQuery} (mismo bug de
+Hibernate~7.4.1 al declarar un parámetro \texttt{OUT}) y \textbf{23} vía
+\texttt{@Query(nativeQuery = true)} contra la función (toda rutina que deba devolver un valor
+escalar, \texttt{JSONB} o \texttt{TABLE}). El mecanismo de acceso a datos, en conjunto, es
+\emph{híbrido y documentado por diseño} (ADR-006), no accidental.

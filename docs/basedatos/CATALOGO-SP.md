@@ -77,6 +77,37 @@ Las dos rutinas restantes, `sp_purgar_datos_seguridad` (Fase 4, sección 18) y
 `FUNCTION` no puede hacer bajo ninguna circunstancia (§0.1 de `PLAN-CONCURRENCIA-SP.md`). Ninguna
 devuelve nada y ambas se invocan con `CALL`, nunca con `SELECT`.
 
+### Mecanismo de invocación desde Java (uniformidad del acceso)
+
+Las 28 rutinas activas (26 de `db/procs/` + 2 de verificación asistida por IA, §14) se invocan desde
+Java con **tres mecanismos posibles**, nunca por SQL dinámico:
+
+| Mecanismo | Cuántas rutinas | Condición para usarlo |
+|---|---|---|
+| `@Procedure` | 3 (`sp_registrar_decision_verificacion`, `sp_restablecer_contrasena`, `sp_cambiar_contrasena`) | Método Java `void` **y** la rutina no declara ningún parámetro `OUT`/`INOUT` — el único patrón verificado sin fallos contra Hibernate 7.4.1 (ver más abajo). |
+| `@NamedStoredProcedureQuery` | 0 | No usado: exige declarar `@StoredProcedureParameter(mode = OUT)`, que dispara el mismo bug de Hibernate 7.4.1 que `@Procedure` con retorno no-`void` (ver más abajo). |
+| `@Query(nativeQuery = true)` contra la función | 23 | Toda rutina que deba devolver un valor (escalar, `JSONB` o `TABLE`) — es decir, todas las `FUNCTION` de la tabla de arriba salvo las dos `PROCEDURE` puras. |
+
+**No es una elección de conveniencia: es la única combinación que funciona contra Hibernate 7.4.1 +
+PostgreSQL.** En cuanto un método `@Procedure` (o un `@NamedStoredProcedureQuery` con un parámetro
+`OUT`) declara un tipo de retorno distinto de `void`, Hibernate serializa **todos** sus parámetros
+—incluido el propio `OUT`— con la sintaxis de argumento nombrado de PostgreSQL
+(`nombre => valor`) dentro del *JDBC escape* `{call ...}`, que PostgreSQL no puede interpretar ahí
+(`ERROR: syntax error at or near "=>"`). Se probó explícitamente sobre `sp_permisos_efectivos_usuario`
+con un parámetro `OUT p_resultado TEXT`, contra el stack real y con inicio de sesión efectivo: el
+error se reprodujo de forma consistente. Un commit del 4 de septiembre de 2026 que migró las 7
+funciones escalares de `UsuarioRepository` a `@Procedure` ignorando esta restricción **rompió el
+inicio de sesión en producción**; se revirtió de inmediato y quedó documentada la causa raíz (§14 de
+este catálogo y `07-implementacion.tex` §"Excepción documentada: rutinas con retorno escalar" del
+informe final).
+
+Las cifras de esta tabla son verificables de forma reproducible (excluyendo menciones dentro de
+comentarios Javadoc, que no son anotaciones reales) con:
+
+```bash
+python scripts/auditoria-rubrica.py p6
+```
+
 ### Postura de seguridad
 
 Ninguna de las veintiséis rutinas activas construye SQL por concatenación. No aparece `EXECUTE
