@@ -313,21 +313,39 @@ celdas de codigo: 4 con output: 4
 
 ## P14 — Consentimientos informados del SUS
 
-**Estado: parcial, honesto.** Se creó la estructura anónima
+**Estado: transcrito desde evidencia ya existente, pendiente de re-verificación física.** La
+primera versión de esta sesión dejó las 16 filas de
 [`docs/etica/consentimientos/registro-consentimientos.csv`](docs/etica/consentimientos/registro-consentimientos.csv)
-(columnas `codigo_participante` P01–P16, `fecha_consentimiento`, `medio`, `acepta`) y su
-[`README.md`](docs/etica/consentimientos/README.md) de instrucciones, sin nombres ni datos
-identificables, consistente con `plantilla.md` y `ETHICS.md`.
+vacías, dando por hecho que la constancia no existía todavía. Una revisión externa posterior
+(Claude Code, 2026-09-14) encontró que la constancia **ya existía desde el 2026-09-04**
+(commit `06d1a364`, Bryan Figueroa) en
+[`docs/mediciones/sus/REPORTE-SUS.md`, sección "Referencias de consentimiento"](docs/mediciones/sus/REPORTE-SUS.md#referencias-de-consentimiento):
+los 16 códigos (P01–P16), fecha (`2026-08-16`) y el hash SHA-256 del consentimiento firmado y
+escaneado de cada participante (`G:\EPSCAN\p0.PDF`–`p15.PDF`, en el equipo, fuera del
+repositorio).
 
-**Pendiente real, fuera del alcance de esta sesión:** reunir la constancia efectiva de los 16
-participantes es una gestión con personas reales que el equipo debe completar antes del cierre.
-El CSV está con las 16 filas vacías al momento de este commit. **Si no se completan las 16 antes
-del 18-sep, declarar en este mismo archivo cuántas sí quedaron con constancia y cuántas no** — no
-dejarlo a medias en silencio (así lo pide el propio README de la carpeta).
+**Orden:**
+```bash
+cat docs/etica/consentimientos/registro-consentimientos.csv
+grep -n "Referencias de consentimiento" -A 45 docs/mediciones/sus/REPORTE-SUS.md
+```
 
-**Orden:** `cat docs/etica/consentimientos/registro-consentimientos.csv`
+**Salida real:** las 16 filas de `registro-consentimientos.csv` ahora llevan
+`fecha_consentimiento=2026-08-16`, `medio=presencial` (inferido: la sección de origen describe
+consentimiento individual "firmado antes de cada sesión") y `acepta=si` (los 16 tienen hash
+registrado en `REPORTE-SUS.md`, ninguno aparece como rechazo) — transcritas, no recolectadas de
+nuevo. Detalle de la procedencia y de qué falta en
+[`docs/etica/consentimientos/README.md`](docs/etica/consentimientos/README.md#procedencia-de-las-16-filas-transcritas-no-recolectadas-de-nuevo).
 
-**Archivo:** `docs/etica/consentimientos/registro-consentimientos.csv`.
+**Pendiente real, fuera del alcance de esta sesión:** nadie en esta revisión tuvo acceso a
+`G:\EPSCAN\` para recalcular los 16 SHA-256 contra los PDF reales y confirmar que coinciden con la
+tabla de `REPORTE-SUS.md`. Quien tenga esos archivos localmente debe correr
+`sha256sum p0.PDF ... p15.PDF` y pegar esa salida aquí antes de defender esto como comprobado —
+mientras tanto este punto es una transcripción fiel de un registro ya commiteado, no una
+verificación física independiente.
+
+**Archivo:** `docs/etica/consentimientos/registro-consentimientos.csv`,
+`docs/mediciones/sus/REPORTE-SUS.md` (tabla fuente).
 
 ---
 

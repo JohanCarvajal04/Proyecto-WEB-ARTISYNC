@@ -16,7 +16,7 @@
 | P8 | 0% de tipos en español (2 tipos renombrados) | `UserRepositoryImpl.java`, `UserSessionRepositoryImpl.java`, `AiCertificateRepositoryImpl.java` | _____________ |
 | P11 | 28 DOI verificados contra doi.org/Crossref/DataCite; 1 corrección (`RALPH2021`) | `docs/informe-final/referencias.bib`, `scripts/verificar-doi.py`, `docs/mediciones/verificacion-doi.txt` | _____________ |
 | P13 | Cuaderno de reproducción ejecutado de punta a punta | `docs/mediciones/reproduccion.ipynb` | _____________ |
-| P14 | Estructura anónima de constancia de consentimiento (pendiente de completar con datos reales) | `docs/etica/consentimientos/registro-consentimientos.csv`, `README.md` | _____________ |
+| P14 | Constancia de consentimiento transcrita desde `REPORTE-SUS.md` (2026-09-04); pendiente re-verificar los 16 hash SHA-256 contra los PDF físicos en `G:\EPSCAN\` | `docs/etica/consentimientos/registro-consentimientos.csv`, `README.md`, `docs/mediciones/sus/REPORTE-SUS.md` | _____________ |
 | EV-1 | `VERIFICACION.md` — expediente completo de los 14 puntos | `VERIFICACION.md` | _____________ |
 | EV-2 | Target `make verify` (encadena test, cobertura, P6, DOI, sync-procs, javadoc) | `Makefile`, `scripts/verificar-cobertura-controladores.py` | _____________ |
 
@@ -25,8 +25,9 @@
 - **P9** (figuras en inglés) y **P10** (abstract 200–250 palabras), **P2/P3/P12** ya estaban
   resueltos por el equipo antes de esta sesión — no se tocaron, solo se verificaron de nuevo
   (ver `VERIFICACION.md`).
-- **P14**: la constancia real de los 16 participantes del SUS requiere gestión directa con
-  personas reales; queda para que el equipo la complete antes del cierre.
+- **P14**: la constancia ya existía (hashes SHA-256 de 2026-09-04 en `REPORTE-SUS.md`) y se
+  transcribió al CSV en esta ronda; falta que alguien con acceso a `G:\EPSCAN\` recalcule esos 16
+  hash contra los PDF reales y pegue esa salida en `VERIFICACION.md` antes del cierre.
 - **EV-3** (mover la etiqueta `v1.1.0` al commit final): deliberadamente el último paso, después
   de que el equipo revise y firme este archivo — no tiene sentido etiquetar antes de confirmar
   que todo lo de arriba se comitea correctamente.
