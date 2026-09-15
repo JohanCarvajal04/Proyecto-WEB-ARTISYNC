@@ -16,7 +16,7 @@
 SHELL := /bin/bash
 COMPOSE := docker compose -f artisync/docker-compose.yml --env-file artisync/.env
 
-.PHONY: all up up-backend-publico down test bench bench-auth bench-auth-cold perf-stats audit audit-sql-dynamic audit-zap clean sus lighthouse lighthouse_wait_backend docs srs sync-procs sync-procs-check javadoc
+.PHONY: all up up-backend-publico down test bench bench-auth bench-auth-cold perf-stats audit audit-sql-dynamic audit-zap clean sus lighthouse lighthouse_wait_backend docs srs sync-procs sync-procs-check javadoc verify
 
 # Imagen con pandoc + LaTeX para generar PDFs sin exigir una instalacion local
 # de TeX. Se puede sobreescribir: make srs PANDOC_IMAGE=otra/imagen
@@ -433,3 +433,26 @@ srs:
 javadoc:
 	cd artisync/Backend && ./mvnw -o javadoc:javadoc
 	@echo "OK: Javadoc generado sin errores en artisync/Backend/target/reports/apidocs/index.html"
+
+## EV-2 de la guia del examen suspenso: ejecuta desde un clon limpio TODAS las
+## comprobaciones citadas en VERIFICACION.md y termina con codigo de salida
+## cero solo si todas pasan. Cada paso hace exit !=0 por si mismo si falla
+## (mvn test, javadoc:javadoc, y los tres scripts de abajo), asi que basta con
+## encadenarlos sin logica adicional -- make ya se detiene en el primero que
+## falle.
+verify:
+	@echo "--- [1/6] mvn test (backend, regenera jacoco.csv) ---"
+	cd artisync/Backend && ./mvnw -B test
+	@echo "--- [2/6] P5: cobertura >=70% en los 9 paquetes controller.* ---"
+	python scripts/verificar-cobertura-controladores.py
+	@echo "--- [3/6] P6: cero nativeQuery=true para procedimientos/funciones SQL ---"
+	python scripts/auditoria-rubrica.py p6 | tee /tmp/auditoria-p6.txt
+	@grep -q "nativeQuery = true (real, fuera de comentario): 0" /tmp/auditoria-p6.txt
+	@rm -f /tmp/auditoria-p6.txt
+	@echo "--- [4/6] P11: las referencias con DOI resuelven contra doi.org ---"
+	python scripts/verificar-doi.py
+	@echo "--- [5/6] sincronia db/procs <-> R__procedimientos.sql ---"
+	bash scripts/sync-procs.sh --check
+	@echo "--- [6/6] P7: Javadoc sin errores de doclint ---"
+	cd artisync/Backend && ./mvnw -o javadoc:javadoc
+	@echo "OK: make verify termino sin errores."
