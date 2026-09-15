@@ -15,7 +15,7 @@ import java.util.Map;
  * </pre>
  *
  * El ThreadLocal se drena y se limpia SIEMPRE en el finally de
- * {@link AuditAspect#auditar}, incluso si el método lanza. Con el pool
+ * {@link AuditAspect#audit}, incluso si el método lanza. Con el pool
  * de hilos de Tomcat, una fuga de este ThreadLocal contaminaría la siguiente
  * petición atendida por el mismo hilo.
  *

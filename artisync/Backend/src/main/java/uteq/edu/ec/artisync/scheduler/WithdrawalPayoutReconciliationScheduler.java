@@ -20,7 +20,7 @@ import java.util.List;
  * Mismo patrón que PayPalReconciliationScheduler (escrow): cada solicitud se
  * reconcilia en su propia transacción vía
  * WithdrawalPayoutReconciliationExecutorService (REQUIRES_NEW), sin
- * @Transactional aquí, para que el fallo de una no revierta a las demás.
+ * {@code @Transactional} aquí, para que el fallo de una no revierta a las demás.
  */
 @Slf4j
 @Component
