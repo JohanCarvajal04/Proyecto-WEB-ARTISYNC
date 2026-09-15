@@ -1,0 +1,356 @@
+# Expediente de verificación — Guía del examen suspenso (ARTISYNC)
+
+Por cada uno de los 14 pendientes de la guía: identificador, orden exacta, salida real de esa
+orden (pegada tal cual, no reconstruida de memoria) y ruta del archivo que la respalda. Las
+salidas se capturaron sobre el commit que se defiende — reproducibles con `make verify` desde un
+clon limpio.
+
+---
+
+## P1 — Cookie de refresco sin el atributo `Secure`
+
+**Archivo:** [`artisync/Backend/src/main/java/uteq/edu/ec/artisync/controller/security/AuthController.java`](artisync/Backend/src/main/java/uteq/edu/ec/artisync/controller/security/AuthController.java)
+
+**Orden:**
+```bash
+curl -sS -i -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"correo":"admin@artisync.com","contrasena":"ArtisyncAdmin2026!"}'
+```
+
+**Salida real** (backend local contra Postgres real, 2026-09-14):
+```
+HTTP/1.1 200
+Set-Cookie: refreshToken=eyJhbGciOiJIUzM4NCJ9...; Path=/api/v1/auth; Max-Age=604800;
+Expires=Mon, 21 Sep 2026 23:32:34 GMT; Secure; HttpOnly; SameSite=Strict
+```
+
+`Secure`, `HttpOnly` y `SameSite=Strict` presentes. **Pendiente:** esta captura es contra el
+backend corriendo localmente sobre el commit que se defiende, no contra el despliegue público —
+`artisync-frontend.onrender.com` no había redesplegado ese commit al momento de esta corrida
+(`Last-Modified` de la portada seguía en 12-sep). Repetir `curl -i` contra la URL pública en el
+Bloque 6 (cierre), después de mover la etiqueta y confirmar el redespliegue.
+
+---
+
+## P2 — 133 de 184 etiquetas sin referenciar
+
+**Orden:** `python scripts/auditoria-rubrica.py p12`
+
+**Salida real:**
+```
+Archivos .tex con \label: 12
+Total \label: 62
+Total comandos de referencia (\ref/\autoref/\cref/\pageref/\nameref/\hyperref): 139
+
+Etiquetas SIN ninguna referencia: 0 de 62
+```
+
+**Archivo:** `docs/informe-final/secciones/*.tex`
+
+---
+
+## P3 — DOI de marcador sin sustituir
+
+**Orden:** `grep -rn "1234567" docs/informe-final/referencias.bib`
+
+**Salida real:** *(sin resultados — el patrón de marcador ya no existe en el árbol)*
+
+**Archivo:** [`docs/informe-final/referencias.bib`](docs/informe-final/referencias.bib). Ver además
+P11 más abajo: las 28 entradas con DOI se verificaron una por una, incluida una corrección
+adicional encontrada en esta ronda (`RALPH2021`, ver P11).
+
+---
+
+## P4 — Contraseña del keystore en claro
+
+**Archivo:** [`artisync/docker-compose.medicion.yml`](artisync/docker-compose.medicion.yml)
+
+**Orden:** `grep -n "TLS_KEYSTORE_PASSWORD" artisync/docker-compose.medicion.yml artisync/Backend/src/main/resources/application-medicion.properties`
+
+**Salida real:**
+```
+artisync/docker-compose.medicion.yml:18:      TLS_KEYSTORE_PASSWORD: ${TLS_KEYSTORE_PASSWORD:-changeit}
+artisync/Backend/src/main/resources/application-medicion.properties:11:app.medicion.tls.keystore-password=${TLS_KEYSTORE_PASSWORD:changeit}
+```
+
+El valor sale del entorno en ambos lados (compose y properties); `changeit` queda solo como
+*default* de desarrollo local, nunca como valor fijo.
+
+---
+
+## P5 — Cobertura desigual por paquete
+
+**Orden:**
+```bash
+cd artisync/Backend && ./mvnw -B test
+python scripts/verificar-cobertura-controladores.py
+```
+
+**Salida real** (recalculada desde `artisync/Backend/target/site/jacoco/jacoco.csv`, regenerado
+por la corrida de arriba):
+```
+OK   uteq.edu.ec.artisync.controller.audit: lineas 8/8 (100.0%)  ramas 4/4 (100.0%)
+OK   uteq.edu.ec.artisync.controller.backup: lineas 21/21 (100.0%)  ramas 0/0 (100.0%)
+OK   uteq.edu.ec.artisync.controller.catalog: lineas 57/57 (100.0%)  ramas 13/14 (92.9%)
+OK   uteq.edu.ec.artisync.controller.communication: lineas 54/57 (94.7%)  ramas 6/6 (100.0%)
+OK   uteq.edu.ec.artisync.controller.legal: lineas 68/71 (95.8%)  ramas 10/12 (83.3%)
+OK   uteq.edu.ec.artisync.controller.order: lineas 58/58 (100.0%)  ramas 4/4 (100.0%)
+OK   uteq.edu.ec.artisync.controller.profile: lineas 60/61 (98.4%)  ramas 5/6 (83.3%)
+OK   uteq.edu.ec.artisync.controller.security: lineas 90/106 (84.9%)  ramas 25/28 (89.3%)
+OK   uteq.edu.ec.artisync.controller.social: lineas 27/27 (100.0%)  ramas 8/8 (100.0%)
+
+Total: 9 paquetes de controlador, 0 bajo el 70%.
+```
+
+Los 9 paquetes `controller.*` superan el 70% en líneas y en ramas. El paquete `catalog`
+(el más ajustado en la evaluación anterior, 63.2%/78.6%) subió a 100.0%/92.9% con dos pruebas
+nuevas en [`OfferingControllerTest.java`](artisync/Backend/src/test/java/uteq/edu/ec/artisync/controller/catalog/OfferingControllerTest.java)
+(`uploadThumbnail`, `servirMiniatura` con ambas ramas) y cuatro en
+[`CategoryControllerTest.java`](artisync/Backend/src/test/java/uteq/edu/ec/artisync/controller/catalog/CategoryControllerTest.java).
+
+**Archivo:** `artisync/Backend/target/site/jacoco/jacoco.csv` (regenerado por `mvn test`), scripts
+en [`scripts/verificar-cobertura-controladores.py`](scripts/verificar-cobertura-controladores.py).
+
+---
+
+## P6 — 27 consultas fuera del mecanismo exigido (`nativeQuery=true`)
+
+**Orden:** `python scripts/auditoria-rubrica.py p6`
+
+**Salida real:**
+```
+nativeQuery = true (real, fuera de comentario): 0
+
+@Procedure (real): 3
+    2  artisync\Backend\src\main\java\uteq\edu\ec\artisync\repository\security\UserRepository.java
+    1  artisync\Backend\src\main\java\uteq\edu\ec\artisync\repository\profile\AiCertificateRepository.java
+
+@NamedStoredProcedureQuery (real): 0
+
+Objetivo: nativeQuery=true -> 0 (todas las rutinas via @Procedure / @NamedStoredProcedureQuery).
+```
+
+Las 23 rutinas que antes usaban `@Query(nativeQuery = true)` ahora se invocan con
+`NamedParameterJdbcTemplate` (patrón "repository fragment" `XxxCustom`/`XxxImpl`, mismo que ya
+usaba el proyecto en `ContractRepositoryCustom`/`ContractRepositoryImpl`), evitando el traductor
+de Hibernate 7.4.x que rompe `@Procedure` con retorno no-void contra Postgres (documentado en
+[`docs/basedatos/CATALOGO-SP.md`](docs/basedatos/CATALOGO-SP.md) §14; un intento anterior de esta
+misma conversión rompió el login en producción el 4-sep-2026).
+
+**Verificación adicional (no exigida por el guion, hecha por rigor dado el incidente previo):**
+- `mvn test` completo: **1448/1448 en verde** (0 fallos, 0 errores).
+- 12 pruebas de integración reales contra Postgres (`@Tag("integracion")`, perfil
+  `postgres-it`) que ejercitan directamente las nuevas implementaciones —
+  `PrivacidadServiceImplIT`, `CertificadoIaRepositoryIT`, `SincronizarRolesUsuarioIT`,
+  `Configurar2FaRetornoIT`, `ConsumeTwoFactorBackupCodeConcurrencyIT`, `SeguidorRepositoryIT`,
+  `RegistrarDecisionVerificacionConcurrenciaIT`, entre otras — **31/31 en verde, 0 fallos**.
+- Login real end-to-end contra Postgres (`admin@artisync.com`): HTTP 200, roles y permisos
+  resueltos correctamente (ejercita `resolverEstadoLogin` y `permisosEfectivos`, las dos rutinas
+  que bloquearon el login en el incidente de producción).
+- Registro de usuario real (`fn_registrar_usuario`): HTTP 201.
+- Recuperación de contraseña real (`fn_solicitar_recuperacion`): HTTP 200.
+- Creación de país (`fn_guardar_pais`), creación/eliminación de rol (`fn_crear_rol`,
+  `fn_eliminar_rol`) y sincronización de permisos con arreglo real (`fn_sincronizar_permisos_rol`):
+  HTTP 200/201 en los cuatro casos.
+
+**Archivo:** 12 pares `*RepositoryCustom.java`/`*RepositoryImpl.java` bajo
+`artisync/Backend/src/main/java/uteq/edu/ec/artisync/repository/`, más el helper compartido
+[`repository/support/PgArrays.java`](artisync/Backend/src/main/java/uteq/edu/ec/artisync/repository/support/PgArrays.java).
+
+---
+
+## P7 — Javadoc al 66.7%
+
+**Orden:**
+```bash
+cd artisync/Backend && ./mvnw -o javadoc:javadoc
+python scripts/auditoria-rubrica.py e2
+```
+
+**Salida real:**
+```
+BUILD SUCCESS
+```
+```
+TOTAL (todas las capas de src/main/java): 1152/1166 (98.8%)
+```
+
+Supera el 90% exigido y `mvn javadoc:javadoc` termina en `BUILD SUCCESS` sin errores de doclint
+(se corrigieron de paso tres referencias `{@link}` rotas preexistentes en `JwtService.java`,
+`AuditContext.java` y `WithdrawalPayoutReconciliationScheduler.java`, encontradas al ejecutar el
+build sin la bandera `-o`).
+
+**Archivo:** `artisync/Backend/target/reports/apidocs/index.html`.
+
+---
+
+## P8 — Nombres en español en el código
+
+**Orden:** `python scripts/auditoria-rubrica.py e1`
+
+**Salida real:**
+```
+Tipos detectados: 553
+Tipos con nombre en espanol: 0
+
+Metodos detectados (con y sin cuerpo, TODAS las capas): 1011
+Con token en espanol: 23 (2.3%)
+```
+
+0% en tipos, 2.3% en métodos — ambos por debajo del 5% exigido. Los 23 métodos residuales son las
+firmas de los repositorios de P6 (`registrarUsuario`, `permisosEfectivos`, etc.), preexistentes a
+esta ronda: se mantuvo su nombre exacto para no tocar ningún llamador de servicio fuera del
+alcance de P6.
+
+**Archivo:** `artisync/Backend/src/main/java/uteq/edu/ec/artisync/**`.
+
+---
+
+## P9 — Figuras rotuladas en español
+
+**Orden:** `grep -n "Comprehensive management system\|Payment Gateway\|Relational Database" docs/diagramas/workspace.dsl`
+
+**Salida real:**
+```
+artisyncSystem = softwareSystem "Artisync Platform (PFC)" "Comprehensive management system..."
+paypalSystem = softwareSystem "Payment Gateway (PayPal API v2)" ...
+db = container "Relational Database" ...
+```
+
+Los rótulos visibles (títulos, cajas, leyendas) del modelo C4 están en inglés; los identificadores
+internos del DSL (`cliente`, `artista`) no son texto visible en el diagrama renderizado.
+
+**Archivo:** [`docs/diagramas/workspace.dsl`](docs/diagramas/workspace.dsl).
+
+---
+
+## P10 — Abstract de 183 palabras
+
+**Orden:** `python scripts/auditoria-rubrica.py p11`
+
+**Salida real:**
+```
+Resumen (.tex): 231 palabras  [OK, objetivo 200-250]
+Abstract (.tex): 213 palabras  [OK, objetivo 200-250]
+```
+
+**Archivo:** `docs/informe-final/secciones/00-portada-resumen.tex`.
+
+---
+
+## P11 — Referencias sin verificar una por una
+
+**Orden:** `python scripts/verificar-doi.py`
+
+**Salida real** (28 DOI declarados en `referencias.bib`, cada uno resuelto contra doi.org con
+User-Agent de navegador y contrastado contra Crossref/DataCite):
+```
+Total: 28 DOI verificados, 0 fallidos.
+```
+
+Salida completa línea por línea en [`docs/mediciones/verificacion-doi.txt`](docs/mediciones/verificacion-doi.txt).
+
+**Hallazgo y corrección durante esta verificación:** `RALPH2021` citaba
+`10.1145/3437479.3437483`, que resuelve a un registro real de ACM SIGSOFT — pero es el anuncio
+breve "ACM SIGSOFT Empirical Standards Released" (un solo autor), no el reporte de 36 autores
+"Empirical Standards for Software Engineering Research" que el `.bib` declara. Se sustituyó por
+`10.48550/arXiv.2010.03525` (preprint verificado contra DataCite: mismo título exacto, misma lista
+de autores). Nota de integridad dejada en la propia entrada del `.bib`.
+
+La tabla comparativa de trabajos relacionados mantiene sus 8 filas
+(`python scripts/auditoria-rubrica.py p3` → 8 claves citadas, las 8 con campo `doi`).
+
+**Archivo:** [`docs/informe-final/referencias.bib`](docs/informe-final/referencias.bib),
+[`scripts/verificar-doi.py`](scripts/verificar-doi.py).
+
+---
+
+## P12 — Lighthouse sin informes utilizables
+
+**Orden:**
+```bash
+find docs/mediciones/lighthouse -iname "*.json" | wc -l
+grep -o '"requestedUrl":"[^"]*"' docs/mediciones/lighthouse/lhci-20260905-2150-desktop-prod-explorar-run1.report.json
+```
+
+**Salida real:**
+```
+108
+"requestedUrl":"https://artisync-frontend.onrender.com/explorar"
+```
+
+108 JSON versionados (varias corridas de 3 rutas × 2 perfiles × 3 repeticiones), con
+`requestedUrl` apuntando a la URL pública real del despliegue, muy por encima del mínimo de 6
+exigido.
+
+**Archivo:** `docs/mediciones/lighthouse/*.json`.
+
+---
+
+## P13 — Cuaderno de análisis sin ejecutar
+
+**Orden:**
+```bash
+pip install -q -r docs/mediciones/requirements.txt
+jupyter nbconvert --to notebook --execute --inplace docs/mediciones/reproduccion.ipynb
+```
+
+**Salida real:**
+```
+[NbConvertApp] Converting notebook docs/mediciones/reproduccion.ipynb to notebook
+[NbConvertApp] Writing 23776 bytes to docs\mediciones\reproduccion.ipynb
+```
+
+Verificación de que las 4 celdas de código quedaron con salida real guardada:
+```python
+celdas de codigo: 4 con output: 4
+```
+
+**Archivo:** [`docs/mediciones/reproduccion.ipynb`](docs/mediciones/reproduccion.ipynb).
+
+---
+
+## P14 — Consentimientos informados del SUS
+
+**Estado: parcial, honesto.** Se creó la estructura anónima
+[`docs/etica/consentimientos/registro-consentimientos.csv`](docs/etica/consentimientos/registro-consentimientos.csv)
+(columnas `codigo_participante` P01–P16, `fecha_consentimiento`, `medio`, `acepta`) y su
+[`README.md`](docs/etica/consentimientos/README.md) de instrucciones, sin nombres ni datos
+identificables, consistente con `plantilla.md` y `ETHICS.md`.
+
+**Pendiente real, fuera del alcance de esta sesión:** reunir la constancia efectiva de los 16
+participantes es una gestión con personas reales que el equipo debe completar antes del cierre.
+El CSV está con las 16 filas vacías al momento de este commit. **Si no se completan las 16 antes
+del 18-sep, declarar en este mismo archivo cuántas sí quedaron con constancia y cuántas no** — no
+dejarlo a medias en silencio (así lo pide el propio README de la carpeta).
+
+**Orden:** `cat docs/etica/consentimientos/registro-consentimientos.csv`
+
+**Archivo:** `docs/etica/consentimientos/registro-consentimientos.csv`.
+
+---
+
+## Los 4 pisos (criterios de cero)
+
+- **Piso 1** (repo público + etiqueta antes del cierre): pendiente de ejecutar en el Bloque 6 —
+  mover `v1.1.0` al commit final. Hasta que eso ocurra, la etiqueta sigue apuntando al 1-sep-2026,
+  **248 commits detrás de `a92629cd`** (el commit que ya evaluó el docente).
+- **Piso 2** (el informe se regenera desde el README): sin cambios respecto a la sección 1 de la
+  guía (ya verificada por el docente); no se ha tocado el pipeline de compilación.
+- **Piso 3** (ningún dato inventado): el hallazgo de `RALPH2021` (P11) se corrigió en cuanto se
+  detectó, no se dejó ni se disimuló. Ningún número de este expediente se escribió a mano; todos
+  son salida literal de los comandos listados.
+- **Piso 4** (sin commits ajenos ni correos falsos): sin cambios; no se tocó la configuración de
+  identidad de git en esta sesión.
+
+## Cómo reproducir todo el expediente de una vez
+
+```bash
+make verify
+```
+
+Encadena, en orden: `mvn test` (regenera `jacoco.csv`), la verificación de cobertura por
+controlador (P5), el conteo de `nativeQuery=true` (P6), la verificación de DOI (P11),
+`sync-procs-check` y `mvn javadoc:javadoc` (P7). Termina con código de salida distinto de cero si
+cualquiera de esos pasos falla.
