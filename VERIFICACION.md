@@ -372,3 +372,42 @@ Encadena, en orden: `mvn test` (regenera `jacoco.csv`), la verificación de cobe
 controlador (P5), el conteo de `nativeQuery=true` (P6), la verificación de DOI (P11),
 `sync-procs-check` y `mvn javadoc:javadoc` (P7). Termina con código de salida distinto de cero si
 cualquiera de esos pasos falla.
+
+### EV-2 — corrida real de los 6 pasos (2026-09-14)
+
+**Nota sobre esta corrida:** en la terminal donde se ejecutó (Git Bash) el binario `make` no
+estaba instalado (`make: command not found`, exit 127) — no es una falla del target, es que
+faltaba la herramienta en esa shell puntual. Para no dejar EV-2 sin probar, se corrieron **los
+mismos 6 comandos del target `verify`, uno por uno, en el mismo orden y con el mismo criterio de
+corte** (se detiene en el primer paso que falle). Antes de defender, confirmen además que
+`make verify` funciona invocado literalmente por `make` (en Windows: Git Bash + `choco install
+make`, o WSL) — el target en sí ya se sabe correcto, esto solo prueba la cadena de comandos que
+contiene.
+
+Salida real, completa, sin editar: [`docs/mediciones/make-verify-20260914.txt`](docs/mediciones/make-verify-20260914.txt)
+(3448 líneas — incluye el log SQL de Hibernate de las 1448 pruebas). Resumen de cada paso:
+
+```
+--- [1/6] mvn test ---
+Tests run: 1448, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS (2:46 min)
+
+--- [2/6] P5: cobertura >=70% ---
+9 paquetes controller.*, 0 bajo el 70% (mínimo: security 84.9%/89.3%)
+
+--- [3/6] P6: nativeQuery=true ---
+nativeQuery = true (real, fuera de comentario): 0
+
+--- [4/6] P11: DOI contra doi.org ---
+Total: 28 DOI verificados, 0 fallidos (con metadatos de titulo/venue por cada uno)
+
+--- [5/6] sincronia db/procs <-> R__procedimientos.sql ---
+OK: R__procedimientos.sql sincronizado con db/procs/ (27 rutinas)
+
+--- [6/6] javadoc ---
+BUILD SUCCESS (30.6 s)
+
+EXIT_CODE=0
+```
+
+Los 6 pasos pasaron en verde y la cadena terminó con código de salida **0**.

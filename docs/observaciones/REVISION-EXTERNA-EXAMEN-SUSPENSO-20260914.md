@@ -19,7 +19,7 @@ detrás incluso del commit que el docente ya evaluó (`a92629cd`)**. Por el Avis
 **nada de lo descrito abajo cuenta**: el docente calificaría contra el snapshot de hace dos
 semanas. Esto no es un punto más de la tabla — es el interruptor maestro de toda la nota.
 
-Con la etiqueta movida y los huecos reales de abajo cerrados, mi estimación es **~8,85/10** sobre
+Con la etiqueta movida y los huecos reales de abajo cerrados, mi estimación es **~9,04/10** sobre
 la rúbrica de la guía (ver §5). Sin mover la etiqueta: la nota se calcula contra el commit de
 hace 248 commits, que ni siquiera es el que ya generó esta guía.
 
@@ -41,7 +41,7 @@ hace 248 commits, que ni siquiera es el que ya generó esta guía.
 | EV | Estado | Evidencia |
 |---|---|---|
 | **EV-1** — `VERIFICACION.md` | ✅ Presente y bien construido | Cubre los 14 puntos, cada uno con orden + salida real pegada + ruta de archivo, tal como exige la guía. Reproduje 6 de las 14 salidas de forma independiente (P2, P3, P6, P7, P8) y coinciden con lo que el archivo declara. |
-| **EV-2** — `make verify` | ⚠️ Bien diseñado, no ejecutado end-to-end en esta revisión | El target (`Makefile:443`) encadena `mvn test` → cobertura P5 → conteo P6 → DOI P11 → sync-procs → javadoc P7, y corta con código distinto de cero si algo falla (usa `grep -q ... ; @rm -f`). No corrí `make verify` completo yo mismo (requiere `mvn test` con Postgres real, varios minutos) — **el equipo debe correrlo una vez más desde un clon limpio antes de entregar**, exactamente como pide el "Ojo con esto" de la sección 1. |
+| **EV-2** — `make verify` | ✅ Ejecutado end-to-end tras esta conversación, `EXIT_CODE=0` | El target (`Makefile:443`) encadena `mvn test` → cobertura P5 → conteo P6 → DOI P11 → sync-procs → javadoc P7. **Actualización (misma tarde, 2026-09-14):** el binario `make` no estaba instalado en la shell de esta revisión, así que se corrieron los 6 comandos exactos del target a mano, en el mismo orden y con el mismo criterio de corte: 1448/1448 tests (`BUILD SUCCESS`, 2:46 min), cobertura 9/9 paquetes ≥70%, `nativeQuery=true`: 0, 28/28 DOI resueltos, `sync-procs --check` sincronizado, `mvn javadoc:javadoc` (`BUILD SUCCESS`). Log completo en [`docs/mediciones/make-verify-20260914.txt`](../mediciones/make-verify-20260914.txt), resumen en `VERIFICACION.md`. **Pendiente real:** confirmar que `make verify` también funciona invocado por el binario `make` de verdad (en esta shell no estaba instalado) y, si se quiere el máximo rigor, repetirlo desde un clon limpio nuevo en vez de este working tree. |
 | **EV-3** — etiqueta + URL en el README | ❌ Incompleto en dos frentes | (a) La etiqueta no se movió (ver §0). (b) **La URL pública del despliegue no está en la primera pantalla del README** — solo aparece en la línea 181 (`make lighthouse`) y 283 (evidencia empírica), no en la introducción/cabecera donde la guía pide que esté. Es un fix de una línea. |
 | **EV-4** — `CONTRIBUCIONES.md` | ❌ Explícitamente borrador | El propio archivo dice "Borrador" en la línea 3 y tiene la columna "Responsable" vacía para los tres integrantes, sin firma ni correo institucional. Además no cubre P1, P2, P3, P9, P10 ni P12 (dice que "ya estaban resueltos antes de esta ronda", lo cual es plausible pero no está declarado con el mismo detalle que P4–P8/P11/P13/P14). Sin esto firmado, la guía es explícita: la calificación individual (sección 4 de la guía, 35% "titularidad") no tiene base. |
 
@@ -120,14 +120,13 @@ queda solo como default de desarrollo, no como secreto fijo.
 **Estimación: 100%.**
 
 ### P5 — Cobertura desigual por paquete (peso 0,9)
-**[según expediente, no reproducido]** No corrí `mvn test` (requiere Postgres real y varios
-minutos). `VERIFICACION.md` muestra los 9 paquetes `controller.*` recalculados, todos ≥70% en
-líneas y ramas (el más bajo, `security`, en 84.9%/89.3%). El diseño es correcto: `jacoco.csv` no
-está versionado (`target/` en `.gitignore`), se regenera en el paso 1 de `make verify` — así que
-es reproducible desde un clon limpio por construcción.
+**[verificado por mí, actualizado]** Corrí `mvn test` completo (1448/1448 tests, `BUILD SUCCESS`)
+y reproduje `verificar-cobertura-controladores.py` sobre el `jacoco.csv` recién generado: los 9
+paquetes `controller.*` ≥70% en líneas y ramas (el más bajo, `security`, 84.9%/89.3%). `jacoco.csv`
+no está versionado (`target/` en `.gitignore`), se regenera en el paso 1 de `make verify` — así que
+es reproducible desde un clon limpio por construcción, y ahora también confirmado en la práctica.
 
-**Estimación: 85%** (alta confianza en el diseño y en la última corrida capturada; falta que el
-equipo la vuelva a correr una vez más, como manda la propia guía, antes de firmar el expediente).
+**Estimación: 100%.**
 
 ### P6 — 27 consultas fuera del mecanismo exigido (peso 0,9)
 **[verificado por mí]** Reproduje `auditoria-rubrica.py p6`: **`nativeQuery=true`: 0**, `@Procedure`: 3
@@ -143,10 +142,10 @@ en verde y pruebas de integración reales contra Postgres del login y otras ruti
 capas de `src/main/java`, muy por encima del 90% exigido. Por capa: `service` 99.8%, `controller`
 100%, `repository` 95.1%, `config`/`security`/`exception`/`util` 100%, `scheduler` 95.0%.
 
-**Hueco menor:** no reproduje yo mismo `mvn javadoc:javadoc` (el `BUILD SUCCESS` sin doclint que
-exige la guía) — solo el conteo estático de Javadoc, que sí reproduje.
+**Actualizado:** también corrí `mvn javadoc:javadoc` — `BUILD SUCCESS` en 30.6s, sin errores de
+doclint.
 
-**Estimación: 95%.**
+**Estimación: 100%.**
 
 ### P8 — Nombres en español en el código (peso 1,0)
 **[verificado por mí]** Reproduje `auditoria-rubrica.py e1`: **553 tipos, 0% en español**; **1011
@@ -193,6 +192,12 @@ declarar en vez de disimular (ver `[[project-artisync-academic-context]]`).
 faltan referencias por citar o si el número de la guía incluye algo que ya no está; (2) para las 17
 sin DOI, declarar explícitamente en el propio `.bib` o en `VERIFICACION.md` *por qué* no tienen DOI
 (estándar ISO/IEEE sin DOI público, libro pre-DOI, etc.) en vez de omitirlas en silencio.
+
+**Actualizado:** volví a correr `verificar-doi.py` completo (no solo leer el archivo de salida
+guardado) — los 28 DOI que sí están declarados resuelven en vivo contra doi.org, cada uno con
+título y venue reales recuperados (ver `docs/mediciones/make-verify-20260914.txt`, paso 4/6). Esto
+sube la confianza en el subconjunto de 28, pero no cambia el hueco de fondo: las 17 referencias sin
+campo `doi` siguen sin verificar ni justificar.
 
 **Estimación: 45%** (parcial — lo que se verificó, se verificó bien; pero el alcance declarado no
 cubre lo que la guía pidió).
@@ -244,9 +249,9 @@ su propia comprobación, no la mía. Uso los números de §4:
 | P2 | 0,8 | 85% | 0,68 |
 | P3 | 0,6 | 100% | 0,60 |
 | P4 | 0,5 | 100% | 0,50 |
-| P5 | 0,9 | 85% | 0,77 |
+| P5 | 0,9 | 100% | 0,90 |
 | P6 | 0,9 | 100% | 0,90 |
-| P7 | 1,2 | 95% | 1,14 |
+| P7 | 1,2 | 100% | 1,20 |
 | P8 | 1,0 | 100% | 1,00 |
 | P9 | 0,7 | 90% | 0,63 |
 | P10 | 0,3 | 100% | 0,30 |
@@ -254,7 +259,7 @@ su propia comprobación, no la mía. Uso los números de §4:
 | P12 | 0,7 | 100% | 0,70 |
 | P13 | 0,4 | 100% | 0,40 |
 | P14 | 0,6 | 70% | 0,42 |
-| **Total** | **10,0** | | **≈ 8,85 / 10** |
+| **Total** | **10,0** | | **≈ 9,04 / 10** |
 
 **Esto asume que `v1.1.0` se mueve al commit final antes del cierre.** Si no se mueve, la nota que
 importa es la que corresponda al snapshot de hace 248 commits, no esta tabla.
@@ -278,8 +283,9 @@ importa es la que corresponda al snapshot de hace 248 commits, no esta tabla.
    una línea.
 6. **Recapturar la evidencia de P1 contra el despliegue público** (no localhost) después de mover
    la etiqueta y confirmar el redespliegue.
-7. **Correr `make verify` completo una vez, desde un clon limpio**, como exige EV-2 y como la
-   propia guía recuerda en "Ojo con esto" de la sección 1 — no lo dejen sin ejecutar por
-   confiar en corridas parciales anteriores.
+7. **EV-2 ya se corrió completo y pasó (`EXIT_CODE=0`, ver `docs/mediciones/make-verify-20260914.txt`)** —
+   falta solo confirmar que el binario `make` esté instalado en la máquina desde la que van a
+   defender (en esta shell no lo estaba) y, si quieren el máximo rigor, repetirlo una vez más
+   desde un clon limpio nuevo, como recuerda el "Ojo con esto" de la sección 1.
 8. Antes de entregar, una pasada visual rápida sobre el PDF de 79 páginas buscando alguna
    figura/tabla sin mencionar en el texto (para descartar la duda de P2 del §4).
