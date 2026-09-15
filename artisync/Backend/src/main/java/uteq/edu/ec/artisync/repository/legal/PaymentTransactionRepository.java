@@ -19,25 +19,10 @@ import java.util.List;
  * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
  */
 @Repository
-public interface PaymentTransactionRepository extends JpaRepository<PaymentTransaction, Long> {
+public interface PaymentTransactionRepository extends JpaRepository<PaymentTransaction, Long>, PaymentTransactionRepositoryCustom {
 
     /** Transacciones de un pago de garantía, más recientes primero. */
     List<PaymentTransaction> findByPagoIdPagoOrderByFechaEjecucionDesc(Long idPago);
-
-    /**
-     * fn_reporte_comisiones_creador (db/procs/fn_reporte_comisiones_creador.sql):
-     * agrega bruto/comisión/neto y el detalle de transacciones de un creador en
-     * una sola sentencia STABLE, en vez de traer entidades crudas y sumar en
-     * Java. Sustituye a la vieja findByCreadorPerfilId + agregación manual que
-     * usaba AuditServiceImpl (retirado: su CSV no tenía tope, no llevaba BOM y
-     * formateaba el monto con el locale por defecto de la JVM).
-     */
-    @Query(value = "SELECT fn_reporte_comisiones_creador(:idPerfil, :desde, :hasta, :tasa)::text",
-            nativeQuery = true)
-    String reporteComisionesJson(@Param("idPerfil") Long idPerfil,
-                                  @Param("desde") LocalDateTime desde,
-                                  @Param("hasta") LocalDateTime hasta,
-                                  @Param("tasa") BigDecimal tasa);
 
     /**
      * Total histórico de "Egreso" (la parte del creador tras la comisión,

@@ -17,7 +17,7 @@ import java.util.List;
  * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
  */
 @Repository
-public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
+public interface UserRoleRepository extends JpaRepository<UserRole, Long>, UserRoleRepositoryCustom {
 
     /** Roles asignados a un usuario. */
     List<UserRole> findByUsuarioIdUsuario(Long idUsuario);
@@ -45,24 +45,6 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
      */
     @Query("SELECT ur.usuario.idUsuario FROM UserRole ur WHERE UPPER(ur.rol.nombreRol) = UPPER(:nombreRol)")
     List<Long> findIdsUsuarioByNombreRol(@Param("nombreRol") String nombreRol);
-
-    /**
-     * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §3) -
-     * fn_sincronizar_roles_usuario: reemplaza atomicamente el set completo de
-     * roles de un usuario (DELETE+INSERT con ON CONFLICT), serializado con
-     * SELECT ... FOR UPDATE sobre usuarios. Gemela de
-     * RoleRepository.sincronizarPermisos (REQ-F-003) para el lado usuario {@literal <->} rol.
-     * Devuelve el total de filas insertadas.
-     *
-     * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
-     * {@code @Procedure} con retorno no-void rompe con Hibernate 7.4.1 contra una FUNCTION de Postgres
-     * (genera sintaxis de argumento nombrado "p_x => ?" dentro del escape JDBC, invalida). Ver el
-     * hallazgo completo en docs/basedatos/CATALOGO-SP.md §14.
-     */
-    @Query(value = "SELECT fn_sincronizar_roles_usuario(:p_id_usuario, :p_nombres_rol)", nativeQuery = true)
-    Integer sincronizarRoles(
-            @Param("p_id_usuario") Long idUsuario,
-            @Param("p_nombres_rol") String[] nombresRol);
 }
 
 

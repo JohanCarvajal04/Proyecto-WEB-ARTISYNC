@@ -1,8 +1,6 @@
 package uteq.edu.ec.artisync.repository.social;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.social.Raffle;
 
@@ -11,14 +9,14 @@ import java.util.List;
 
 /**
  * Repositorio de acceso a datos para la entidad de dominio {@link Raffle}.
- * 
- * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ *
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA
  * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
- * 
+ *
  * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
  */
 @Repository
-public interface RaffleRepository extends JpaRepository<Raffle, Long> {
+public interface RaffleRepository extends JpaRepository<Raffle, Long>, RaffleRepositoryCustom {
 
     /** Ya existía — usado internamente. Mantenido por compatibilidad. */
     List<Raffle> findByFechaCierreLessThanEqualAndEstadoSorteo(LocalDateTime fecha, String estadoSorteo);
@@ -31,18 +29,6 @@ public interface RaffleRepository extends JpaRepository<Raffle, Long> {
 
     /** Todos los sorteos con estado "Activo" (listado público). */
     List<Raffle> findByEstadoSorteo(String estadoSorteo);
-
-    /**
-     * REQ-F-023 - fn_seleccionar_ganadores_sorteo: sortea ganadores y actualiza participantes+sorteo
-     * en bloque. Devuelve JSONB serializado como texto.
-     *
-     * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
-     * {@code @Procedure} con retorno no-void rompe con Hibernate 7.4.1 contra una FUNCTION de Postgres
-     * (genera sintaxis de argumento nombrado "p_x => ?" dentro del escape JDBC, invalida). Ver el
-     * hallazgo completo en docs/basedatos/CATALOGO-SP.md §14.
-     */
-    @Query(value = "SELECT fn_seleccionar_ganadores_sorteo(:p_id_sorteo)::text", nativeQuery = true)
-    String seleccionarGanadores(@Param("p_id_sorteo") Long idSorteo);
 }
 
 

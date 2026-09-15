@@ -1,7 +1,6 @@
 package uteq.edu.ec.artisync.repository.profile;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -12,14 +11,14 @@ import java.util.List;
 
 /**
  * Repositorio de acceso a datos para la entidad de dominio {@link AiCertificate}.
- * 
- * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ *
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA
  * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
- * 
+ *
  * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
  */
 @Repository
-public interface AiCertificateRepository extends JpaRepository<AiCertificate, Long> {
+public interface AiCertificateRepository extends JpaRepository<AiCertificate, Long>, AiCertificateRepositoryCustom {
     /** @return {@code true} si el usuario tiene un certificado en ese estado de verificación */
     boolean existsByUsuarioIdUsuarioAndEstadoVerificacionNombreEstado(Long idUsuario, String nombreEstado);
     /** Certificados de IA solicitados por un usuario. */
@@ -32,21 +31,6 @@ public interface AiCertificateRepository extends JpaRepository<AiCertificate, Lo
     /** Última solicitud de identidad de un usuario, para mostrarle su estado actual. */
     java.util.Optional<AiCertificate> findTopByUsuarioIdUsuarioAndTipoDocumentoOrderByFechaAnalisisDesc(
             Long idUsuario, String tipoDocumento);
-
-        /**
-     * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery]
-     * Esta rutina devuelve un result set (TABLE) complejo proyectado en una interfaz Spring Data (DTO).
-     * El mecanismo @Procedure (o @NamedStoredProcedureQuery) en PostgreSQL exige la devolucion de un RefCursor
-     * como parametro OUT para mapear tablas, lo que colisiona con el soporte nativo de Proyecciones de Hibernate.
-     * Por lo tanto, para funciones que devuelven multiples columnas como filas, nativeQuery=true es el mecanismo
-     * recomendado y correcto que evita acoplar el esquema de BD a DTOs de mapeo hiper-estrictos.
-     */
-
-    @Query(value = "SELECT * FROM fn_listar_cola_verificacion(:estado, :limite, :offset)", nativeQuery = true)
-    List<VerificationQueueProjection> listQueue(
-            @Param("estado") String estado,
-            @Param("limite") int limite,
-            @Param("offset") int offset);
 
     /**
      * Registra la decisión de un moderador sobre un certificado en la cola de
