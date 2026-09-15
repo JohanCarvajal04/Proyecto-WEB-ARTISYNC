@@ -80,13 +80,14 @@ devuelve nada y ambas se invocan con `CALL`, nunca con `SELECT`.
 ### Mecanismo de invocación desde Java (uniformidad del acceso)
 
 Las 28 rutinas activas (26 de `db/procs/` + 2 de verificación asistida por IA, §14) se invocan desde
-Java con **tres mecanismos posibles**, nunca por SQL dinámico:
+Java con **cuatro mecanismos posibles**, nunca por SQL dinámico:
 
 | Mecanismo | Cuántas rutinas | Condición para usarlo |
 |---|---|---|
 | `@Procedure` | 3 (`sp_registrar_decision_verificacion`, `sp_restablecer_contrasena`, `sp_cambiar_contrasena`) | Método Java `void` **y** la rutina no declara ningún parámetro `OUT`/`INOUT` — el único patrón verificado sin fallos contra Hibernate 7.4.1 (ver más abajo). |
 | `@NamedStoredProcedureQuery` | 0 | No usado: exige declarar `@StoredProcedureParameter(mode = OUT)`, que dispara el mismo bug de Hibernate 7.4.1 que `@Procedure` con retorno no-`void` (ver más abajo). |
-| `@Query(nativeQuery = true)` contra la función | 23 | Toda rutina que deba devolver un valor (escalar, `JSONB` o `TABLE`) — es decir, todas las `FUNCTION` de la tabla de arriba salvo las dos `PROCEDURE` puras. |
+| `@Query(nativeQuery = true)` contra la función | 0 *(hasta el 12-sep-2026: 23 — ver "Cuarta revisión" más abajo)* | Ya no se usa. Se sustituyó por `NamedParameterJdbcTemplate` en las 23 rutinas que lo necesitaban, para cerrar el punto P6 de la guía del examen suspenso ("cero apariciones de `nativeQuery=true`"), sin volver a intentar `@Procedure` sobre ellas (ver por qué en la Cuarta revisión). |
+| `NamedParameterJdbcTemplate` (JDBC directo, patrón *repository fragment*) | 25 (23 desde la Cuarta revisión + `sp_purgar_datos_seguridad`/`sp_purgar_notificaciones`, que ya lo usaban desde antes por el motivo de transacciones de §18a) | Toda rutina que deba devolver un valor (escalar, `JSONB` o `TABLE`) — Hibernate/JPA queda completamente fuera de la invocación, ver Cuarta revisión. |
 
 **No es una elección de conveniencia: es la única combinación que funciona contra Hibernate 7.4.1 +
 PostgreSQL.** En cuanto un método `@Procedure` (o un `@NamedStoredProcedureQuery` con un parámetro
@@ -642,6 +643,53 @@ Es decir, el bug no se corrigió entre 7.4.1 y 7.4.5 — no es un defecto ya par
 simplemente no haya actualizado. El experimento se revirtió por completo (override de
 `hibernate.version` retirado de `pom.xml`, clase de prueba desechable eliminada) sin dejar rastro en
 el árbol de producción ni en `src/test`.
+
+**Cuarta revisión (14-sep-2026) — se cierra el punto P6 de la guía del examen suspenso sin volver
+a intentar `@Procedure`.** La guía exige, literalmente, "cero apariciones de `nativeQuery=true` para
+invocar procedimientos almacenados" — no exige la anotación `@Procedure` en sí. Las tres revisiones
+anteriores ya habían agotado el espacio de soluciones **dentro de JPA/Hibernate**:
+
+| Vía intentada | Pasa por Hibernate | Resultado |
+|---|---|---|
+| `@Procedure` / `@NamedStoredProcedureQuery`, retorno no-`void` | Sí | Falla: `=>` inválido dentro de `{call ...}` (primera y segunda revisión) |
+| Parámetros puramente posicionales (sin `@Param`) | Sí | Falla igual: Spring Boot compila con `-parameters`, Hibernate obtiene el nombre por reflexión de todos modos (segunda revisión) |
+| API nativa de Hibernate (`Session.createStoredProcedureCall` + `markAsFunctionCall`) | Sí (pero evita el defecto puntual) | Funciona, pero exige código imperativo por rutina en vez de una anotación declarativa — sin ganancia real frente al literal de la guía (segunda revisión) |
+| Hibernate 7.4.5.Final (última patch disponible) | Sí | Falla igual — no es un defecto ya parcheado (tercera revisión) |
+
+Ninguna vía **dentro de JPA/Hibernate** evita el defecto sin renunciar a una anotación declarativa.
+La vía que sí queda, y que no se había probado todavía, es salir de JPA/Hibernate por completo: usar
+`NamedParameterJdbcTemplate` (`org.springframework.jdbc.core.namedparam`), que construye la
+sentencia como texto (`SELECT fn_x(:parametro)`) y la ejecuta por JDBC puro. Nunca instancia un
+`Session`/`EntityManager` de Hibernate para esa llamada, así que nunca llega a
+`PostgreSQLCallableStatementSupport` ni a `NamedCallableQueryMementoImpl` — las dos clases que la
+segunda revisión identificó por bytecode como el origen del defecto (§ arriba). No es una anotación
+nueva de Spring Data: es la ausencia total de Spring Data/JPA en esa llamada puntual.
+
+**Patrón aplicado, consistente con código ya existente en el proyecto** (`ContractRepositoryCustom`/
+`ContractRepositoryImpl`, que ya resolvía consultas dinámicas complejas por fuera de `@Query`): cada
+repositorio con rutinas afectadas gana una interfaz `XxxRepositoryCustom` con la firma del método, y
+una clase `XxxRepositoryImpl` que la implementa inyectando `NamedParameterJdbcTemplate`; el
+repositorio Spring Data original pasa a extender también la interfaz `Custom`. Para quien invoca el
+repositorio no cambia nada — Spring Data fusiona ambas por convención de nombre.
+
+**Verificación de que no reproduce el incidente del 4-sep-2026** (que es, en el fondo, la pregunta
+que importa: ¿esto vuelve a romper el login?): suite completa de pruebas (1448/1448), 31 pruebas de
+integración contra Postgres real, y **login/registro/recuperación de contraseña/gestión de
+roles y países probados a mano contra el backend corriendo con Postgres real** — incluida la
+captura del `Set-Cookie` real del login. Detalle completo, con la orden y la salida de cada prueba,
+en [`VERIFICACION.md`](../../VERIFICACION.md#p6--27-consultas-fuera-del-mecanismo-exigido-nativequerytrue).
+
+**Por qué las rutinas de la base de datos siguen siendo `FUNCTION` y no `PROCEDURE`:** convertir el
+objeto SQL de `FUNCTION` a `PROCEDURE` con parámetro `OUT` **ya se probó en la primera revisión**
+(`sp_permisos_efectivos_usuario` con `OUT p_resultado TEXT`) y falló exactamente igual — el defecto
+está en cómo Hibernate arma la llamada a `@Procedure`/`@NamedStoredProcedureQuery`, no en si el
+objeto invocado del lado de Postgres es una función o un procedimiento. Con `NamedParameterJdbcTemplate`
+tampoco hay ganancia en convertirlas: la sentencia sigue siendo JDBC puro sea `SELECT fn_x(...)`
+(función) o `CALL sp_x(...)` (procedimiento), y las tres rutinas que devuelven una tabla completa
+(`fn_cambiar_estado_cuenta`, `fn_revocar_sesiones_usuario`, `fn_listar_cola_verificacion`) exigirían
+un `refcursor` para hacerlo como `PROCEDURE` — la misma complejidad que el proyecto ya evitó
+deliberadamente en la nota de la sección "Nota sobre modos de parámetro y cursores" más arriba,
+ahora bajo JDBC directo en vez de bajo el contrato de `@Procedure`.
 
 ### 14a. `fn_listar_cola_verificacion` — consultas multi-tabla
 
