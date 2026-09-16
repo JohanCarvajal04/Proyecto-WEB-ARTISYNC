@@ -45,25 +45,64 @@ workspace "Artisync - Platform for Artists and Content Creators" "C4 Model (Stru
     views {
         systemContext artisyncSystem "C4_Context_Artisync" {
             include *
-            autoLayout topBottom
+            autoLayout tb
             description "C4 Level 1 Diagram (Context) of the Artisync platform: actors and external systems."
         }
 
         container artisyncSystem "C4_Containers_Artisync" {
             include *
-            autoLayout topBottom
+            autoLayout tb
             description "C4 Level 2 Diagram (Containers) showing the distributed architecture of the Artisync platform."
         }
 
         styles {
-            element "Person" { shape Person; background #08427b; color #ffffff; fontSize 20; }
-            element "Admin" { shape Person; background #990000; color #ffffff; fontSize 20; }
-            element "WebBrowser" { shape WebBrowser; background #2b5c8f; color #ffffff; fontSize 18; }
-            element "Backend" { shape RoundedBox; background #1168bd; color #ffffff; fontSize 18; fontStyle bold; }
-            element "Database" { shape Cylinder; background #387c2b; color #ffffff; fontSize 18; }
-            element "Cache" { shape Cylinder; background #c12c2c; color #ffffff; fontSize 18; }
-            element "External System" { shape RoundedBox; background #999999; color #ffffff; fontSize 18; }
-            element "System" { background #1168bd; color #ffffff; fontSize 20; }
+            element "Person" {
+                shape Person
+                background #08427b
+                color #ffffff
+                fontSize 20
+            }
+            element "Admin" {
+                shape Person
+                background #990000
+                color #ffffff
+                fontSize 20
+            }
+            element "WebBrowser" {
+                shape WebBrowser
+                background #2b5c8f
+                color #ffffff
+                fontSize 18
+            }
+            element "Backend" {
+                shape RoundedBox
+                background #1168bd
+                color #ffffff
+                fontSize 18
+            }
+            element "Database" {
+                shape Cylinder
+                background #387c2b
+                color #ffffff
+                fontSize 18
+            }
+            element "Cache" {
+                shape Cylinder
+                background #c12c2c
+                color #ffffff
+                fontSize 18
+            }
+            element "External System" {
+                shape RoundedBox
+                background #999999
+                color #ffffff
+                fontSize 18
+            }
+            element "System" {
+                background #1168bd
+                color #ffffff
+                fontSize 20
+            }
         }
     }
 }

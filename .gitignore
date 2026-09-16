@@ -107,3 +107,12 @@ docs/requisitos/.srs-build.md
 # ---------------------------------------------------------------------------
 __pycache__/
 *.pyc
+
+# ---------------------------------------------------------------------------
+# Artefactos que Structurizr Lite genera localmente al abrir workspace.dsl
+# para re-renderizar los diagramas C4 (docker run structurizr/lite): indice
+# de busqueda y el JSON auto-guardado desde el .dsl. workspace.dsl es la
+# fuente autoritativa; estos son solo cache de la herramienta.
+# ---------------------------------------------------------------------------
+docs/diagramas/.structurizr/
+docs/diagramas/workspace.json

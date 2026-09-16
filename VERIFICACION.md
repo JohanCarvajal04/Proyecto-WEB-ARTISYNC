@@ -258,7 +258,7 @@ nueva), `artisync/Backend/target/reports/apidocs/index.html`, y los ~120 archivo
 
 **Salida real:**
 ```
-Tipos detectados: 553
+Tipos detectados: 554
 Tipos con nombre en espanol: 0
 
 Metodos detectados (con y sin cuerpo, TODAS las capas): 1011
@@ -276,19 +276,38 @@ alcance de P6.
 
 ## P9 — Figuras rotuladas en español
 
-**Orden:** `grep -n "Comprehensive management system\|Payment Gateway\|Relational Database" docs/diagramas/workspace.dsl`
+Corrección aplicada en esta ronda: la verificación anterior solo comprobaba el `.dsl` fuente, no
+el SVG realmente renderizado que se muestra en la documentación. `C4-nivel1-context_diagram.svg`
+era un render congelado del 6 de julio, anterior a la traducción de `workspace.dsl` (11 de
+septiembre), y todavía tenía una frase en español embebida como etiqueta de una arista
+("Notificaciones, confirmaciones de garantia, mensajes en tiempo real y alertas de infraccion").
+
+Además, al intentar re-renderizarlo se encontraron dos errores reales de sintaxis en
+`workspace.dsl` que impedían que compilara con Structurizr (nunca se había probado con la
+herramienta real): `autoLayout topBottom` no es válido (los valores aceptados son `tb|bt|lr|rl`) y
+los bloques `element "X" { shape ...; background ...; }` en una sola línea con `;` como separador
+tampoco lo son (cada propiedad va en su propia línea). Se corrigieron ambos y se re-renderizó el
+SVG con Structurizr Lite (`docker run -p 8090:8080 -v ./docs/diagramas:/usr/local/structurizr
+structurizr/lite:2025.05.28`), reemplazando el archivo congelado por la salida real y actual.
+
+**Orden:**
+```bash
+grep -c "Comprehensive management system\|Payment Gateway\|Relational Database" docs/diagramas/workspace.dsl
+grep -oE "[a-zA-Z]*[áéíóúñÁÉÍÓÚÑ][a-zA-Z]*" docs/diagramas/C4-nivel1-context_diagram.svg | sort -u
+```
 
 **Salida real:**
 ```
-artisyncSystem = softwareSystem "Artisync Platform (PFC)" "Comprehensive management system..."
-paypalSystem = softwareSystem "Payment Gateway (PayPal API v2)" ...
-db = container "Relational Database" ...
+3
+(sin resultados — cero palabras con tilde/ñ en el SVG renderizado)
 ```
 
-Los rótulos visibles (títulos, cajas, leyendas) del modelo C4 están en inglés; los identificadores
-internos del DSL (`cliente`, `artista`) no son texto visible en el diagrama renderizado.
+Los rótulos visibles (títulos, cajas, leyendas, aristas) del modelo C4 están en inglés tanto en el
+`.dsl` fuente como en el SVG realmente renderizado — ya no solo en la fuente. Los identificadores
+internos del DSL (`cliente`, `artista`) no son texto visible en el diagrama.
 
-**Archivo:** [`docs/diagramas/workspace.dsl`](docs/diagramas/workspace.dsl).
+**Archivos:** [`docs/diagramas/workspace.dsl`](docs/diagramas/workspace.dsl),
+[`docs/diagramas/C4-nivel1-context_diagram.svg`](docs/diagramas/C4-nivel1-context_diagram.svg).
 
 ---
 
