@@ -238,7 +238,7 @@ import java.util.*;
 <span class="nc" id="L238">            celda.setBlank();</span>
 <span class="nc" id="L239">            return;</span>
         }
-<span class="pc bpc" id="L241" title="2 of 6 branches missed.">        switch (tipo) {</span>
+<span class="pc bpc" id="L241" title="1 of 6 branches missed.">        switch (tipo) {</span>
 <span class="fc" id="L242">            case ENTERO -&gt; celda.setCellValue(((Number) valor).doubleValue());</span>
 <span class="fc" id="L243">            case DECIMAL, MONEDA -&gt; celda.setCellValue(</span>
 <span class="pc bpc" id="L244" title="1 of 2 branches missed.">                    valor instanceof BigDecimal bd ? bd.doubleValue() : ((Number) valor).doubleValue());</span>
@@ -256,7 +256,7 @@ import java.util.*;
 <span class="nc" id="L256">                    celda.setCellValue(valor.toString());</span>
                 }
 <span class="nc" id="L258">            }</span>
-<span class="nc" id="L259">            case BOOLEANO -&gt; celda.setCellValue(Boolean.TRUE.equals(valor));</span>
+<span class="fc" id="L259">            case BOOLEANO -&gt; celda.setCellValue(Boolean.TRUE.equals(valor));</span>
 <span class="fc" id="L260">            default -&gt; celda.setCellValue(valor.toString());</span>
         }
 <span class="fc" id="L262">    }</span>

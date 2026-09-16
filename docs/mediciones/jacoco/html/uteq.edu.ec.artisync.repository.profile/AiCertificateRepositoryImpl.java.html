@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AiCertificateRepositoryImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.repository.profile</a> &gt; <span class="el_source">AiCertificateRepositoryImpl.java</span></div><h1>AiCertificateRepositoryImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.repository.profile;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import java.math.BigDecimal;
+import java.sql.Types;
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * Invoca {@code fn_listar_cola_verificacion} con {@link NamedParameterJdbcTemplate} en vez de
+ * {@code @Query(nativeQuery = true)} (P6 de la guía del examen suspenso). Ver
+ * {@code docs/basedatos/CATALOGO-SP.md} §14 para el bug de Hibernate que esto evita. La función
+ * devuelve una tabla (id_certificado, id_usuario, nombre_usuario, tipo_documento, nombre_estado,
+ * veredicto_ia, puntaje_confianza_ia, fecha_analisis) — columnas confirmadas contra el esquema
+ * real vía {@code pg_get_functiondef}, no contra la migración V7 original: V21 renombró
+ * id_perfil/nombre_creador a id_usuario/nombre_usuario. Se mapea fila a fila a
+ * {@link VerificationQueueProjection} con un {@code RowMapper} explícito porque Spring Data no
+ * puede resolver una interfaz-proyección de este tamaño contra una consulta JDBC directa.
+ */
+@RequiredArgsConstructor
+public class AiCertificateRepositoryImpl implements AiCertificateRepositoryCustom {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+<span class="nc" id="L28">    private record QueueRow(</span>
+            Long idCertificado, Long idUsuario, String nombreUsuario, String tipoDocumento,
+            String nombreEstado, String veredictoIa, BigDecimal puntajeConfianzaIa,
+            LocalDateTime fechaAnalisis) implements VerificationQueueProjection {
+
+        @Override
+        public Long getIdCertificado() {
+<span class="nc" id="L35">            return idCertificado;</span>
+        }
+
+        @Override
+        public Long getIdUsuario() {
+<span class="nc" id="L40">            return idUsuario;</span>
+        }
+
+        @Override
+        public String getNombreUsuario() {
+<span class="nc" id="L45">            return nombreUsuario;</span>
+        }
+
+        @Override
+        public String getTipoDocumento() {
+<span class="nc" id="L50">            return tipoDocumento;</span>
+        }
+
+        @Override
+        public String getNombreEstado() {
+<span class="nc" id="L55">            return nombreEstado;</span>
+        }
+
+        @Override
+        public String getVeredictoIa() {
+<span class="nc" id="L60">            return veredictoIa;</span>
+        }
+
+        @Override
+        public BigDecimal getPuntajeConfianzaIa() {
+<span class="nc" id="L65">            return puntajeConfianzaIa;</span>
+        }
+
+        @Override
+        public LocalDateTime getFechaAnalisis() {
+<span class="nc" id="L70">            return fechaAnalisis;</span>
+        }
+    }
+
+    /**
+     * @param estado nombre del estado de verificación por el que filtrar, o {@code null} para no filtrar
+     * @param limite máximo de filas a devolver
+     * @param offset filas a saltar (paginación)
+     * @return la cola de verificación filtrada y paginada
+     */
+    @Override
+    public List&lt;VerificationQueueProjection&gt; listQueue(String estado, int limite, int offset) {
+<span class="nc" id="L82">        MapSqlParameterSource params = new MapSqlParameterSource()</span>
+<span class="nc" id="L83">                .addValue(&quot;estado&quot;, estado, Types.VARCHAR)</span>
+<span class="nc" id="L84">                .addValue(&quot;limite&quot;, limite)</span>
+<span class="nc" id="L85">                .addValue(&quot;offset&quot;, offset);</span>
+<span class="nc" id="L86">        return jdbcTemplate.query(</span>
+                &quot;SELECT * FROM fn_listar_cola_verificacion(:estado, :limite, :offset)&quot;,
+                params,
+<span class="nc" id="L89">                (rs, rowNum) -&gt; new QueueRow(</span>
+<span class="nc" id="L90">                        rs.getLong(&quot;id_certificado&quot;),</span>
+<span class="nc" id="L91">                        rs.getLong(&quot;id_usuario&quot;),</span>
+<span class="nc" id="L92">                        rs.getString(&quot;nombre_usuario&quot;),</span>
+<span class="nc" id="L93">                        rs.getString(&quot;tipo_documento&quot;),</span>
+<span class="nc" id="L94">                        rs.getString(&quot;nombre_estado&quot;),</span>
+<span class="nc" id="L95">                        rs.getString(&quot;veredicto_ia&quot;),</span>
+<span class="nc" id="L96">                        rs.getBigDecimal(&quot;puntaje_confianza_ia&quot;),</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">                        rs.getTimestamp(&quot;fecha_analisis&quot;) == null</span>
+<span class="nc" id="L98">                                ? null : rs.getTimestamp(&quot;fecha_analisis&quot;).toLocalDateTime()));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

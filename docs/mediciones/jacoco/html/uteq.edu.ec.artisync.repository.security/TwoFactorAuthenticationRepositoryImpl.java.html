@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TwoFactorAuthenticationRepositoryImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.repository.security</a> &gt; <span class="el_source">TwoFactorAuthenticationRepositoryImpl.java</span></div><h1>TwoFactorAuthenticationRepositoryImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.repository.security;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import uteq.edu.ec.artisync.repository.support.PgArrays;
+
+/**
+ * Invoca {@code fn_configurar_2fa} y {@code fn_desactivar_2fa} con
+ * {@link NamedParameterJdbcTemplate} en vez de {@code @Query(nativeQuery = true)} (P6 de la guía
+ * del examen suspenso). Ver {@code docs/basedatos/CATALOGO-SP.md} §14 para el bug de Hibernate
+ * que esto evita.
+ */
+@RequiredArgsConstructor
+public class TwoFactorAuthenticationRepositoryImpl implements TwoFactorAuthenticationRepositoryCustom {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    /**
+     * @param idUsuario identificador del usuario
+     * @param llaveSecreta secreto TOTP a configurar
+     * @param hashes hashes de los códigos de respaldo a insertar
+     * @return el número de códigos de respaldo insertados
+     */
+    @Override
+    public Integer configurar2Fa(Long idUsuario, String llaveSecreta, String[] hashes) {
+<span class="nc" id="L27">        MapSqlParameterSource params = new MapSqlParameterSource()</span>
+<span class="nc" id="L28">                .addValue(&quot;p_id_usuario&quot;, idUsuario)</span>
+<span class="nc" id="L29">                .addValue(&quot;p_llave_secreta&quot;, llaveSecreta)</span>
+<span class="nc" id="L30">                .addValue(&quot;p_hashes&quot;, PgArrays.textArray(jdbcTemplate, hashes));</span>
+<span class="nc" id="L31">        return jdbcTemplate.queryForObject(</span>
+                &quot;SELECT fn_configurar_2fa(:p_id_usuario, :p_llave_secreta, :p_hashes)&quot;, params, Integer.class);
+    }
+
+    /**
+     * @param idUsuario identificador del usuario
+     * @return {@code true} si tenía 2FA configurado y se desactivó; idempotente
+     */
+    @Override
+    public Boolean desactivar2Fa(Long idUsuario) {
+<span class="nc" id="L41">        MapSqlParameterSource params = new MapSqlParameterSource(&quot;p_id_usuario&quot;, idUsuario);</span>
+<span class="nc" id="L42">        return jdbcTemplate.queryForObject(&quot;SELECT fn_desactivar_2fa(:p_id_usuario)&quot;, params, Boolean.class);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

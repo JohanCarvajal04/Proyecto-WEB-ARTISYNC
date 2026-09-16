@@ -1,58 +1,55 @@
 # Reporte de Cobertura de Código — JaCoCo
 
-- Fecha: 2026-09-14 (última actualización, tras el cierre de E1/E2 de la misma noche) — cierre de
-  P7 (rúbrica examen final): los 48 paquetes con código ejecutable quedan al 100% por encima del
-  70% de líneas y ramas, ninguno exceptuado (medición anterior: ver "Historial de mediciones",
-  2026-09-11)
-- Rama: `examen-final-100`, working tree tras el cierre de P7 (commit `3cb0142b`) más el renombrado
-  E1 (~78 símbolos español→inglés) y el cierre de Javadoc E2, ninguno de los cuales tocó lógica de
-  negocio
-- Comando: `./mvnw.cmd test jacoco:report` (plugin `jacoco-maven-plugin` 0.8.13)
-- Suite: 1446 pruebas, 0 fallos, 0 errores (5 más que la medición previa de esta misma noche: las
-  pruebas de `AzureStorageIntegrationTest` se habían saltado por `assumeTrue` porque el emulador
-  Azurite no estaba levantado en ese momento — quedan incluidas aquí con Azurite arriba
-  (`docker compose --profile azure up -d azurite`))
-- Artefactos crudos: [`report.xml`](report.xml), [`html/index.html`](html/index.html),
-  [`html/jacoco.csv`](html/jacoco.csv)
+- Fecha: 2026-09-15 (última actualización — cierre de P5 del examen suspenso: se detectó que esta
+  medición estaba desactualizada respecto al `jacoco.xml`/`csv` realmente versionado, que aún
+  reflejaba una corrida anterior a las pruebas añadidas para `CategoryController`/
+  `OfferingController`; se regeneró y se volvió a versionar para que el archivo citado coincida con
+  las cifras del texto)
+- Rama: `examen-final-100`, commit `8a352008` (working tree al momento de esta regeneración)
+- Comando: `./mvnw -B test jacoco:report` (plugin `jacoco-maven-plugin`)
+- Artefactos crudos: [`html/index.html`](html/index.html), [`html/jacoco.csv`](html/jacoco.csv),
+  [`html/jacoco.xml`](html/jacoco.xml)
 
 ## Resultado global
 
 | Métrica | Cobertura |
 |---|---|
-| Lines | 6823 / 7346 = **92.88%** |
-| Branches | 1795 / 2191 = **81.93%** |
+| Lines | 6860 / 7526 = **91.15%** |
+| Branches | 1809 / 2209 = **81.89%** |
 
-## Resultado por capa (OBS-P1-01 / Punto 7 de la rúbrica del examen final)
+## Resultado por capa (OBS-P1-01 / P5 de la guía del examen suspenso)
 
-El criterio exige líneas Y ramas en cada una de las tres capas, y adicionalmente que **ningún
-paquete individual** quede por debajo del 70%:
+El criterio exige líneas Y ramas por encima del 70%, y adicionalmente que **ningún paquete de
+controlador individual** quede por debajo del 70%:
 
 | Capa | Lines | Branches |
 |---|---|---|
-| Controladores (`controller.*`) | 426 / 466 = **91.42%** | 73 / 82 = **89.02%** |
-| Global | 6823 / 7346 = **92.88%** | 1795 / 2191 = **81.93%** |
+| Servicios (`service.*`) | 5259 / 5642 = **93.21%** | 1396 / 1699 = **82.17%** |
+| Controladores (`controller.*`) | 443 / 466 = **95.06%** | 75 / 82 = **91.46%** |
+| Global | 6860 / 7526 = **91.15%** | 1809 / 2209 = **81.89%** |
 
-**Verificación por paquete (48 paquetes con código ejecutable): cero paquetes por debajo del 70%**
-en líneas o en ramas (`analyze_coverage.py` sobre `html/jacoco.csv`). Los paquetes que en la ronda
-anterior (2026-09-11) quedaban en el límite o por debajo — p. ej. `controller.catalog` (antes
-`controller.catalogo`, renombrado a inglés en el refactor E1) — ahora están en 70.18%/78.57%
-líneas/ramas o superior. Detalle de controladores por paquete:
+**Verificación por paquete de controlador (`scripts/verificar-cobertura-controladores.py` sobre
+`docs/mediciones/jacoco/html/jacoco.csv`, reproducible desde un clon limpio con
+`./mvnw -B test jacoco:report` seguido de ese script):**
 
 | Paquete | Lines | Branches |
 |---|---|---|
-| `controller.social` | 100% | 100% |
-| `controller.audit` | 100% | 100% |
-| `controller.backup` | 100% | — (sin ramas) |
-| `controller.order` | 100% | 100% |
-| `controller.security` | 84.91% | 89.29% |
-| `controller.legal` | 95.77% | 83.33% |
-| `controller.communication` | 94.74% | 100% |
-| `controller.profile` | 98.36% | 83.33% |
-| `controller.catalog` | 70.18% | 78.57% |
+| `controller.audit` | 8/8 = 100.0% | 4/4 = 100.0% |
+| `controller.backup` | 21/21 = 100.0% | 0/0 = 100.0% (sin ramas) |
+| `controller.catalog` | 57/57 = 100.0% | 13/14 = 92.9% |
+| `controller.communication` | 54/57 = 94.7% | 6/6 = 100.0% |
+| `controller.legal` | 68/71 = 95.8% | 10/12 = 83.3% |
+| `controller.order` | 58/58 = 100.0% | 4/4 = 100.0% |
+| `controller.profile` | 60/61 = 98.4% | 5/6 = 83.3% |
+| `controller.security` | 90/106 = 84.9% | 25/28 = 89.3% |
+| `controller.social` | 27/27 = 100.0% | 8/8 = 100.0% |
 
-**OBS-P1-01 / Punto 7 se cumple con margen amplio en las tres capas y en cada paquete individual.**
-Cifras obtenidas agregando por paquete desde `html/jacoco.csv` (script
-[`analyze_coverage.py`](../../../artisync/Backend/analyze_coverage.py)).
+**0 de 9 paquetes de controlador por debajo del 70% en líneas o en ramas.** `controller.catalog`
+y `controller.order`, los dos que la guía señaló como incompletos (63,16% líneas / 25% ramas en el
+hallazgo original del profesor), ahora están en 100% líneas ambos y 92,9%/100% de ramas
+respectivamente. Cifras reproducibles con `python scripts/verificar-cobertura-controladores.py
+docs/mediciones/jacoco/html/jacoco.csv` y agregadas por capa con
+[`analyze_coverage.py`](../../../artisync/Backend/analyze_coverage.py).
 
 ### Qué cerró la regresión de esta mañana
 
@@ -98,7 +95,8 @@ existente, sin tocar `src/main`.
 | 2026-09-05 (ronda 2 — margen sobre el 75%) | 82 | 1039 | 86.75% | 75.03% | — |
 | 2026-09-11 (ronda 1 — código nuevo V45-V48 sin cobertura completa, OBS-P1-01 incumplido) | — | 1187 | 81.69% | 70.44% | — |
 | 2026-09-11 (ronda 2 — cierre de la regresión) | 129 | 1230 | 82.93% | 71.50% | — |
-| 2026-09-14 (P7 completo — esta medición, 0 paquetes bajo 70%) | — | 1441 | **92.88%** | **81.93%** | — |
+| 2026-09-14 (P7 completo) | — | 1441 | 92.88% | 81.93% | — |
+| 2026-09-15 (P5 examen suspenso — jacoco.xml/csv re-versionado tras pruebas de catalog) | — | — | **91.15%** | **81.89%** | — |
 
 ## Qué se cubrió en esta medición (66.44% → 70.10% en ramas globales)
 

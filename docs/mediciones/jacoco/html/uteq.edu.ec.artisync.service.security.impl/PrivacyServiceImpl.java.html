@@ -248,7 +248,7 @@ public class PrivacyServiceImpl implements PrivacyService {
     }
 
     private void anonymizeUserData(User usuario) {
-<span class="pc bpc" id="L251" title="1 of 2 branches missed.">        if (usuario.getUrlFotoPerfil() != null) {</span>
+<span class="fc bfc" id="L251" title="All 2 branches covered.">        if (usuario.getUrlFotoPerfil() != null) {</span>
             try {
 <span class="fc" id="L253">                almacenamientoDocumentos.delete(usuario.getUrlFotoPerfil());</span>
 <span class="nc" id="L254">            } catch (Exception e) {</span>
@@ -311,17 +311,17 @@ public class PrivacyServiceImpl implements PrivacyService {
 <span class="fc" id="L311">            return;</span>
         }
 
-<span class="pc bpc" id="L314" title="1 of 2 branches missed.">        if (hasHeldFunds(idUsuario)) {</span>
+<span class="fc bfc" id="L314" title="All 2 branches covered.">        if (hasHeldFunds(idUsuario)) {</span>
 <span class="fc" id="L315">            excepciones.add(</span>
                     &quot;datos_pago_creador: correo de PayPal conservado por tener fondos retenidos en garantía &quot;
                             + &quot;en un contrato activo (registro contable pendiente).&quot;);
 <span class="fc" id="L318">            return;</span>
         }
 
-<span class="nc" id="L321">        CreatorPaymentDetails entidad = datosPago.get();</span>
-<span class="nc" id="L322">        entidad.setCorreoPaypal(CORREO_PAYPAL_ANONIMO);</span>
-<span class="nc" id="L323">        datosPagoCreadorRepository.save(entidad);</span>
-<span class="nc" id="L324">    }</span>
+<span class="fc" id="L321">        CreatorPaymentDetails entidad = datosPago.get();</span>
+<span class="fc" id="L322">        entidad.setCorreoPaypal(CORREO_PAYPAL_ANONIMO);</span>
+<span class="fc" id="L323">        datosPagoCreadorRepository.save(entidad);</span>
+<span class="fc" id="L324">    }</span>
 
     private boolean hasHeldFunds(Long idUsuario) {
 <span class="fc" id="L327">        List&lt;Contract&gt; contratos = Stream.concat(</span>
@@ -329,13 +329,13 @@ public class PrivacyServiceImpl implements PrivacyService {
 <span class="fc" id="L329">                        contratoRepository.findByPedidoServicioPerfilUsuarioIdUsuario(idUsuario).stream())</span>
 <span class="fc" id="L330">                .toList();</span>
 
-<span class="pc bpc" id="L332" title="1 of 2 branches missed.">        for (Contract contrato : contratos) {</span>
+<span class="fc bfc" id="L332" title="All 2 branches covered.">        for (Contract contrato : contratos) {</span>
 <span class="fc" id="L333">            Optional&lt;EscrowPayment&gt; pago = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato());</span>
-<span class="pc bpc" id="L334" title="2 of 4 branches missed.">            if (pago.isPresent() &amp;&amp; ESTADO_FONDOS_RETENIDO.equalsIgnoreCase(pago.get().getEstadoFondos())) {</span>
+<span class="pc bpc" id="L334" title="1 of 4 branches missed.">            if (pago.isPresent() &amp;&amp; ESTADO_FONDOS_RETENIDO.equalsIgnoreCase(pago.get().getEstadoFondos())) {</span>
 <span class="fc" id="L335">                return true;</span>
             }
-<span class="nc" id="L337">        }</span>
-<span class="nc" id="L338">        return false;</span>
+<span class="fc" id="L337">        }</span>
+<span class="fc" id="L338">        return false;</span>
     }
 
     private MessageResponse buildMessage(List&lt;String&gt; excepciones) {

@@ -181,14 +181,14 @@ import java.util.Map;
 <span class="fc" id="L181">            Map&lt;String, Long&gt; paisesFinales = new LinkedHashMap&lt;&gt;();</span>
 <span class="fc" id="L182">            long otros = 0;</span>
 <span class="fc bfc" id="L183" title="All 2 branches covered.">            for (int i = 0; i &lt; entradas.size(); i++) {</span>
-<span class="pc bpc" id="L184" title="1 of 2 branches missed.">                if (i &lt; 5) {</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">                if (i &lt; 5) {</span>
 <span class="fc" id="L185">                    paisesFinales.put(entradas.get(i).getKey(), entradas.get(i).getValue());</span>
                 } else {
-<span class="nc" id="L187">                    otros += entradas.get(i).getValue();</span>
+<span class="fc" id="L187">                    otros += entradas.get(i).getValue();</span>
                 }
             }
-<span class="pc bpc" id="L190" title="1 of 2 branches missed.">            if (otros &gt; 0) {</span>
-<span class="nc" id="L191">                paisesFinales.put(&quot;Otros&quot;, otros);</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">            if (otros &gt; 0) {</span>
+<span class="fc" id="L191">                paisesFinales.put(&quot;Otros&quot;, otros);</span>
             }
 
 <span class="fc" id="L194">            long maxValor = paisesFinales.values().stream().mapToLong(Long::longValue).max().orElse(1L);</span>
@@ -290,13 +290,13 @@ import java.util.Map;
 
     private String formatRoleName(String rol) {
 <span class="pc bpc" id="L292" title="1 of 2 branches missed.">        if (rol == null) return &quot;Sin Role&quot;;</span>
-<span class="pc bpc" id="L293" title="3 of 7 branches missed.">        return switch (rol.toUpperCase()) {</span>
+<span class="pc bpc" id="L293" title="1 of 7 branches missed.">        return switch (rol.toUpperCase()) {</span>
 <span class="fc" id="L294">            case &quot;ADMIN&quot;, &quot;ROLE_ADMIN&quot; -&gt; &quot;Administrador&quot;;</span>
 <span class="fc" id="L295">            case &quot;CREADOR&quot;, &quot;ROLE_CREADOR&quot; -&gt; &quot;Creador&quot;;</span>
 <span class="fc" id="L296">            case &quot;CLIENTE&quot;, &quot;ROLE_CLIENTE&quot; -&gt; &quot;Cliente&quot;;</span>
 <span class="fc" id="L297">            case &quot;MODERADOR&quot;, &quot;ROLE_MODERADOR&quot; -&gt; &quot;Moderador&quot;;</span>
-<span class="nc" id="L298">            case &quot;SOPORTE&quot;, &quot;ROLE_SOPORTE&quot; -&gt; &quot;Soporte&quot;;</span>
-<span class="nc" id="L299">            case &quot;AUDITOR_FINANCIERO&quot;, &quot;ROLE_AUDITOR_FINANCIERO&quot; -&gt; &quot;Auditor Financiero&quot;;</span>
+<span class="fc" id="L298">            case &quot;SOPORTE&quot;, &quot;ROLE_SOPORTE&quot; -&gt; &quot;Soporte&quot;;</span>
+<span class="fc" id="L299">            case &quot;AUDITOR_FINANCIERO&quot;, &quot;ROLE_AUDITOR_FINANCIERO&quot; -&gt; &quot;Auditor Financiero&quot;;</span>
 <span class="nc" id="L300">            default -&gt; rol.replace(&quot;ROLE_&quot;, &quot;&quot;);</span>
         };
     }

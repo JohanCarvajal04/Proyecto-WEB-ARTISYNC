@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CountryRepositoryImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.repository.security</a> &gt; <span class="el_source">CountryRepositoryImpl.java</span></div><h1>CountryRepositoryImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.repository.security;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import java.sql.Types;
+
+/**
+ * Invoca {@code fn_guardar_pais} con {@link NamedParameterJdbcTemplate} en vez de
+ * {@code @Query(nativeQuery = true)} (P6 de la guía del examen suspenso). Ver
+ * {@code docs/basedatos/CATALOGO-SP.md} §14 para el bug de Hibernate que esto evita.
+ * {@code p_id_pais} es {@code Types.BIGINT} explícito porque puede llegar {@code null} (creación) y
+ * Postgres necesita el tipo declarado para inferir la sobrecarga de la función.
+ */
+@RequiredArgsConstructor
+public class CountryRepositoryImpl implements CountryRepositoryCustom {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    /**
+     * @param idPais identificador del país a renombrar, o {@code null} para crear uno nuevo
+     * @param nombrePais nombre del país
+     * @return el id_pais afectado
+     */
+    @Override
+    public Long guardarPais(Long idPais, String nombrePais) {
+<span class="nc" id="L28">        MapSqlParameterSource params = new MapSqlParameterSource()</span>
+<span class="nc" id="L29">                .addValue(&quot;p_id_pais&quot;, idPais, Types.BIGINT)</span>
+<span class="nc" id="L30">                .addValue(&quot;p_nombre_pais&quot;, nombrePais, Types.VARCHAR);</span>
+<span class="nc" id="L31">        return jdbcTemplate.queryForObject(</span>
+                &quot;SELECT fn_guardar_pais(:p_id_pais, :p_nombre_pais)&quot;, params, Long.class);
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

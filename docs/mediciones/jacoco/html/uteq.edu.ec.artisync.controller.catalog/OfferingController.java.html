@@ -189,8 +189,8 @@ public class OfferingController {
     @PostMapping(value = &quot;/miniatura&quot;, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;UrlResponse&gt; uploadThumbnail(@RequestParam(&quot;archivo&quot;) MultipartFile archivo) {
-<span class="nc" id="L192">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L193">                .body(new UrlResponse(servicioCatalogoServicio.uploadThumbnail(archivo)));</span>
+<span class="fc" id="L192">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L193">                .body(new UrlResponse(servicioCatalogoServicio.uploadThumbnail(archivo)));</span>
     }
 
     /**
@@ -206,18 +206,18 @@ public class OfferingController {
      */
     @GetMapping(&quot;/miniatura/**&quot;)
     public ResponseEntity&lt;byte[]&gt; servirMiniatura(HttpServletRequest request) {
-<span class="nc" id="L209">        String fullPath = request.getRequestURI();</span>
-<span class="nc" id="L210">        String prefix = &quot;/api/v1/servicios/miniatura/&quot;;</span>
-<span class="nc" id="L211">        String referencia = fullPath.substring(fullPath.indexOf(prefix) + prefix.length());</span>
-<span class="nc bnc" id="L212" title="All 2 branches missed.">        if (!referencia.startsWith(StoragePrefix.SERVICIOS + &quot;/&quot;)) {</span>
-<span class="nc" id="L213">            throw new ResourceNotFoundException(&quot;Miniatura no disponible: &quot; + referencia);</span>
+<span class="fc" id="L209">        String fullPath = request.getRequestURI();</span>
+<span class="fc" id="L210">        String prefix = &quot;/api/v1/servicios/miniatura/&quot;;</span>
+<span class="fc" id="L211">        String referencia = fullPath.substring(fullPath.indexOf(prefix) + prefix.length());</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">        if (!referencia.startsWith(StoragePrefix.SERVICIOS + &quot;/&quot;)) {</span>
+<span class="fc" id="L213">            throw new ResourceNotFoundException(&quot;Miniatura no disponible: &quot; + referencia);</span>
         }
-<span class="nc" id="L215">        byte[] contenido = almacenamientoDocumentos.read(referencia);</span>
-<span class="nc" id="L216">        String contentType = FileExtensions.contentTypeDe(referencia);</span>
-<span class="nc" id="L217">        return ResponseEntity.ok()</span>
-<span class="nc" id="L218">                .contentType(MediaType.parseMediaType(contentType))</span>
-<span class="nc" id="L219">                .header(HttpHeaders.CACHE_CONTROL, &quot;public, max-age=&quot; + TimeUnit.DAYS.toSeconds(7))</span>
-<span class="nc" id="L220">                .body(contenido);</span>
+<span class="fc" id="L215">        byte[] contenido = almacenamientoDocumentos.read(referencia);</span>
+<span class="fc" id="L216">        String contentType = FileExtensions.contentTypeDe(referencia);</span>
+<span class="fc" id="L217">        return ResponseEntity.ok()</span>
+<span class="fc" id="L218">                .contentType(MediaType.parseMediaType(contentType))</span>
+<span class="fc" id="L219">                .header(HttpHeaders.CACHE_CONTROL, &quot;public, max-age=&quot; + TimeUnit.DAYS.toSeconds(7))</span>
+<span class="fc" id="L220">                .body(contenido);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

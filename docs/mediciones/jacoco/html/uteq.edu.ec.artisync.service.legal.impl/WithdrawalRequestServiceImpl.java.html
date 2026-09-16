@@ -53,8 +53,12 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
     /** Restan del saldo disponible: pedido, en proceso o ya pagado (nunca se vuelve a contar). */
 <span class="fc" id="L54">    private static final List&lt;String&gt; ESTADOS_DESCUENTAN_SALDO = List.of(ESTADO_PENDIENTE, ESTADO_APROBADO, ESTADO_PAGADO);</span>
 
-    /** batch_status de PayPal que dejan la solicitud &quot;en proceso&quot;: PayPal la resuelve más tarde (webhook o polling, fuera de alcance aquí). */
-<span class="fc" id="L57">    private static final List&lt;String&gt; BATCH_STATUS_EN_PROCESO = List.of(&quot;PENDING&quot;, &quot;UNCLAIMED&quot;, &quot;PROCESSING&quot;);</span>
+    /**
+     * batch_status de PayPal que dejan la solicitud &quot;en proceso&quot; en esta
+     * llamada inicial. Si se queda así, WithdrawalPayoutReconciliationScheduler
+     * es quien vuelve a consultar el batch más tarde y decide Pagado/Fallido.
+     */
+<span class="fc" id="L61">    private static final List&lt;String&gt; BATCH_STATUS_EN_PROCESO = List.of(&quot;PENDING&quot;, &quot;UNCLAIMED&quot;, &quot;PROCESSING&quot;);</span>
 
     private final WithdrawalRequestRepository solicitudRetiroRepository;
     private final CreatorPaymentDetailsRepository datosPagoCreadorRepository;
@@ -75,23 +79,23 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      *         correo de PayPal configurado o una solicitud en curso
      */
     public CreatorBalanceResponse getBalance(Long idUsuarioCreador) {
-<span class="fc" id="L78">        boolean tieneCorreo = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuarioCreador).isPresent();</span>
-<span class="fc" id="L79">        boolean tienePendiente = solicitudRetiroRepository</span>
-<span class="fc" id="L80">                .existsByUsuarioCreadorIdUsuarioAndEstadoIn(idUsuarioCreador, ESTADOS_EN_CURSO);</span>
+<span class="fc" id="L82">        boolean tieneCorreo = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuarioCreador).isPresent();</span>
+<span class="fc" id="L83">        boolean tienePendiente = solicitudRetiroRepository</span>
+<span class="fc" id="L84">                .existsByUsuarioCreadorIdUsuarioAndEstadoIn(idUsuarioCreador, ESTADOS_EN_CURSO);</span>
 
-<span class="fc" id="L82">        return CreatorBalanceResponse.builder()</span>
-<span class="fc" id="L83">                .saldoDisponible(calculateAvailableBalance(idUsuarioCreador))</span>
-<span class="fc" id="L84">                .montoMinimoRetiro(montoMinimo)</span>
-<span class="fc" id="L85">                .tieneCorreoPaypalConfigurado(tieneCorreo)</span>
-<span class="fc" id="L86">                .tieneSolicitudPendiente(tienePendiente)</span>
-<span class="fc" id="L87">                .build();</span>
+<span class="fc" id="L86">        return CreatorBalanceResponse.builder()</span>
+<span class="fc" id="L87">                .saldoDisponible(calculateAvailableBalance(idUsuarioCreador))</span>
+<span class="fc" id="L88">                .montoMinimoRetiro(montoMinimo)</span>
+<span class="fc" id="L89">                .tieneCorreoPaypalConfigurado(tieneCorreo)</span>
+<span class="fc" id="L90">                .tieneSolicitudPendiente(tienePendiente)</span>
+<span class="fc" id="L91">                .build();</span>
     }
 
     private BigDecimal calculateAvailableBalance(Long idUsuarioCreador) {
-<span class="fc" id="L91">        BigDecimal totalEgresos = transaccionPagoRepository.sumEgresosPorCreador(idUsuarioCreador);</span>
-<span class="fc" id="L92">        BigDecimal enCurso = solicitudRetiroRepository</span>
-<span class="fc" id="L93">                .sumMontosEnCursoPorCreador(idUsuarioCreador, ESTADOS_DESCUENTAN_SALDO);</span>
-<span class="fc" id="L94">        return totalEgresos.subtract(enCurso);</span>
+<span class="fc" id="L95">        BigDecimal totalEgresos = transaccionPagoRepository.sumEgresosPorCreador(idUsuarioCreador);</span>
+<span class="fc" id="L96">        BigDecimal enCurso = solicitudRetiroRepository</span>
+<span class="fc" id="L97">                .sumMontosEnCursoPorCreador(idUsuarioCreador, ESTADOS_DESCUENTAN_SALDO);</span>
+<span class="fc" id="L98">        return totalEgresos.subtract(enCurso);</span>
     }
 
     @Override
@@ -111,49 +115,49 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      *         o si supera el saldo disponible
      */
     public WithdrawalRequestResponse request(Long idUsuarioCreador, CreateWithdrawalRequest peticion) {
-<span class="fc" id="L114">        CreatorPaymentDetails datosPago = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuarioCreador)</span>
-<span class="fc" id="L115">                .orElseThrow(() -&gt; new BusinessRuleException(</span>
+<span class="fc" id="L118">        CreatorPaymentDetails datosPago = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuarioCreador)</span>
+<span class="fc" id="L119">                .orElseThrow(() -&gt; new BusinessRuleException(</span>
                         &quot;Debes configurar tu correo de PayPal antes de request un retiro&quot;));
 
-<span class="fc bfc" id="L118" title="All 2 branches covered.">        if (solicitudRetiroRepository.existsByUsuarioCreadorIdUsuarioAndEstadoIn(idUsuarioCreador, ESTADOS_EN_CURSO)) {</span>
-<span class="fc" id="L119">            throw new BusinessRuleException(&quot;Ya tienes una solicitud de retiro en curso&quot;);</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        if (solicitudRetiroRepository.existsByUsuarioCreadorIdUsuarioAndEstadoIn(idUsuarioCreador, ESTADOS_EN_CURSO)) {</span>
+<span class="fc" id="L123">            throw new BusinessRuleException(&quot;Ya tienes una solicitud de retiro en curso&quot;);</span>
         }
 
-<span class="fc" id="L122">        BigDecimal monto = peticion.getMontoSolicitado();</span>
-<span class="fc bfc" id="L123" title="All 2 branches covered.">        if (monto.compareTo(montoMinimo) &lt; 0) {</span>
-<span class="fc" id="L124">            throw new BusinessRuleException(&quot;El monto mínimo de retiro es $&quot; + montoMinimo);</span>
+<span class="fc" id="L126">        BigDecimal monto = peticion.getMontoSolicitado();</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        if (monto.compareTo(montoMinimo) &lt; 0) {</span>
+<span class="fc" id="L128">            throw new BusinessRuleException(&quot;El monto mínimo de retiro es $&quot; + montoMinimo);</span>
         }
 
-<span class="fc" id="L127">        BigDecimal saldoDisponible = calculateAvailableBalance(idUsuarioCreador);</span>
-<span class="fc bfc" id="L128" title="All 2 branches covered.">        if (monto.compareTo(saldoDisponible) &gt; 0) {</span>
-<span class="fc" id="L129">            throw new BusinessRuleException(&quot;El monto solicitado supera tu saldo disponible&quot;);</span>
+<span class="fc" id="L131">        BigDecimal saldoDisponible = calculateAvailableBalance(idUsuarioCreador);</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        if (monto.compareTo(saldoDisponible) &gt; 0) {</span>
+<span class="fc" id="L133">            throw new BusinessRuleException(&quot;El monto solicitado supera tu saldo disponible&quot;);</span>
         }
 
-<span class="fc" id="L132">        User usuario = usuarioRepository.findById(idUsuarioCreador)</span>
-<span class="pc" id="L133">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User no encontrado&quot;));</span>
+<span class="fc" id="L136">        User usuario = usuarioRepository.findById(idUsuarioCreador)</span>
+<span class="pc" id="L137">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User no encontrado&quot;));</span>
 
-<span class="fc" id="L135">        WithdrawalRequest solicitud = WithdrawalRequest.builder()</span>
-<span class="fc" id="L136">                .usuarioCreador(usuario)</span>
-<span class="fc" id="L137">                .montoSolicitado(monto)</span>
+<span class="fc" id="L139">        WithdrawalRequest solicitud = WithdrawalRequest.builder()</span>
+<span class="fc" id="L140">                .usuarioCreador(usuario)</span>
+<span class="fc" id="L141">                .montoSolicitado(monto)</span>
                 // Copia inmutable: si el creador cambia su correo después, no
                 // debe alterar un retiro que ya quedó registrado con el viejo.
-<span class="fc" id="L140">                .correoPaypalDestino(datosPago.getCorreoPaypal())</span>
-<span class="fc" id="L141">                .estado(ESTADO_PENDIENTE)</span>
-<span class="fc" id="L142">                .build();</span>
+<span class="fc" id="L144">                .correoPaypalDestino(datosPago.getCorreoPaypal())</span>
+<span class="fc" id="L145">                .estado(ESTADO_PENDIENTE)</span>
+<span class="fc" id="L146">                .build();</span>
 
         try {
-<span class="fc" id="L145">            solicitud = solicitudRetiroRepository.save(solicitud);</span>
-<span class="nc" id="L146">        } catch (DataIntegrityViolationException e) {</span>
+<span class="fc" id="L149">            solicitud = solicitudRetiroRepository.save(solicitud);</span>
+<span class="nc" id="L150">        } catch (DataIntegrityViolationException e) {</span>
             // Última línea de defensa: uq_solicitud_retiro_pendiente_por_creador
             // atrapa la carrera entre el existsBy de arriba y este insert si dos
             // solicitudes del mismo creador llegan casi simultáneas.
-<span class="nc" id="L150">            throw new BusinessRuleException(&quot;Ya tienes una solicitud de retiro en curso&quot;);</span>
-<span class="fc" id="L151">        }</span>
+<span class="nc" id="L154">            throw new BusinessRuleException(&quot;Ya tienes una solicitud de retiro en curso&quot;);</span>
+<span class="fc" id="L155">        }</span>
 
-<span class="fc" id="L153">        log.info(&quot;Solicitud de retiro {} creada por creador {} por ${}&quot;,</span>
-<span class="fc" id="L154">                solicitud.getIdSolicitud(), idUsuarioCreador, monto);</span>
+<span class="fc" id="L157">        log.info(&quot;Solicitud de retiro {} creada por creador {} por ${}&quot;,</span>
+<span class="fc" id="L158">                solicitud.getIdSolicitud(), idUsuarioCreador, monto);</span>
 
-<span class="fc" id="L156">        return map(solicitud);</span>
+<span class="fc" id="L160">        return map(solicitud);</span>
     }
 
     @Override
@@ -163,10 +167,10 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      * @return las solicitudes de retiro del creador, más recientes primero
      */
     public List&lt;WithdrawalRequestResponse&gt; myRequests(Long idUsuarioCreador) {
-<span class="fc" id="L166">        return solicitudRetiroRepository.findByUsuarioCreadorIdUsuarioOrderByFechaSolicitudDesc(idUsuarioCreador)</span>
-<span class="fc" id="L167">                .stream()</span>
-<span class="fc" id="L168">                .map(this::map)</span>
-<span class="fc" id="L169">                .toList();</span>
+<span class="fc" id="L170">        return solicitudRetiroRepository.findByUsuarioCreadorIdUsuarioOrderByFechaSolicitudDesc(idUsuarioCreador)</span>
+<span class="fc" id="L171">                .stream()</span>
+<span class="fc" id="L172">                .map(this::map)</span>
+<span class="fc" id="L173">                .toList();</span>
     }
 
     @Override
@@ -179,10 +183,10 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      * @return la página de solicitudes que cumplen el filtro
      */
     public Page&lt;WithdrawalRequestResponse&gt; listQueue(WithdrawalRequestFilter filtro, Pageable pageable) {
-<span class="nc" id="L182">        var spec = WithdrawalRequestSpecification.conFiltros(</span>
-<span class="nc" id="L183">                filtro.getEstado(), filtro.getIdUsuarioCreador(), filtro.getDesde(), filtro.getHasta());</span>
+<span class="nc" id="L186">        var spec = WithdrawalRequestSpecification.conFiltros(</span>
+<span class="nc" id="L187">                filtro.getEstado(), filtro.getIdUsuarioCreador(), filtro.getDesde(), filtro.getHasta());</span>
 
-<span class="nc" id="L185">        return solicitudRetiroRepository.findAll(spec, pageable).map(this::map);</span>
+<span class="nc" id="L189">        return solicitudRetiroRepository.findAll(spec, pageable).map(this::map);</span>
     }
 
     @Override
@@ -200,17 +204,17 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la solicitud no está en estado {@code Pendiente}
      */
     public WithdrawalRequestResponse approve(Long idSolicitud, Long idAdmin) {
-<span class="fc" id="L203">        WithdrawalRequest solicitud = getWithStatus(idSolicitud, ESTADO_PENDIENTE);</span>
-<span class="fc" id="L204">        User admin = getAdmin(idAdmin);</span>
+<span class="fc" id="L207">        WithdrawalRequest solicitud = getWithStatus(idSolicitud, ESTADO_PENDIENTE);</span>
+<span class="fc" id="L208">        User admin = getAdmin(idAdmin);</span>
 
-<span class="fc" id="L206">        solicitud.setAdminDecisor(admin);</span>
-<span class="fc" id="L207">        solicitud.setFechaDecision(LocalDateTime.now());</span>
-<span class="fc" id="L208">        executePayoutAndUpdateStatus(solicitud);</span>
+<span class="fc" id="L210">        solicitud.setAdminDecisor(admin);</span>
+<span class="fc" id="L211">        solicitud.setFechaDecision(LocalDateTime.now());</span>
+<span class="fc" id="L212">        executePayoutAndUpdateStatus(solicitud);</span>
 
-<span class="fc" id="L210">        solicitud = solicitudRetiroRepository.save(solicitud);</span>
-<span class="fc" id="L211">        log.info(&quot;Solicitud de retiro {} aprobada por admin {}: estado final {}&quot;,</span>
-<span class="fc" id="L212">                idSolicitud, idAdmin, solicitud.getEstado());</span>
-<span class="fc" id="L213">        return map(solicitud);</span>
+<span class="fc" id="L214">        solicitud = solicitudRetiroRepository.save(solicitud);</span>
+<span class="fc" id="L215">        log.info(&quot;Solicitud de retiro {} aprobada por admin {}: estado final {}&quot;,</span>
+<span class="fc" id="L216">                idSolicitud, idAdmin, solicitud.getEstado());</span>
+<span class="fc" id="L217">        return map(solicitud);</span>
     }
 
     @Override
@@ -229,21 +233,21 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      *         solicitud no está en estado {@code Pendiente}
      */
     public WithdrawalRequestResponse reject(Long idSolicitud, Long idAdmin, String notaAdmin) {
-<span class="pc bpc" id="L232" title="1 of 4 branches missed.">        if (notaAdmin == null || notaAdmin.isBlank()) {</span>
-<span class="fc" id="L233">            throw new BusinessRuleException(&quot;Debes indicar un motivo para reject la solicitud&quot;);</span>
+<span class="pc bpc" id="L236" title="1 of 4 branches missed.">        if (notaAdmin == null || notaAdmin.isBlank()) {</span>
+<span class="fc" id="L237">            throw new BusinessRuleException(&quot;Debes indicar un motivo para reject la solicitud&quot;);</span>
         }
 
-<span class="fc" id="L236">        WithdrawalRequest solicitud = getWithStatus(idSolicitud, ESTADO_PENDIENTE);</span>
-<span class="fc" id="L237">        User admin = getAdmin(idAdmin);</span>
+<span class="fc" id="L240">        WithdrawalRequest solicitud = getWithStatus(idSolicitud, ESTADO_PENDIENTE);</span>
+<span class="fc" id="L241">        User admin = getAdmin(idAdmin);</span>
 
-<span class="fc" id="L239">        solicitud.setEstado(ESTADO_RECHAZADO);</span>
-<span class="fc" id="L240">        solicitud.setNotaAdmin(notaAdmin);</span>
-<span class="fc" id="L241">        solicitud.setAdminDecisor(admin);</span>
-<span class="fc" id="L242">        solicitud.setFechaDecision(LocalDateTime.now());</span>
+<span class="fc" id="L243">        solicitud.setEstado(ESTADO_RECHAZADO);</span>
+<span class="fc" id="L244">        solicitud.setNotaAdmin(notaAdmin);</span>
+<span class="fc" id="L245">        solicitud.setAdminDecisor(admin);</span>
+<span class="fc" id="L246">        solicitud.setFechaDecision(LocalDateTime.now());</span>
 
-<span class="fc" id="L244">        solicitud = solicitudRetiroRepository.save(solicitud);</span>
-<span class="fc" id="L245">        log.info(&quot;Solicitud de retiro {} rechazada por admin {}&quot;, idSolicitud, idAdmin);</span>
-<span class="fc" id="L246">        return map(solicitud);</span>
+<span class="fc" id="L248">        solicitud = solicitudRetiroRepository.save(solicitud);</span>
+<span class="fc" id="L249">        log.info(&quot;Solicitud de retiro {} rechazada por admin {}&quot;, idSolicitud, idAdmin);</span>
+<span class="fc" id="L250">        return map(solicitud);</span>
     }
 
     @Override
@@ -260,17 +264,17 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la solicitud no está en estado {@code Fallido}
      */
     public WithdrawalRequestResponse retry(Long idSolicitud, Long idAdmin) {
-<span class="fc" id="L263">        WithdrawalRequest solicitud = getWithStatus(idSolicitud, ESTADO_FALLIDO);</span>
-<span class="fc" id="L264">        User admin = getAdmin(idAdmin);</span>
+<span class="fc" id="L267">        WithdrawalRequest solicitud = getWithStatus(idSolicitud, ESTADO_FALLIDO);</span>
+<span class="fc" id="L268">        User admin = getAdmin(idAdmin);</span>
 
-<span class="fc" id="L266">        solicitud.setAdminDecisor(admin);</span>
-<span class="fc" id="L267">        solicitud.setFechaDecision(LocalDateTime.now());</span>
-<span class="fc" id="L268">        executePayoutAndUpdateStatus(solicitud);</span>
+<span class="fc" id="L270">        solicitud.setAdminDecisor(admin);</span>
+<span class="fc" id="L271">        solicitud.setFechaDecision(LocalDateTime.now());</span>
+<span class="fc" id="L272">        executePayoutAndUpdateStatus(solicitud);</span>
 
-<span class="fc" id="L270">        solicitud = solicitudRetiroRepository.save(solicitud);</span>
-<span class="fc" id="L271">        log.info(&quot;Solicitud de retiro {} reintentada por admin {}: estado final {}&quot;,</span>
-<span class="fc" id="L272">                idSolicitud, idAdmin, solicitud.getEstado());</span>
-<span class="fc" id="L273">        return map(solicitud);</span>
+<span class="fc" id="L274">        solicitud = solicitudRetiroRepository.save(solicitud);</span>
+<span class="fc" id="L275">        log.info(&quot;Solicitud de retiro {} reintentada por admin {}: estado final {}&quot;,</span>
+<span class="fc" id="L276">                idSolicitud, idAdmin, solicitud.getEstado());</span>
+<span class="fc" id="L277">        return map(solicitud);</span>
     }
 
     // ── PayPal Payouts ───────────────────────────────────────────────────────
@@ -283,91 +287,92 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      */
     private void executePayoutAndUpdateStatus(WithdrawalRequest solicitud) {
         try {
-<span class="fc" id="L286">            JsonNode respuesta = executePayout(solicitud);</span>
-<span class="fc" id="L287">            String estadoLote = respuesta.path(&quot;batch_header&quot;).path(&quot;batch_status&quot;).asText();</span>
-<span class="fc" id="L288">            String payoutBatchId = respuesta.path(&quot;batch_header&quot;).path(&quot;payout_batch_id&quot;).asText(null);</span>
-<span class="fc" id="L289">            solicitud.setIdPayoutPaypal(payoutBatchId);</span>
+<span class="fc" id="L290">            JsonNode respuesta = executePayout(solicitud);</span>
+<span class="fc" id="L291">            String estadoLote = respuesta.path(&quot;batch_header&quot;).path(&quot;batch_status&quot;).asText();</span>
+<span class="fc" id="L292">            String payoutBatchId = respuesta.path(&quot;batch_header&quot;).path(&quot;payout_batch_id&quot;).asText(null);</span>
+<span class="fc" id="L293">            solicitud.setIdPayoutPaypal(payoutBatchId);</span>
 
-<span class="fc bfc" id="L291" title="All 2 branches covered.">            if (&quot;SUCCESS&quot;.equals(estadoLote)) {</span>
-<span class="fc" id="L292">                solicitud.setEstado(ESTADO_PAGADO);</span>
-<span class="fc" id="L293">                solicitud.setFechaPago(LocalDateTime.now());</span>
-<span class="fc" id="L294">                solicitud.setMensajeError(null);</span>
-<span class="fc bfc" id="L295" title="All 2 branches covered.">            } else if (BATCH_STATUS_EN_PROCESO.contains(estadoLote)) {</span>
-<span class="fc" id="L296">                solicitud.setEstado(ESTADO_APROBADO);</span>
-<span class="fc" id="L297">                solicitud.setMensajeError(null);</span>
+<span class="fc bfc" id="L295" title="All 2 branches covered.">            if (&quot;SUCCESS&quot;.equals(estadoLote)) {</span>
+<span class="fc" id="L296">                solicitud.setEstado(ESTADO_PAGADO);</span>
+<span class="fc" id="L297">                solicitud.setFechaPago(LocalDateTime.now());</span>
+<span class="fc" id="L298">                solicitud.setMensajeError(null);</span>
+<span class="fc bfc" id="L299" title="All 2 branches covered.">            } else if (BATCH_STATUS_EN_PROCESO.contains(estadoLote)) {</span>
+<span class="fc" id="L300">                solicitud.setEstado(ESTADO_APROBADO);</span>
+<span class="fc" id="L301">                solicitud.setMensajeError(null);</span>
             } else {
-<span class="fc" id="L299">                solicitud.setEstado(ESTADO_FALLIDO);</span>
-<span class="fc" id="L300">                solicitud.setMensajeError(&quot;PayPal devolvió el estado &quot; + estadoLote);</span>
+<span class="fc" id="L303">                solicitud.setEstado(ESTADO_FALLIDO);</span>
+<span class="fc" id="L304">                solicitud.setMensajeError(&quot;PayPal devolvió el estado &quot; + estadoLote);</span>
             }
-<span class="fc" id="L302">        } catch (HttpStatusCodeException e) {</span>
-<span class="fc" id="L303">            solicitud.setEstado(ESTADO_FALLIDO);</span>
-<span class="fc" id="L304">            solicitud.setMensajeError(&quot;Error de PayPal (&quot; + e.getStatusCode() + &quot;): &quot; + e.getResponseBodyAsString());</span>
-<span class="fc" id="L305">            log.error(&quot;Error ejecutando el payout de la solicitud {}: {}&quot;,</span>
-<span class="fc" id="L306">                    solicitud.getIdSolicitud(), e.getResponseBodyAsString());</span>
-<span class="nc" id="L307">        } catch (Exception e) {</span>
-<span class="nc" id="L308">            solicitud.setEstado(ESTADO_FALLIDO);</span>
-<span class="nc" id="L309">            solicitud.setMensajeError(&quot;Error al comunicarse con PayPal: &quot; + e.getMessage());</span>
-<span class="nc" id="L310">            log.error(&quot;Error ejecutando el payout de la solicitud {}&quot;, solicitud.getIdSolicitud(), e);</span>
-<span class="fc" id="L311">        }</span>
-<span class="fc" id="L312">    }</span>
+<span class="fc" id="L306">        } catch (HttpStatusCodeException e) {</span>
+<span class="fc" id="L307">            solicitud.setEstado(ESTADO_FALLIDO);</span>
+<span class="fc" id="L308">            solicitud.setMensajeError(&quot;Error de PayPal (&quot; + e.getStatusCode() + &quot;): &quot; + e.getResponseBodyAsString());</span>
+<span class="fc" id="L309">            log.error(&quot;Error ejecutando el payout de la solicitud {}: {}&quot;,</span>
+<span class="fc" id="L310">                    solicitud.getIdSolicitud(), e.getResponseBodyAsString());</span>
+<span class="nc" id="L311">        } catch (Exception e) {</span>
+<span class="nc" id="L312">            solicitud.setEstado(ESTADO_FALLIDO);</span>
+<span class="nc" id="L313">            solicitud.setMensajeError(&quot;Error al comunicarse con PayPal: &quot; + e.getMessage());</span>
+<span class="nc" id="L314">            log.error(&quot;Error ejecutando el payout de la solicitud {}&quot;, solicitud.getIdSolicitud(), e);</span>
+<span class="fc" id="L315">        }</span>
+<span class="fc" id="L316">    }</span>
 
     private JsonNode executePayout(WithdrawalRequest solicitud) {
-<span class="fc" id="L315">        ObjectNode raiz = objectMapper.createObjectNode();</span>
+<span class="fc" id="L319">        ObjectNode raiz = objectMapper.createObjectNode();</span>
 
         // sender_batch_id idempotente: un reintento sobre la misma solicitud
         // reenvía el mismo id, así que si PayPal ya había procesado el intento
         // anterior (p. ej. un timeout de red que ocultó una respuesta SUCCESS),
         // deduplica en vez de pagar dos veces.
-<span class="fc" id="L321">        raiz.putObject(&quot;sender_batch_header&quot;)</span>
-<span class="fc" id="L322">                .put(&quot;sender_batch_id&quot;, &quot;retiro-&quot; + solicitud.getIdSolicitud())</span>
-<span class="fc" id="L323">                .put(&quot;email_subject&quot;, &quot;Has recibido un pago de ARTISYNC&quot;);</span>
+<span class="fc" id="L325">        raiz.putObject(&quot;sender_batch_header&quot;)</span>
+<span class="fc" id="L326">                .put(&quot;sender_batch_id&quot;, &quot;retiro-&quot; + solicitud.getIdSolicitud())</span>
+<span class="fc" id="L327">                .put(&quot;email_subject&quot;, &quot;Has recibido un pago de ARTISYNC&quot;);</span>
 
-<span class="fc" id="L325">        ObjectNode item = raiz.putArray(&quot;items&quot;).addObject();</span>
-<span class="fc" id="L326">        item.putObject(&quot;amount&quot;)</span>
-<span class="fc" id="L327">                .put(&quot;value&quot;, solicitud.getMontoSolicitado().toPlainString())</span>
-<span class="fc" id="L328">                .put(&quot;currency&quot;, &quot;USD&quot;);</span>
-<span class="fc" id="L329">        item.put(&quot;receiver&quot;, solicitud.getCorreoPaypalDestino());</span>
-<span class="fc" id="L330">        item.put(&quot;note&quot;, &quot;Pago de retiro ARTISYNC #&quot; + solicitud.getIdSolicitud());</span>
-<span class="fc" id="L331">        item.put(&quot;sender_item_id&quot;, &quot;item-&quot; + solicitud.getIdSolicitud());</span>
+<span class="fc" id="L329">        ObjectNode item = raiz.putArray(&quot;items&quot;).addObject();</span>
+<span class="fc" id="L330">        item.put(&quot;recipient_type&quot;, &quot;EMAIL&quot;);</span>
+<span class="fc" id="L331">        item.putObject(&quot;amount&quot;)</span>
+<span class="fc" id="L332">                .put(&quot;value&quot;, solicitud.getMontoSolicitado().toPlainString())</span>
+<span class="fc" id="L333">                .put(&quot;currency&quot;, &quot;USD&quot;);</span>
+<span class="fc" id="L334">        item.put(&quot;receiver&quot;, solicitud.getCorreoPaypalDestino());</span>
+<span class="fc" id="L335">        item.put(&quot;note&quot;, &quot;Pago de retiro ARTISYNC #&quot; + solicitud.getIdSolicitud());</span>
+<span class="fc" id="L336">        item.put(&quot;sender_item_id&quot;, &quot;item-&quot; + solicitud.getIdSolicitud());</span>
 
-<span class="fc" id="L333">        return payPalClient.callPayPal(&quot;/v1/payments/payouts&quot;, HttpMethod.POST, raiz);</span>
+<span class="fc" id="L338">        return payPalClient.callPayPal(&quot;/v1/payments/payouts&quot;, HttpMethod.POST, raiz);</span>
     }
 
     // ── Auxiliares ───────────────────────────────────────────────────────────
 
     /** Con bloqueo pesimista (ver WithdrawalRequestRepository.findByIdParaActualizar): serializa decisiones concurrentes. */
     private WithdrawalRequest getWithStatus(Long idSolicitud, String estadoEsperado) {
-<span class="fc" id="L340">        WithdrawalRequest solicitud = solicitudRetiroRepository.findByIdParaActualizar(idSolicitud)</span>
-<span class="fc" id="L341">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Solicitud de retiro no encontrada&quot;));</span>
+<span class="fc" id="L345">        WithdrawalRequest solicitud = solicitudRetiroRepository.findByIdParaActualizar(idSolicitud)</span>
+<span class="fc" id="L346">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Solicitud de retiro no encontrada&quot;));</span>
 
-<span class="fc bfc" id="L343" title="All 2 branches covered.">        if (!estadoEsperado.equals(solicitud.getEstado())) {</span>
-<span class="fc" id="L344">            throw new BusinessRuleException(</span>
-<span class="fc" id="L345">                    &quot;La solicitud no está en estado &quot; + estadoEsperado + &quot; (estado actual: &quot; + solicitud.getEstado() + &quot;)&quot;);</span>
+<span class="fc bfc" id="L348" title="All 2 branches covered.">        if (!estadoEsperado.equals(solicitud.getEstado())) {</span>
+<span class="fc" id="L349">            throw new BusinessRuleException(</span>
+<span class="fc" id="L350">                    &quot;La solicitud no está en estado &quot; + estadoEsperado + &quot; (estado actual: &quot; + solicitud.getEstado() + &quot;)&quot;);</span>
         }
-<span class="fc" id="L347">        return solicitud;</span>
+<span class="fc" id="L352">        return solicitud;</span>
     }
 
     private User getAdmin(Long idAdmin) {
-<span class="fc" id="L351">        return usuarioRepository.findById(idAdmin)</span>
-<span class="pc" id="L352">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User no encontrado&quot;));</span>
+<span class="fc" id="L356">        return usuarioRepository.findById(idAdmin)</span>
+<span class="pc" id="L357">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User no encontrado&quot;));</span>
     }
 
     private WithdrawalRequestResponse map(WithdrawalRequest s) {
-<span class="fc" id="L356">        User creador = s.getUsuarioCreador();</span>
-<span class="fc" id="L357">        return WithdrawalRequestResponse.builder()</span>
-<span class="fc" id="L358">                .idSolicitud(s.getIdSolicitud())</span>
-<span class="fc" id="L359">                .idUsuarioCreador(creador.getIdUsuario())</span>
-<span class="fc" id="L360">                .nombreCreador(creador.getNombres() + &quot; &quot; + creador.getApellidos())</span>
-<span class="fc" id="L361">                .montoSolicitado(s.getMontoSolicitado())</span>
-<span class="fc" id="L362">                .correoPaypalDestino(s.getCorreoPaypalDestino())</span>
-<span class="fc" id="L363">                .estado(s.getEstado())</span>
-<span class="fc" id="L364">                .idPayoutPaypal(s.getIdPayoutPaypal())</span>
-<span class="fc" id="L365">                .notaAdmin(s.getNotaAdmin())</span>
-<span class="fc" id="L366">                .mensajeError(s.getMensajeError())</span>
-<span class="fc" id="L367">                .fechaSolicitud(s.getFechaSolicitud())</span>
-<span class="fc" id="L368">                .fechaDecision(s.getFechaDecision())</span>
-<span class="fc" id="L369">                .fechaPago(s.getFechaPago())</span>
-<span class="fc" id="L370">                .build();</span>
+<span class="fc" id="L361">        User creador = s.getUsuarioCreador();</span>
+<span class="fc" id="L362">        return WithdrawalRequestResponse.builder()</span>
+<span class="fc" id="L363">                .idSolicitud(s.getIdSolicitud())</span>
+<span class="fc" id="L364">                .idUsuarioCreador(creador.getIdUsuario())</span>
+<span class="fc" id="L365">                .nombreCreador(creador.getNombres() + &quot; &quot; + creador.getApellidos())</span>
+<span class="fc" id="L366">                .montoSolicitado(s.getMontoSolicitado())</span>
+<span class="fc" id="L367">                .correoPaypalDestino(s.getCorreoPaypalDestino())</span>
+<span class="fc" id="L368">                .estado(s.getEstado())</span>
+<span class="fc" id="L369">                .idPayoutPaypal(s.getIdPayoutPaypal())</span>
+<span class="fc" id="L370">                .notaAdmin(s.getNotaAdmin())</span>
+<span class="fc" id="L371">                .mensajeError(s.getMensajeError())</span>
+<span class="fc" id="L372">                .fechaSolicitud(s.getFechaSolicitud())</span>
+<span class="fc" id="L373">                .fechaDecision(s.getFechaDecision())</span>
+<span class="fc" id="L374">                .fechaPago(s.getFechaPago())</span>
+<span class="fc" id="L375">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -235,7 +235,7 @@ public class JwtService {
     }
 
     /**
-     * Valida un refresh token: firma/issuer/audience (vía {@link #parsear}), que
+     * Valida un refresh token: firma/issuer/audience (vía {@link #parse}), que
      * no haya expirado, que sea {@code type=refresh}, titular y que la cuenta
      * siga habilitada y no bloqueada.
      *

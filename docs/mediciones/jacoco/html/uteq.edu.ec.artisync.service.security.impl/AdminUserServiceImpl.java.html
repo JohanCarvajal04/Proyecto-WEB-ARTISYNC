@@ -422,7 +422,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 <span class="fc" id="L422">        List&lt;uteq.edu.ec.artisync.service.shared.report.ReportChart&gt; graficas = new ArrayList&lt;&gt;();</span>
 <span class="fc" id="L423">        List&lt;uteq.edu.ec.artisync.service.shared.report.ReportKpi&gt; kpis = new ArrayList&lt;&gt;();</span>
 
-<span class="pc bpc" id="L425" title="2 of 6 branches missed.">        if (!filas.isEmpty() &amp;&amp; (formato == ReportFormat.PDF || formato == ReportFormat.XLSX)) {</span>
+<span class="pc bpc" id="L425" title="1 of 6 branches missed.">        if (!filas.isEmpty() &amp;&amp; (formato == ReportFormat.PDF || formato == ReportFormat.XLSX)) {</span>
 <span class="fc" id="L426">            Map&lt;String, Long&gt; conteoRoles = new LinkedHashMap&lt;&gt;();</span>
 <span class="fc" id="L427">            Map&lt;String, Long&gt; conteoPaises = new LinkedHashMap&lt;&gt;();</span>
 <span class="fc" id="L428">            long activos = 0;</span>
@@ -481,7 +481,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 <span class="fc" id="L481">                        ReportColumn.texto(&quot;País&quot;, UserResponse::getNombrePais),</span>
 <span class="fc" id="L482">                        ReportColumn.dateTime(&quot;Registrado&quot;, UserResponse::getFechaRegistro),</span>
 <span class="fc" id="L483">                        ReportColumn.booleano(&quot;Activo&quot;, UserResponse::getEstadoCuenta),</span>
-<span class="pc bnc" id="L484" title="All 2 branches missed.">                        ReportColumn.texto(&quot;Roles&quot;, u -&gt; u.getRoles() == null ? &quot;&quot; : String.join(&quot;, &quot;, u.getRoles()))))</span>
+<span class="pc bpc" id="L484" title="1 of 2 branches missed.">                        ReportColumn.texto(&quot;Roles&quot;, u -&gt; u.getRoles() == null ? &quot;&quot; : String.join(&quot;, &quot;, u.getRoles()))))</span>
 <span class="fc" id="L485">                .filas(filas)</span>
 <span class="fc" id="L486">                .generadoPor(correoSolicitante)</span>
 <span class="fc" id="L487">                .build();</span>

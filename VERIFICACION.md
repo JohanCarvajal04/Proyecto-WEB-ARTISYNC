@@ -64,31 +64,55 @@ adicional encontrada en esta ronda (`RALPH2021`, ver P11).
 
 ## P4 — Contraseña del keystore en claro
 
-**Archivo:** [`artisync/docker-compose.medicion.yml`](artisync/docker-compose.medicion.yml)
+**Archivos:** [`artisync/docker-compose.medicion.yml`](artisync/docker-compose.medicion.yml),
+[`artisync/Backend/src/main/resources/application-medicion.properties`](artisync/Backend/src/main/resources/application-medicion.properties),
+[`artisync/.env.example`](artisync/.env.example)
+
+Corrección aplicada en esta ronda: el fallback `${TLS_KEYSTORE_PASSWORD:-changeit}` /
+`${TLS_KEYSTORE_PASSWORD:changeit}` seguía escribiendo el valor en claro en el archivo como
+*default*; se quitó el default en ambos lados para que compose y Spring fallen explícitamente
+si la variable no está definida, igual que el resto de los secretos del proyecto.
 
 **Orden:** `grep -n "TLS_KEYSTORE_PASSWORD" artisync/docker-compose.medicion.yml artisync/Backend/src/main/resources/application-medicion.properties`
 
 **Salida real:**
 ```
-artisync/docker-compose.medicion.yml:18:      TLS_KEYSTORE_PASSWORD: ${TLS_KEYSTORE_PASSWORD:-changeit}
-artisync/Backend/src/main/resources/application-medicion.properties:11:app.medicion.tls.keystore-password=${TLS_KEYSTORE_PASSWORD:changeit}
+artisync/docker-compose.medicion.yml:18:      TLS_KEYSTORE_PASSWORD: ${TLS_KEYSTORE_PASSWORD:?TLS_KEYSTORE_PASSWORD no esta definida (ver .env.example)}
+artisync/Backend/src/main/resources/application-medicion.properties:11:app.medicion.tls.keystore-password=${TLS_KEYSTORE_PASSWORD}
 ```
 
-El valor sale del entorno en ambos lados (compose y properties); `changeit` queda solo como
-*default* de desarrollo local, nunca como valor fijo.
+**Orden:** `grep -rn "changeit" artisync/docker-compose.medicion.yml artisync/Backend/src/main/resources/`
+
+**Salida real:** (sin resultados — comando sale con código 1)
+
+El valor sale del entorno en ambos lados (compose y properties), sin ningún default en claro;
+`.env.example` documenta la variable con un placeholder explícitamente falso
+(`TLS_KEYSTORE_PASSWORD=cambiar_generar_password_del_keystore`) para que quien despliegue sepa
+que debe definirla.
 
 ---
 
 ## P5 — Cobertura desigual por paquete
 
-**Orden:**
+**Archivo:** [`docs/mediciones/jacoco/html/jacoco.csv`](docs/mediciones/jacoco/html/jacoco.csv) /
+[`jacoco.xml`](docs/mediciones/jacoco/html/jacoco.xml)
+
+Corrección aplicada en esta ronda: el `jacoco.xml`/`csv` versionado en el repo había quedado
+desactualizado respecto a pruebas de `catalog` (`CategoryController`/`OfferingController`)
+añadidas después de la última regeneración, así que las cifras citadas en el texto no coincidían
+con el archivo realmente commiteado. Se corrió `./mvnw -B test jacoco:report` de nuevo y se
+reemplazó `docs/mediciones/jacoco/html/` completo (incluidos `jacoco.csv` y `jacoco.xml`) con la
+salida fresca, para que el archivo versionado y las cifras citadas sean exactamente el mismo dato.
+
+**Orden (reproducible desde un clon limpio):**
 ```bash
-cd artisync/Backend && ./mvnw -B test
-python scripts/verificar-cobertura-controladores.py
+cd artisync/Backend && ./mvnw -B test jacoco:report
+cp -r target/site/jacoco/* ../../docs/mediciones/jacoco/html/
+python scripts/verificar-cobertura-controladores.py docs/mediciones/jacoco/html/jacoco.csv
 ```
 
-**Salida real** (recalculada desde `artisync/Backend/target/site/jacoco/jacoco.csv`, regenerado
-por la corrida de arriba):
+**Salida real** (contra el `jacoco.csv` ya versionado en `docs/mediciones/jacoco/html/`, no un
+archivo temporal ignorado por git):
 ```
 OK   uteq.edu.ec.artisync.controller.audit: lineas 8/8 (100.0%)  ramas 4/4 (100.0%)
 OK   uteq.edu.ec.artisync.controller.backup: lineas 21/21 (100.0%)  ramas 0/0 (100.0%)

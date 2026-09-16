@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TwoFactorBackupCodeRepositoryImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.repository.security</a> &gt; <span class="el_source">TwoFactorBackupCodeRepositoryImpl.java</span></div><h1>TwoFactorBackupCodeRepositoryImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.repository.security;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+/**
+ * Invoca {@code fn_consumir_codigo_respaldo_2fa} con {@link NamedParameterJdbcTemplate} en vez de
+ * {@code @Query(nativeQuery = true)} (P6 de la guía del examen suspenso). Ver
+ * {@code docs/basedatos/CATALOGO-SP.md} §14 para el bug de Hibernate que esto evita.
+ */
+@RequiredArgsConstructor
+public class TwoFactorBackupCodeRepositoryImpl implements TwoFactorBackupCodeRepositoryCustom {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    /**
+     * @param idUsuario identificador del usuario
+     * @param codigoHash hash del código de respaldo presentado
+     * @return {@code true} solo para el primer llamante que consume ese código
+     */
+    @Override
+    public Boolean consumirCodigoRespaldo(Long idUsuario, String codigoHash) {
+<span class="nc" id="L24">        MapSqlParameterSource params = new MapSqlParameterSource()</span>
+<span class="nc" id="L25">                .addValue(&quot;p_id_usuario&quot;, idUsuario)</span>
+<span class="nc" id="L26">                .addValue(&quot;p_codigo_hash&quot;, codigoHash);</span>
+<span class="nc" id="L27">        return jdbcTemplate.queryForObject(</span>
+                &quot;SELECT fn_consumir_codigo_respaldo_2fa(:p_id_usuario, :p_codigo_hash)&quot;, params, Boolean.class);
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

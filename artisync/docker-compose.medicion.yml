@@ -15,7 +15,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: medicion
       TLS_KEYSTORE: /app/artisync-medicion.p12
-      TLS_KEYSTORE_PASSWORD: ${TLS_KEYSTORE_PASSWORD:-changeit}
+      TLS_KEYSTORE_PASSWORD: ${TLS_KEYSTORE_PASSWORD:?TLS_KEYSTORE_PASSWORD no esta definida (ver .env.example)}
     volumes:
       - ./Backend/artisync-medicion.p12:/app/artisync-medicion.p12:ro
     ports:

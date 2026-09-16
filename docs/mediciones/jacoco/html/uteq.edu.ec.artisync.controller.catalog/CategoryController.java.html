@@ -57,7 +57,7 @@ public class CategoryController {
      */
     @GetMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;CategoryResponse&gt; getCategoryById(@PathVariable Long id) {
-<span class="nc" id="L60">        return ResponseEntity.ok(categoriaServicio.getCategoryById(id));</span>
+<span class="fc" id="L60">        return ResponseEntity.ok(categoriaServicio.getCategoryById(id));</span>
     }
 
     // CATEGORIA_CREAR es autoservicio (cada creador crea las suyas, quedan sin
@@ -117,7 +117,7 @@ public class CategoryController {
      */
     @GetMapping(&quot;/{id}/subcategorias&quot;)
     public ResponseEntity&lt;List&lt;SubcategoryResponse&gt;&gt; listSubcategoriesByCategory(@PathVariable Long id) {
-<span class="nc" id="L120">        return ResponseEntity.ok(categoriaServicio.listSubcategoriesByCategory(id));</span>
+<span class="fc" id="L120">        return ResponseEntity.ok(categoriaServicio.listSubcategoriesByCategory(id));</span>
     }
 
     /**
@@ -128,7 +128,7 @@ public class CategoryController {
     @GetMapping(&quot;/pendientes-revision&quot;)
     @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;CategoryResponse&gt;&gt; listPendingReview() {
-<span class="nc" id="L131">        return ResponseEntity.ok(categoriaServicio.listCategoriesPendingReview());</span>
+<span class="fc" id="L131">        return ResponseEntity.ok(categoriaServicio.listCategoriesPendingReview());</span>
     }
 
     /**
@@ -140,7 +140,7 @@ public class CategoryController {
     @PatchMapping(&quot;/{id}/revisar&quot;)
     @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;CategoryResponse&gt; markReviewed(@PathVariable Long id) {
-<span class="nc" id="L143">        return ResponseEntity.ok(categoriaServicio.markCategoryReviewed(id));</span>
+<span class="fc" id="L143">        return ResponseEntity.ok(categoriaServicio.markCategoryReviewed(id));</span>
     }
 
     private boolean isModerator(CustomUserDetails userDetails) {

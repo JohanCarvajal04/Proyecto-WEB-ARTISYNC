@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserRepositoryImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.repository.security</a> &gt; <span class="el_source">UserRepositoryImpl.java</span></div><h1>UserRepositoryImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.repository.security;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import uteq.edu.ec.artisync.entity.security.User;
+import uteq.edu.ec.artisync.repository.support.PgArrays;
+
+import java.sql.Types;
+import java.time.LocalDate;
+import java.util.List;
+
+/**
+ * Invoca las funciones SQL con retorno no-void de {@link User} con
+ * {@link NamedParameterJdbcTemplate} en vez de {@code @Query(nativeQuery = true)} (P6 de la guía
+ * del examen suspenso). Ver {@code docs/basedatos/CATALOGO-SP.md} §14: {@code @Procedure} con
+ * retorno no-void rompe contra Postgres bajo Hibernate 7.4.x (un intento anterior de convertir
+ * estas mismas rutinas rompió el login en producción el 4-sep-2026, revertido el mismo día).
+ * {@code NamedParameterJdbcTemplate} nunca pasa por el traductor de Hibernate que causa ese bug:
+ * construye {@code SELECT fn_x(?, ?, ...)} con parámetros posicionales JDBC estándar.
+ */
+@RequiredArgsConstructor
+public class UserRepositoryImpl implements UserRepositoryCustom {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+<span class="nc" id="L27">    private record RevokedSessionRow(String jti, Integer segundosRestantes) implements RevokedSessionProjection {</span>
+
+        @Override
+        public String getJti() {
+<span class="nc" id="L31">            return jti;</span>
+        }
+
+        @Override
+        public Integer getSegundosRestantes() {
+<span class="nc" id="L36">            return segundosRestantes;</span>
+        }
+    }
+
+    /**
+     * @param nombres nombres del usuario
+     * @param apellidos apellidos del usuario
+     * @param correo correo del usuario, debe ser único
+     * @param contrasenaHash hash BCrypt de la contraseña
+     * @param fechaNacimiento fecha de nacimiento del usuario
+     * @param nombreRol nombre del rol inicial a asignar
+     * @return el id_usuario generado
+     */
+    @Override
+    public Long registrarUsuario(String nombres, String apellidos, String correo, String contrasenaHash,
+                                  LocalDate fechaNacimiento, String nombreRol) {
+<span class="nc" id="L52">        MapSqlParameterSource params = new MapSqlParameterSource()</span>
+<span class="nc" id="L53">                .addValue(&quot;p_nombres&quot;, nombres)</span>
+<span class="nc" id="L54">                .addValue(&quot;p_apellidos&quot;, apellidos)</span>
+<span class="nc" id="L55">                .addValue(&quot;p_correo&quot;, correo)</span>
+<span class="nc" id="L56">                .addValue(&quot;p_contrasena_hash&quot;, contrasenaHash)</span>
+<span class="nc" id="L57">                .addValue(&quot;p_fecha_nacimiento&quot;, fechaNacimiento)</span>
+<span class="nc" id="L58">                .addValue(&quot;p_nombre_rol&quot;, nombreRol);</span>
+<span class="nc" id="L59">        return jdbcTemplate.queryForObject(</span>
+                &quot;SELECT fn_registrar_usuario(:p_nombres, :p_apellidos, :p_correo, :p_contrasena_hash, &quot;
+                        + &quot;:p_fecha_nacimiento, :p_nombre_rol)&quot;,
+                params, Long.class);
+    }
+
+    /**
+     * @param correo correo del usuario que intenta autenticarse
+     * @return JSONB serializado como texto con estado de cuenta, 2FA y roles
+     */
+    @Override
+    public String resolverEstadoLogin(String correo) {
+<span class="nc" id="L71">        MapSqlParameterSource params = new MapSqlParameterSource(&quot;p_correo&quot;, correo);</span>
+<span class="nc" id="L72">        return jdbcTemplate.queryForObject(</span>
+                &quot;SELECT fn_resolver_estado_login(:p_correo)::text&quot;, params, String.class);
+    }
+
+    /**
+     * @param idUsuario identificador del usuario
+     * @param estado nuevo valor de estado_cuenta
+     * @return las sesiones revocadas si hubo transición activa→inactiva, vacío en otro caso
+     */
+    @Override
+    public List&lt;RevokedSessionProjection&gt; cambiarEstadoCuenta(Long idUsuario, boolean estado) {
+<span class="nc" id="L83">        MapSqlParameterSource params = new MapSqlParameterSource()</span>
+<span class="nc" id="L84">                .addValue(&quot;p_id_usuario&quot;, idUsuario)</span>
+<span class="nc" id="L85">                .addValue(&quot;p_estado&quot;, estado);</span>
+<span class="nc" id="L86">        return jdbcTemplate.query(</span>
+                &quot;SELECT * FROM fn_cambiar_estado_cuenta(:p_id_usuario, :p_estado)&quot;,
+                params,
+<span class="nc" id="L89">                (rs, rowNum) -&gt; new RevokedSessionRow(</span>
+<span class="nc" id="L90">                        rs.getString(&quot;jti&quot;),</span>
+<span class="nc" id="L91">                        rs.getObject(&quot;segundos_restantes&quot;, Integer.class)));</span>
+    }
+
+    /**
+     * @param correo correo del usuario autenticado
+     * @return JSONB serializado como texto con usuario + authorities, o {@code NULL} si no existe
+     */
+    @Override
+    public String permisosEfectivos(String correo) {
+<span class="nc" id="L100">        MapSqlParameterSource params = new MapSqlParameterSource(&quot;p_correo&quot;, correo);</span>
+<span class="nc" id="L101">        return jdbcTemplate.queryForObject(</span>
+                &quot;SELECT fn_permisos_efectivos_usuario(:p_correo)::text&quot;, params, String.class);
+    }
+
+    /**
+     * @param correo correo del usuario que solicita recuperar su contraseña
+     * @param hashToken hash del nuevo token de recuperación
+     * @return JSONB serializado como texto con {@code idUsuario, nombres}, o {@code NULL} si no aplica
+     */
+    @Override
+    public String solicitarRecuperacion(String correo, String hashToken) {
+<span class="nc" id="L112">        MapSqlParameterSource params = new MapSqlParameterSource()</span>
+<span class="nc" id="L113">                .addValue(&quot;p_correo&quot;, correo)</span>
+<span class="nc" id="L114">                .addValue(&quot;p_hash_token&quot;, hashToken);</span>
+<span class="nc" id="L115">        return jdbcTemplate.queryForObject(</span>
+                &quot;SELECT fn_solicitar_recuperacion(:p_correo, :p_hash_token)::text&quot;, params, String.class);
+    }
+
+    /**
+     * @param nombres nombres del usuario
+     * @param apellidos apellidos del usuario
+     * @param correo correo del usuario, debe ser único
+     * @param contrasenaHash hash BCrypt de la contraseña
+     * @param fechaNacimiento fecha de nacimiento del usuario
+     * @param idPais identificador del país del usuario, o {@code null}
+     * @param estadoCuenta estado de la cuenta a asignar; {@code null} equivale a activa
+     * @param nombresRol nombres de los roles a asignar
+     * @return el id_usuario generado
+     */
+    @Override
+    public Long crearUsuarioAdmin(String nombres, String apellidos, String correo, String contrasenaHash,
+                                   LocalDate fechaNacimiento, Long idPais, Boolean estadoCuenta,
+                                   String[] nombresRol) {
+<span class="nc" id="L134">        MapSqlParameterSource params = new MapSqlParameterSource()</span>
+<span class="nc" id="L135">                .addValue(&quot;p_nombres&quot;, nombres)</span>
+<span class="nc" id="L136">                .addValue(&quot;p_apellidos&quot;, apellidos)</span>
+<span class="nc" id="L137">                .addValue(&quot;p_correo&quot;, correo)</span>
+<span class="nc" id="L138">                .addValue(&quot;p_contrasena_hash&quot;, contrasenaHash)</span>
+<span class="nc" id="L139">                .addValue(&quot;p_fecha_nacimiento&quot;, fechaNacimiento)</span>
+<span class="nc" id="L140">                .addValue(&quot;p_id_pais&quot;, idPais, Types.BIGINT)</span>
+<span class="nc" id="L141">                .addValue(&quot;p_estado_cuenta&quot;, estadoCuenta)</span>
+<span class="nc" id="L142">                .addValue(&quot;p_nombres_rol&quot;, PgArrays.textArray(jdbcTemplate, nombresRol));</span>
+<span class="nc" id="L143">        return jdbcTemplate.queryForObject(</span>
+                &quot;SELECT fn_crear_usuario_admin(:p_nombres, :p_apellidos, :p_correo, :p_contrasena_hash, &quot;
+                        + &quot;:p_fecha_nacimiento, :p_id_pais, :p_estado_cuenta, :p_nombres_rol)&quot;,
+                params, Long.class);
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

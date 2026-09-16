@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FollowerRepositoryImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.repository.communication</a> &gt; <span class="el_source">FollowerRepositoryImpl.java</span></div><h1>FollowerRepositoryImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.repository.communication;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+/**
+ * Invoca las 4 funciones de seguidores con {@link NamedParameterJdbcTemplate} en vez de
+ * {@code @Query(nativeQuery = true)} (P6 de la guía del examen suspenso). Ver
+ * {@code docs/basedatos/CATALOGO-SP.md} §14 para el bug de Hibernate que esto evita.
+ */
+@RequiredArgsConstructor
+public class FollowerRepositoryImpl implements FollowerRepositoryCustom {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    /**
+     * @param idUsuario identificador del usuario que sigue
+     * @param idPerfil identificador del perfil de creador a seguir
+     * @return {@code true} si la operación se realizó
+     */
+    @Override
+    public Boolean ejecutarFnSeguirCreador(Long idUsuario, Long idPerfil) {
+<span class="nc" id="L24">        MapSqlParameterSource params = new MapSqlParameterSource()</span>
+<span class="nc" id="L25">                .addValue(&quot;idUsuario&quot;, idUsuario)</span>
+<span class="nc" id="L26">                .addValue(&quot;idPerfil&quot;, idPerfil);</span>
+<span class="nc" id="L27">        return jdbcTemplate.queryForObject(&quot;SELECT fn_seguir_creador(:idUsuario, :idPerfil)&quot;, params, Boolean.class);</span>
+    }
+
+    /**
+     * @param idUsuario identificador del usuario que deja de seguir
+     * @param idPerfil identificador del perfil de creador
+     * @return {@code true} si la operación se realizó
+     */
+    @Override
+    public Boolean ejecutarFnDejarDeSeguirCreador(Long idUsuario, Long idPerfil) {
+<span class="nc" id="L37">        MapSqlParameterSource params = new MapSqlParameterSource()</span>
+<span class="nc" id="L38">                .addValue(&quot;idUsuario&quot;, idUsuario)</span>
+<span class="nc" id="L39">                .addValue(&quot;idPerfil&quot;, idPerfil);</span>
+<span class="nc" id="L40">        return jdbcTemplate.queryForObject(</span>
+                &quot;SELECT fn_dejar_de_seguir_creador(:idUsuario, :idPerfil)&quot;, params, Boolean.class);
+    }
+
+    /**
+     * @param idUsuario identificador del usuario
+     * @param idPerfil identificador del perfil de creador
+     * @return {@code true} si el usuario sigue a ese perfil de creador
+     */
+    @Override
+    public Boolean ejecutarFnEsSeguidor(Long idUsuario, Long idPerfil) {
+<span class="nc" id="L51">        MapSqlParameterSource params = new MapSqlParameterSource()</span>
+<span class="nc" id="L52">                .addValue(&quot;idUsuario&quot;, idUsuario)</span>
+<span class="nc" id="L53">                .addValue(&quot;idPerfil&quot;, idPerfil);</span>
+<span class="nc" id="L54">        return jdbcTemplate.queryForObject(&quot;SELECT fn_es_seguidor(:idUsuario, :idPerfil)&quot;, params, Boolean.class);</span>
+    }
+
+    /**
+     * @param idPerfil identificador del perfil de creador
+     * @return la cantidad de seguidores de ese perfil
+     */
+    @Override
+    public Long ejecutarFnConteoSeguidores(Long idPerfil) {
+<span class="nc" id="L63">        MapSqlParameterSource params = new MapSqlParameterSource(&quot;idPerfil&quot;, idPerfil);</span>
+<span class="nc" id="L64">        return jdbcTemplate.queryForObject(&quot;SELECT fn_conteo_seguidores(:idPerfil)&quot;, params, Long.class);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
