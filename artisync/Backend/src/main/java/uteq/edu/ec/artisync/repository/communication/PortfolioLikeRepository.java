@@ -18,14 +18,27 @@ import java.util.Optional;
 @Repository
 public interface PortfolioLikeRepository extends JpaRepository<PortfolioLike, Long> {
 
-    /** @return {@code true} si ese usuario ya dio like a esa obra del portafolio */
+    /**
+     * @param idItemPortafolio el identificador de item portafolio
+     * @param idUsuario el identificador de usuario
+     * @return {@code true} si ese usuario ya dio like a esa obra del portafolio
+     */
     boolean existsByItemPortafolioIdItemPortafolioAndUsuarioIdUsuario(Long idItemPortafolio, Long idUsuario);
 
-    /** El like de un usuario sobre una obra del portafolio, si existe (para poder quitarlo). */
+    /**
+     * El like de un usuario sobre una obra del portafolio, si existe (para poder quitarlo).
+     * @param idItemPortafolio el identificador de item portafolio
+     * @param idUsuario el identificador de usuario
+     * @return un Optional con PortfolioLike si existe, vacio en caso contrario
+     */
     Optional<PortfolioLike> findByItemPortafolioIdItemPortafolioAndUsuarioIdUsuario(
             Long idItemPortafolio, Long idUsuario);
 
-    /** Cantidad de likes de una obra del portafolio. */
+    /**
+     * Cantidad de likes de una obra del portafolio.
+     * @param idItemPortafolio el identificador de item portafolio
+     * @return el valor numerico calculado
+     */
     long countByItemPortafolioIdItemPortafolio(Long idItemPortafolio);
 }
 

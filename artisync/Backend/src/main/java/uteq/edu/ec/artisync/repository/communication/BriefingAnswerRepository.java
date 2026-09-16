@@ -18,10 +18,18 @@ import java.util.List;
 @Repository
 public interface BriefingAnswerRepository extends JpaRepository<BriefingAnswer, Long> {
 
-    /** Respuestas de un briefing enviado. */
+    /**
+     * Respuestas de un briefing enviado.
+     * @param idBriefingEnviado el identificador de briefing enviado
+     * @return la lista de BriefingAnswer encontrados
+     */
     List<BriefingAnswer> findByBriefingEnviadoIdBriefingEnviado(Long idBriefingEnviado);
 
-    /** @return {@code true} si ya existe una respuesta a esa pregunta en ese briefing enviado */
+    /**
+     * @param idBriefingEnviado el identificador de briefing enviado
+     * @param idPregunta el identificador de pregunta
+     * @return {@code true} si ya existe una respuesta a esa pregunta en ese briefing enviado
+     */
     boolean existsByBriefingEnviadoIdBriefingEnviadoAndPreguntaIdPregunta(Long idBriefingEnviado, Long idPregunta);
 }
 

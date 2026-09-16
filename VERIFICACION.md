@@ -216,26 +216,39 @@ misma conversión rompió el login en producción el 4-sep-2026).
 
 ## P7 — Javadoc al 66.7%
 
+Corrección aplicada en esta ronda: la barra de P7 exige Javadoc "completo (@param descriptivo por
+parámetro, @return y @throws donde corresponda)", no solo que exista un bloque `/** */`. La
+medición anterior (`auditoria-rubrica.py e2`, 98.8%) solo comprobaba presencia; al medir
+completitud real con la nueva sección `e2c` (exige `@param` por cada parámetro, `@return` si el
+método no es void, y `@throws`/`@exception` por cada excepción declarada — `{@inheritDoc}` cuenta
+como completo, ya que Javadoc hereda la documentación del método que sobreescribe) el resultado
+real era 843/1166 (72.3%), por debajo del 90% exigido. Se completaron los ~323 métodos con huecos
+(la inmensa mayoría interfaces de repositorio Spring Data con un resumen de una línea pero sin
+`@param`) y los 9 métodos sin ningún bloque Javadoc.
+
 **Orden:**
 ```bash
+python scripts/auditoria-rubrica.py e2c
 cd artisync/Backend && ./mvnw -o javadoc:javadoc
-python scripts/auditoria-rubrica.py e2
 ```
 
 **Salida real:**
 ```
+TOTAL con Javadoc completo: 1166/1166 (100.0%) -- umbral exigido: 90%
+OK
+
+0 archivo(s) con al menos un metodo incompleto (0 metodos en total):
+```
+```
 BUILD SUCCESS
 ```
-```
-TOTAL (todas las capas de src/main/java): 1152/1166 (98.8%)
-```
 
-Supera el 90% exigido y `mvn javadoc:javadoc` termina en `BUILD SUCCESS` sin errores de doclint
-(se corrigieron de paso tres referencias `{@link}` rotas preexistentes en `JwtService.java`,
-`AuditContext.java` y `WithdrawalPayoutReconciliationScheduler.java`, encontradas al ejecutar el
-build sin la bandera `-o`).
+100% de los métodos públicos con Javadoc completo (supera el 90% exigido) y
+`mvn javadoc:javadoc` termina en `BUILD SUCCESS` sin errores de doclint.
 
-**Archivo:** `artisync/Backend/target/reports/apidocs/index.html`.
+**Archivos:** [`scripts/auditoria-rubrica.py`](scripts/auditoria-rubrica.py) (sección `e2c`,
+nueva), `artisync/Backend/target/reports/apidocs/index.html`, y los ~120 archivos de
+`src/main/java` donde se completaron las etiquetas.
 
 ---
 

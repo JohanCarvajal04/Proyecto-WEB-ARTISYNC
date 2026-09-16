@@ -50,21 +50,35 @@ public class GeminiAiService extends AbstractAiService implements AiService {
         log.info("Offering de IA GEMINI inicializado [modelo={}]", config.getModel());
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param imagenBytes el imagen bytes
+     * @param mimeType el mime type
+     * @return el resultado de la operacion, de tipo {@code AiVerificationResponse}
+     */
     @Override
     public AiVerificationResponse verifyIdentity(byte[] imagenBytes, String mimeType) {
         String prompt = loadPrompt("prompt_verificacion_identidad.md");
         return parseStrictVerification(callGeminiWithImage(prompt, imagenBytes, mimeType), true);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param imagenBytes el imagen bytes
+     * @param mimeType el mime type
+     * @return el resultado de la operacion, de tipo {@code AiVerificationResponse}
+     */
     @Override
     public AiVerificationResponse analyzeCertificate(byte[] imagenBytes, String mimeType) {
         String prompt = loadPrompt("prompt_verificacion_certificado.md");
         return parseStrictVerification(callGeminiWithImage(prompt, imagenBytes, mimeType), false);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param textoMensaje el texto mensaje
+     * @return el resultado de la operacion, de tipo {@code IaModeracionResponse}
+     */
     @Override
     public IaModeracionResponse moderarContenido(String textoMensaje) {
         String prompt = loadPrompt("prompt_moderacion_mensaje.md", sanitizeForPrompt(textoMensaje));
@@ -84,7 +98,13 @@ public class GeminiAiService extends AbstractAiService implements AiService {
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param titulo el titulo
+     * @param descripcion el descripcion
+     * @param categoriasDisponibles el categorias disponibles
+     * @return el resultado de la operacion, de tipo {@code AiClassificationResponse}
+     */
     @Override
     public AiClassificationResponse classifyOffering(String titulo, String descripcion, List<String> categoriasDisponibles) {
         String categorias = String.join(", ", categoriasDisponibles);
@@ -108,7 +128,13 @@ public class GeminiAiService extends AbstractAiService implements AiService {
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param categoria el categoria
+     * @param titulo el titulo
+     * @param descripcion el descripcion
+     * @return la lista de String encontrados
+     */
     @Override
     public List<String> sugerirPreguntasBriefing(String categoria, String titulo, String descripcion) {
         String prompt = loadPrompt("prompt_sugerencia_briefing.md", sanitizeForPrompt(categoria),
@@ -125,7 +151,12 @@ public class GeminiAiService extends AbstractAiService implements AiService {
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param textoResena el texto resena
+     * @param estrellas los estrellas
+     * @return el resultado de la operacion, de tipo {@code AiReviewResponse}
+     */
     @Override
     public AiReviewResponse analyzeReview(String textoResena, int estrellas) {
         String prompt = loadPrompt("prompt_analisis_resena.md", estrellas, sanitizeForPrompt(textoResena));

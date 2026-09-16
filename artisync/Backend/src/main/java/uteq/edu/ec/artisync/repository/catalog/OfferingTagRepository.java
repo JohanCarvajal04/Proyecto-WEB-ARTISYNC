@@ -18,13 +18,24 @@ import java.util.List;
 @Repository
 public interface OfferingTagRepository extends JpaRepository<OfferingTag, Long> {
 
-    /** Etiquetas asignadas a un servicio. */
+    /**
+     * Etiquetas asignadas a un servicio.
+     * @param idServicio el identificador de servicio
+     * @return la lista de OfferingTag encontrados
+     */
     List<OfferingTag> findByServicioIdServicio(Long idServicio);
 
-    /** Etiquetas asignadas a cualquiera de los servicios indicados. */
+    /**
+     * Etiquetas asignadas a cualquiera de los servicios indicados.
+     * @param idsServicio el ids servicio
+     * @return la lista de OfferingTag encontrados
+     */
     List<OfferingTag> findByServicioIdServicioIn(List<Long> idsServicio);
 
-    /** Elimina todas las etiquetas asignadas a un servicio. */
+    /**
+     * Elimina todas las etiquetas asignadas a un servicio.
+     * @param idServicio el identificador de servicio
+     */
     void deleteByServicioIdServicio(Long idServicio);
 }
 

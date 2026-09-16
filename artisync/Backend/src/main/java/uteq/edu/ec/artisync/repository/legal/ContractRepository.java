@@ -22,16 +22,31 @@ import java.util.Optional;
 @Repository
 public interface ContractRepository extends JpaRepository<Contract, Long>, ContractRepositoryCustom {
 
-    /** El contrato de un pedido (relación 1:1), si existe. */
+    /**
+     * El contrato de un pedido (relación 1:1), si existe.
+     * @param idPedido el identificador de pedido
+     * @return un Optional con Contract si existe, vacio en caso contrario
+     */
     Optional<Contract> findByPedidoIdPedido(Long idPedido);
 
-    /** REQ-NF-018: contratos donde el usuario participa como cliente, para evaluar el impedimento legal de supresión. */
+    /**
+     * REQ-NF-018: contratos donde el usuario participa como cliente, para evaluar el impedimento legal de supresión.
+     * @param idUsuario el identificador de usuario
+     * @return la lista de Contract encontrados
+     */
     List<Contract> findByPedidoUsuarioClienteIdUsuario(Long idUsuario);
 
-    /** REQ-NF-018: contratos donde el usuario participa como creador (vía servicio -> perfil -> usuario). */
+    /**
+     * REQ-NF-018: contratos donde el usuario participa como creador (vía servicio -> perfil -> usuario).
+     * @param idUsuario el identificador de usuario
+     * @return la lista de Contract encontrados
+     */
     List<Contract> findByPedidoServicioPerfilUsuarioIdUsuario(Long idUsuario);
 
-    /** REQ-NF-020: contratos ya firmados por ambas partes (con hash de contenido calculado), para el barrido nocturno. */
+    /**
+     * REQ-NF-020: contratos ya firmados por ambas partes (con hash de contenido calculado), para el barrido nocturno.
+     * @return la lista de Contract encontrados
+     */
     List<Contract> findByHashContenidoIsNotNull();
 
     /**
@@ -44,6 +59,8 @@ public interface ContractRepository extends JpaRepository<Contract, Long>, Contr
      * firma que el otro acababa de guardar, perdiéndola en silencio. El
      * bloqueo serializa las dos transacciones y fuerza a la segunda a releer
      * el estado ya confirmado por la primera antes de escribir.
+     * @param idContrato el identificador de contrato
+     * @return un Optional con Contract si existe, vacio en caso contrario
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT c FROM Contract c WHERE c.idContrato = :idContrato")

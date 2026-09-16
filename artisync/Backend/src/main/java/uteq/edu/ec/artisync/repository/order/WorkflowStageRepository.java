@@ -18,10 +18,17 @@ import java.util.Optional;
 @Repository
 public interface WorkflowStageRepository extends JpaRepository<WorkflowStage, Long> {
 
-    /** Etapa maestra por nombre exacto. */
+    /**
+     * Etapa maestra por nombre exacto.
+     * @param nombreEtapa el nombre de etapa
+     * @return un Optional con WorkflowStage si existe, vacio en caso contrario
+     */
     Optional<WorkflowStage> findByNombreEtapa(String nombreEtapa);
 
-    /** @return {@code true} si ya existe una etapa maestra con ese nombre */
+    /**
+     * @param nombreEtapa el nombre de etapa
+     * @return {@code true} si ya existe una etapa maestra con ese nombre
+     */
     boolean existsByNombreEtapa(String nombreEtapa);
 }
 

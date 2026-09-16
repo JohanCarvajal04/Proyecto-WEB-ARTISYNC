@@ -97,6 +97,9 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
      * {@code LazyInitializationException} — silenciosamente para quien
      * llamaba (Spring solo devolvía un frame STOMP ERROR genérico), incluso
      * para un usuario legítimo.
+     * @param message el message
+     * @param channel el channel
+     * @return el resultado de la operacion, de tipo {@code Message<?>}
      */
     @Override
     @Transactional(readOnly = true)

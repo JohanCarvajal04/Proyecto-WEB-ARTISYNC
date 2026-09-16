@@ -68,7 +68,11 @@ public class AiImagePreprocessor {
         }
     }
 
-    /** Recomprime detectando el formato por los bytes, no por un header de cliente. */
+    /**
+     * Recomprime detectando el formato por los bytes, no por un header de cliente.
+     * @param original el original
+     * @return el resultado de la operacion, de tipo {@code byte[]}
+     */
     public byte[] comprimirParaIa(byte[] original) {
         BufferedImage imagen;
         try {

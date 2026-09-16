@@ -16,7 +16,7 @@ Uso:
     python scripts/auditoria-rubrica.py             # todas las secciones
     python scripts/auditoria-rubrica.py p12 e1 p7   # solo estas secciones
 
-Secciones disponibles: p3 p6 p7 p8 p11 p12 e1 e2 e3
+Secciones disponibles: p3 p6 p7 p8 p11 p12 e1 e2 e2c e3
 """
 import collections
 import csv
@@ -390,6 +390,220 @@ def seccion_e2():
                 print(f"      L{ln}: {nombre}")
 
 
+def dividir_top_level(s, sep=","):
+    """Divide `s` por `sep` solo en el nivel superior de anidamiento, respetando
+    (), <> y [] -- necesario para no partir por la coma de un generico
+    (Map<String, Integer>) o de una anotacion con argumentos."""
+    partes, actual, depth = [], [], 0
+    for c in s:
+        if c in "(<[":
+            depth += 1
+        elif c in ")>]":
+            depth -= 1
+        if c == sep and depth == 0:
+            partes.append("".join(actual))
+            actual = []
+        else:
+            actual.append(c)
+    if actual:
+        partes.append("".join(actual))
+    return [p.strip() for p in partes if p.strip()]
+
+
+def extraer_firma_completa(lineas, i, max_lineas=15):
+    """Une las lineas necesarias para tener la firma completa de un metodo que
+    puede envolver parametros/throws en varias lineas: acumula hasta que el
+    balance de parentesis vuelve a cero y aparece '{' o ';' (fin de la firma,
+    sea metodo con cuerpo o abstracto/de interfaz)."""
+    acumulado = ""
+    depth = 0
+    vio_paren = False
+    for k in range(max_lineas):
+        idx = i + k
+        if idx >= len(lineas):
+            break
+        l = lineas[idx]
+        acumulado += l + "\n"
+        depth += l.count("(") - l.count(")")
+        if "(" in l:
+            vio_paren = True
+        if vio_paren and depth <= 0 and ("{" in l or ";" in l):
+            break
+    return acumulado
+
+
+def nombre_parametro(segmento):
+    """Extrae el identificador del parametro al final de un segmento como
+    '@RequestParam(required = false) final String userId' o 'int... valores'."""
+    m = re.search(r"([A-Za-z_]\w*)\s*(?:\[\s*\])?\s*$", segmento.strip())
+    return m.group(1) if m else None
+
+
+def analizar_javadoc_completo(ruta, es_interfaz):
+    """Version mas estricta de analizar_javadoc: ademas de exigir un bloque
+    /** */, exige que ese bloque tenga @param por cada parametro, @return si
+    el metodo no es void, y al menos un @throws/@exception si el metodo
+    declara `throws`. Reusa el mismo escaneo de firmas que analizar_javadoc
+    (misma deteccion de metodos, mismo manejo de text blocks Java)."""
+    with open(ruta, encoding="utf-8", errors="ignore") as f:
+        lineas = f.read().split("\n")
+
+    total = 0
+    completos = 0
+    incompletos = []
+    en_text_block = False
+
+    for i, linea in enumerate(lineas):
+        cuerpo = linea.strip()
+
+        aperturas = cuerpo.count('"""')
+        if en_text_block:
+            en_text_block = (aperturas % 2 == 0)
+            continue
+        if aperturas % 2 == 1:
+            en_text_block = True
+            continue
+
+        if not cuerpo or cuerpo.startswith(("//", "*", "/*")):
+            continue
+
+        patron = FIRMA_INTERFAZ if es_interfaz else FIRMA_CLASE
+        m = patron.match(cuerpo)
+        if not m:
+            continue
+        if es_interfaz and (cuerpo.startswith("@") or cuerpo.startswith("default") or cuerpo.startswith("static")):
+            continue
+
+        nombre_metodo = m.group(1)
+        total += 1
+
+        # Localiza el bloque /** ... */ que antecede al metodo (misma logica
+        # de escaneo hacia atras que analizar_javadoc, saltando anotaciones).
+        j = i - 1
+        paren_depth = 0
+        while j >= 0:
+            l = lineas[j].strip()
+            if l == "" or l.startswith("//"):
+                j -= 1
+                continue
+            delta = l.count(")") - l.count("(")
+            if paren_depth > 0:
+                paren_depth += delta
+                j -= 1
+                continue
+            if l.startswith("@"):
+                paren_depth += delta
+                j -= 1
+                continue
+            if delta > 0:
+                paren_depth += delta
+                j -= 1
+                continue
+            break
+
+        if j < 0 or not lineas[j].strip().endswith("*/"):
+            incompletos.append((i + 1, nombre_metodo, "sin bloque Javadoc", None))
+            continue
+
+        fin_doc = j
+        inicio_doc = j
+        while inicio_doc >= 0 and "/**" not in lineas[inicio_doc]:
+            inicio_doc -= 1
+        javadoc_texto = "\n".join(lineas[inicio_doc:fin_doc + 1]) if inicio_doc >= 0 else ""
+
+        firma = extraer_firma_completa(lineas, i)
+        idx_abre = firma.find("(")
+        idx_cierra = None
+        if idx_abre != -1:
+            depth = 0
+            for pos in range(idx_abre, len(firma)):
+                if firma[pos] == "(":
+                    depth += 1
+                elif firma[pos] == ")":
+                    depth -= 1
+                    if depth == 0:
+                        idx_cierra = pos
+                        break
+        parametros_txt = firma[idx_abre + 1:idx_cierra] if idx_abre != -1 and idx_cierra else ""
+        cola = firma[idx_cierra + 1:] if idx_cierra else ""
+
+        nombres_params = [nombre_parametro(p) for p in dividir_top_level(parametros_txt)]
+        nombres_params = [n for n in nombres_params if n]
+
+        es_void = bool(re.search(r"\bvoid\s+" + re.escape(nombre_metodo) + r"\s*\(", cuerpo))
+
+        m_throws = re.search(r"\bthrows\s+([\w<>.,\s]+?)\s*[{;]", cola)
+        excepciones = []
+        if m_throws:
+            for exc in dividir_top_level(m_throws.group(1)):
+                excepciones.append(exc.strip().split(".")[-1].split("<")[0].strip())
+
+        # {@inheritDoc} delega la documentacion (incluidos @param/@return/@throws) al
+        # metodo que sobreescribe -- javadoc:javadoc no exige repetirlos, asi que aqui
+        # tampoco: cuenta como completo tal cual.
+        if "{@inheritDoc}" in javadoc_texto:
+            completos += 1
+            continue
+
+        motivos = []
+        for p in nombres_params:
+            if not re.search(r"@param\s+" + re.escape(p) + r"\b", javadoc_texto):
+                motivos.append(f"falta @param {p}")
+        if not es_void and not re.search(r"@return\b", javadoc_texto):
+            motivos.append("falta @return")
+        for exc in excepciones:
+            if not re.search(r"@(?:throws|exception)\s+(?:\w+\.)*" + re.escape(exc) + r"\b", javadoc_texto):
+                motivos.append(f"falta @throws {exc}")
+
+        if motivos:
+            incompletos.append((i + 1, nombre_metodo, "; ".join(motivos), fin_doc))
+        else:
+            completos += 1
+
+    return total, completos, incompletos
+
+
+def seccion_e2c(umbral=0.90):
+    titulo("E2c -- Javadoc COMPLETO (@param/@return/@throws), no solo presencia del bloque")
+
+    resultados = []
+    for f in todos_los_java(SRC_MAIN):
+        rel = os.path.relpath(f, SRC_MAIN)
+        with open(f, encoding="utf-8", errors="ignore") as fh:
+            src = fh.read()
+
+        es_interfaz_archivo = bool(re.search(r"public interface ", src)) and not re.search(r"public (?:abstract )?class ", src)
+        if "class " not in src and "interface " not in src:
+            continue
+
+        total, completos, incompletos = analizar_javadoc_completo(f, es_interfaz_archivo)
+        if total == 0:
+            continue
+        resultados.append({
+            "archivo": rel.replace(os.sep, "/"),
+            "total": total,
+            "completos": completos,
+            "incompletos": incompletos,
+        })
+
+    total = sum(r["total"] for r in resultados)
+    completos = sum(r["completos"] for r in resultados)
+    pct = 100 * completos / total if total else 0
+    print(f"TOTAL con Javadoc completo: {completos}/{total} ({pct:.1f}%) -- umbral exigido: {umbral * 100:.0f}%")
+    print("OK" if pct >= umbral * 100 else "FALLA: por debajo del umbral")
+
+    con_deficit = [r for r in resultados if r["incompletos"]]
+    print(f"\n{len(con_deficit)} archivo(s) con al menos un metodo incompleto ({sum(len(r['incompletos']) for r in con_deficit)} metodos en total):")
+    for r in sorted(con_deficit, key=lambda r: len(r["incompletos"]), reverse=True)[:40]:
+        print(f"  - {r['archivo']}: {len(r['incompletos'])} de {r['total']} incompletos")
+        if "--verbose" in sys.argv:
+            for ln, nombre, motivo, _fin_doc in r["incompletos"]:
+                print(f"      L{ln}: {nombre} -- {motivo}")
+
+    if pct < umbral * 100:
+        sys.exit(1)
+
+
 # ---------------------------------------------------------------------------
 # P6 -- Acceso uniforme con procedimientos almacenados
 # ---------------------------------------------------------------------------
@@ -626,6 +840,7 @@ SECCIONES = {
     "p12": seccion_p12,
     "e1": seccion_e1,
     "e2": seccion_e2,
+    "e2c": seccion_e2c,
 }
 
 

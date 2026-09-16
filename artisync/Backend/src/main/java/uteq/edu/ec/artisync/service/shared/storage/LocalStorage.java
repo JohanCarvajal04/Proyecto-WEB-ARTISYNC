@@ -86,7 +86,11 @@ public class LocalStorage implements DocumentStorage {
         return Optional.empty();
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param referencia el referencia
+     * @return el resultado de la operacion, de tipo {@code byte[]}
+     */
     @Override
     public byte[] read(String referencia) {
         Path ruta = resolveWithinBase(referencia);

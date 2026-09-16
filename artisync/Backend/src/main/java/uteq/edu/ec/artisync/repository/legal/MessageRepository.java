@@ -18,7 +18,11 @@ import java.util.List;
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {
 
-    /** Historial de mensajes de una sala de chat, en el orden en que se enviaron. */
+    /**
+     * Historial de mensajes de una sala de chat, en el orden en que se enviaron.
+     * @param idSala el identificador de sala
+     * @return la lista de Message encontrados
+     */
     List<Message> findBySalaIdSalaOrderByFechaHoraEnvioAsc(Long idSala);
 }
 

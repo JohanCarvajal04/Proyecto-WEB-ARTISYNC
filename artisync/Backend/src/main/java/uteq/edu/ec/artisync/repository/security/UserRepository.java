@@ -23,16 +23,30 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User>, UserRepositoryCustom {
 
-    /** Usuario por correo exacto; base del login y de la resolución de identidad. */
+    /**
+     * Usuario por correo exacto; base del login y de la resolución de identidad.
+     * @param correo el correo
+     * @return un Optional con User si existe, vacio en caso contrario
+     */
     Optional<User> findByCorreo(String correo);
 
-    /** @return {@code true} si ya existe un usuario con ese correo */
+    /**
+     * @param correo el correo
+     * @return {@code true} si ya existe un usuario con ese correo
+     */
     boolean existsByCorreo(String correo);
 
-    /** Usuario por id, solo si su cuenta sigue habilitada. */
+    /**
+     * Usuario por id, solo si su cuenta sigue habilitada.
+     * @param idUsuario el identificador de usuario
+     * @return un Optional con User si existe, vacio en caso contrario
+     */
     Optional<User> findByIdUsuarioAndEstadoCuentaTrue(Long idUsuario);
 
-    /** @return {@code true} si algún usuario está registrado con ese país (bloquea su eliminación) */
+    /**
+     * @param idPais el identificador de pais
+     * @return {@code true} si algún usuario está registrado con ese país (bloquea su eliminación)
+     */
     boolean existsByPaisIdPais(Long idPais);
 
     /**
@@ -44,6 +58,8 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
      * ejecutando la anonimización dos veces. El bloqueo serializa las dos
      * transacciones: la segunda espera a que la primera confirme y entonces
      * relee el correo ya anonimizado, evitando la repetición.
+     * @param idUsuario el identificador de usuario
+     * @return un Optional con User si existe, vacio en caso contrario
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM User u WHERE u.idUsuario = :idUsuario")
@@ -60,6 +76,8 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
      * {@link UserRepositoryCustom} (que SI necesitan devolver un valor), este
      * caso calza con el unico patron de @Procedure verificado en el proyecto
      * (sp_registrar_decision_verificacion): solo parametros IN, metodo void.
+     * @param hashToken el hash token
+     * @param nuevaContrasenaHash el nueva contrasena hash
      */
     @Procedure(procedureName = "sp_restablecer_contrasena")
     void restablecerContrasena(
@@ -74,6 +92,9 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
      * hash ya no coincidia. PROCEDURE real (no FUNCTION), mismo motivo que
      * sp_restablecer_contrasena de arriba: el caller ya descartaba el
      * booleano de retorno, asi que no hace falta ningun parametro OUT.
+     * @param idUsuario el identificador de usuario
+     * @param hashEsperado el hash esperado
+     * @param hashNuevo el hash nuevo
      */
     @Procedure(procedureName = "sp_cambiar_contrasena")
     void cambiarContrasena(

@@ -26,10 +26,18 @@ import java.util.Optional;
 public interface EscrowPaymentRepository extends JpaRepository<EscrowPayment, Long>,
         JpaSpecificationExecutor<EscrowPayment> {
 
-    /** El pago de garantía asociado a un contrato, si existe. */
+    /**
+     * El pago de garantía asociado a un contrato, si existe.
+     * @param idContrato el identificador de contrato
+     * @return un Optional con EscrowPayment si existe, vacio en caso contrario
+     */
     Optional<EscrowPayment> findByContratoIdContrato(Long idContrato);
 
-    /** El pago de garantía por el id de orden de PayPal, usado por el webhook y la reconciliación. */
+    /**
+     * El pago de garantía por el id de orden de PayPal, usado por el webhook y la reconciliación.
+     * @param idOrdenPaypal el identificador de orden paypal
+     * @return un Optional con EscrowPayment si existe, vacio en caso contrario
+     */
     Optional<EscrowPayment> findByIdOrdenPaypal(String idOrdenPaypal);
 
     /**
@@ -43,19 +51,30 @@ public interface EscrowPaymentRepository extends JpaRepository<EscrowPayment, Lo
             "FROM EscrowPayment p GROUP BY p.estadoFondos")
     List<EscrowSummaryResponse> resumenPorEstado();
 
-    /** REQ-NF-019: pagos 'Pendiente' cuyo último intento fue antes del umbral configurable de PayPalReconciliationScheduler. */
+    /**
+     * REQ-NF-019: pagos 'Pendiente' cuyo último intento fue antes del umbral configurable de PayPalReconciliationScheduler.
+     * @param estadoFondos el estado de fondos
+     * @param limite el limite
+     * @return la lista de EscrowPayment encontrados
+     */
     List<EscrowPayment> findByEstadoFondosAndFechaActualizacionBefore(String estadoFondos, LocalDateTime limite);
 
     /**
      * Con bloqueo pesimista (mismo patrón que WithdrawalRequestRepository.findByIdParaActualizar):
      * serializa la carrera entre el webhook de PayPal y PayPalReconciliationExecutorService sobre
      * el mismo pago.
+     * @param idPago el identificador de pago
+     * @return un Optional con EscrowPayment si existe, vacio en caso contrario
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM EscrowPayment p WHERE p.idPago = :idPago")
     Optional<EscrowPayment> findByIdParaActualizar(@Param("idPago") Long idPago);
 
-    /** Mismo propósito que findByIdParaActualizar, para cancelarPedidoConFondosRetenidos, que solo tiene el id del contrato a mano. */
+    /**
+     * Mismo propósito que findByIdParaActualizar, para cancelarPedidoConFondosRetenidos, que solo tiene el id del contrato a mano.
+     * @param idContrato el identificador de contrato
+     * @return un Optional con EscrowPayment si existe, vacio en caso contrario
+     */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM EscrowPayment p WHERE p.contrato.idContrato = :idContrato")
     Optional<EscrowPayment> findByContratoIdContratoParaActualizar(@Param("idContrato") Long idContrato);

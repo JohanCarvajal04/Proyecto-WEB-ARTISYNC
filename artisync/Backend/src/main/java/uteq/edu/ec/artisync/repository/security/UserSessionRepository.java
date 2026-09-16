@@ -17,10 +17,17 @@ import java.util.Optional;
 @Repository
 public interface UserSessionRepository extends JpaRepository<UserSession, Long>, UserSessionRepositoryCustom {
 
-    /** Sesión activa por su JTI. */
+    /**
+     * Sesión activa por su JTI.
+     * @param jti el jti
+     * @return un Optional con UserSession si existe, vacio en caso contrario
+     */
     Optional<UserSession> findByJti(String jti);
 
-    /** Elimina una sesión por su JTI. */
+    /**
+     * Elimina una sesión por su JTI.
+     * @param jti el jti
+     */
     void deleteByJti(String jti);
 
     // CR-02 (revision de codigo): findByUsuarioIdUsuario y

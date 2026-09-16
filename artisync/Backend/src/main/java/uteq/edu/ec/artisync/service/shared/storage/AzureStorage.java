@@ -119,7 +119,11 @@ public class AzureStorage implements DocumentStorage {
         return nombreBlob;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param referencia el referencia
+     * @return el resultado de la operacion, de tipo {@code byte[]}
+     */
     @Override
     public byte[] read(String referencia) {
         validateReference(referencia);
@@ -159,6 +163,8 @@ public class AzureStorage implements DocumentStorage {
      * URL firmada de solo lectura para que el frontend descargue el archivo
      * directamente de Azure. Pensada para portafolio y entregables, donde
      * proxear video por el backend sería un desperdicio.
+     * @param referencia el referencia
+     * @return un Optional con String si existe, vacio en caso contrario
      */
     @Override
     public Optional<String> urlTemporal(String referencia) {

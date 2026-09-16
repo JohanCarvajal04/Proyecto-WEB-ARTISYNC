@@ -21,7 +21,11 @@ public class PaymentDetailsServiceImpl implements IPaymentDetailsService {
     private final CreatorPaymentDetailsRepository datosPagoCreadorRepository;
     private final UserRepository usuarioRepository;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idUsuario el identificador de usuario
+     * @return el resultado de la operacion, de tipo {@code PaymentDetailsResponse}
+     */
     @Override
     @Transactional(readOnly = true)
     public PaymentDetailsResponse getMyPaymentDetails(Long idUsuario) {
@@ -30,7 +34,12 @@ public class PaymentDetailsServiceImpl implements IPaymentDetailsService {
                 .orElseGet(() -> PaymentDetailsResponse.builder().correoPaypal(null).fechaActualizacion(null).build());
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idUsuario el identificador de usuario
+     * @param peticion el peticion
+     * @return el resultado de la operacion, de tipo {@code PaymentDetailsResponse}
+     */
     @Override
     @Transactional
     @Auditable(accion = "RETIRO_DATOS_PAGO_ACTUALIZAR", modulo = AuditModule.FINANZAS,

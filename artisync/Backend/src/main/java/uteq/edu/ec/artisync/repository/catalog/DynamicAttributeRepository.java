@@ -18,10 +18,17 @@ import java.util.Optional;
 @Repository
 public interface DynamicAttributeRepository extends JpaRepository<DynamicAttribute, Long> {
 
-    /** Atributo dinámico por nombre exacto, sin distinguir mayúsculas/minúsculas. */
+    /**
+     * Atributo dinámico por nombre exacto, sin distinguir mayúsculas/minúsculas.
+     * @param nombreAtributo el nombre de atributo
+     * @return un Optional con DynamicAttribute si existe, vacio en caso contrario
+     */
     Optional<DynamicAttribute> findByNombreAtributoIgnoreCase(String nombreAtributo);
 
-    /** @return {@code true} si ya existe un atributo con ese nombre (sin distinguir mayúsculas/minúsculas) */
+    /**
+     * @param nombreAtributo el nombre de atributo
+     * @return {@code true} si ya existe un atributo con ese nombre (sin distinguir mayúsculas/minúsculas)
+     */
     boolean existsByNombreAtributoIgnoreCase(String nombreAtributo);
 }
 

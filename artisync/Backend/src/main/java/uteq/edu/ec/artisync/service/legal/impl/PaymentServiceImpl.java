@@ -228,6 +228,7 @@ public class PaymentServiceImpl implements IPaymentService {
      * @param authAlgo algoritmo de autenticacion
      * @param transmissionSig firma de transmision
      * @param webhookId id del webhook
+     * @param authVersion el auth version
      */
     public void processPayPalWebhook(String payload, String transmissionId, String transmissionTime,
                                       String transmissionSig, String certUrl, String authAlgo, String authVersion) {
@@ -435,6 +436,7 @@ public class PaymentServiceImpl implements IPaymentService {
      * @param idUsuarioSolicitante id del usuario solicitante
      * @param motivo motivo de la cancelacion
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @param accionFondos el accion fondos
      */
     public PaymentResponse cancelOrderWithHeldFunds(Long idPedido, Long idUsuarioSolicitante,
                                                            String accionFondos, String motivo) {

@@ -27,6 +27,7 @@ public class BackupFileStorage {
      * @param nombreArchivo objeto binario multipart representando el documento o medio fisico
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws IOException si ocurre un error de entrada/salida
      */
     public Path resolveDestinationPath(String nombreArchivo) throws IOException {
         Path base = Path.of(respaldoProperties.getRutaBase());
@@ -39,6 +40,7 @@ public class BackupFileStorage {
      *
      * @param ruta parametro requerido para la correcta ejecucion del procedimiento
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws IOException si ocurre un error de entrada/salida
      */
     public void delete(Path ruta) throws IOException {
         Files.deleteIfExists(ruta);

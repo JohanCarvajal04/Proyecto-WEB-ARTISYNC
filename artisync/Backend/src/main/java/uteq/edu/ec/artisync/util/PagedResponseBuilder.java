@@ -54,6 +54,9 @@ public class PagedResponseBuilder {
      * elemento a elemento. Uso: cuando el mapper hace consultas adicionales
      * por elemento (roles, permisos, flags), pasar la lista completa permite
      * batchearlas con IN (...) en vez de repetirlas por cada fila (N+1).
+     * @param page la page
+     * @param mapper el mapper
+     * @return el resultado de la operacion, de tipo {@code PagedResponse<R>}
      */
     public static <T, R> PagedResponse<R> buildAndMapList(Page<T> page, Function<List<T>, List<R>> mapper) {
         List<R> mappedContent = mapper.apply(page.getContent());

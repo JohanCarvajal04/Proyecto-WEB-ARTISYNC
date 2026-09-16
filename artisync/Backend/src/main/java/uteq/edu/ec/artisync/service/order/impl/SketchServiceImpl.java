@@ -29,7 +29,13 @@ public class SketchServiceImpl implements ISketchService {
     private final DocumentStorage almacenamiento;
     private final NotificationService notificacionService;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPedido el identificador de pedido
+     * @param idCreador el identificador de creador
+     * @param imagen el imagen
+     * @return el resultado de la operacion, de tipo {@code SketchResponse}
+     */
     @Override
     @Transactional
     public SketchResponse uploadSketch(Long idPedido, Long idCreador, MultipartFile imagen) {
@@ -73,7 +79,12 @@ public class SketchServiceImpl implements ISketchService {
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPedido el identificador de pedido
+     * @param idUsuario el identificador de usuario
+     * @return el resultado de la operacion, de tipo {@code SketchResponse}
+     */
     @Override
     @Transactional(readOnly = true)
     public SketchResponse getSketch(Long idPedido, Long idUsuario) {
@@ -85,7 +96,12 @@ public class SketchServiceImpl implements ISketchService {
         return mapToRespuesta(boceto);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPedido el identificador de pedido
+     * @param idUsuario el identificador de usuario
+     * @return el resultado de la operacion, de tipo {@code DownloadedFile}
+     */
     @Override
     @Transactional(readOnly = true)
     public DownloadedFile downloadSketch(Long idPedido, Long idUsuario) {

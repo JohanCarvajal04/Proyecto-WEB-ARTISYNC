@@ -11,7 +11,11 @@ import java.util.Optional;
  */
 public interface DocumentStorage {
 
-    /** Guarda en la raíz. Equivale a save(archivo, ""). */
+    /**
+     * Guarda en la raíz. Equivale a save(archivo, "").
+     * @param archivo el archivo
+     * @return el resultado en forma de texto
+     */
     String save(MultipartFile archivo);
 
     /**
@@ -19,6 +23,9 @@ public interface DocumentStorage {
      * "entregables"), que separa por caso de uso lo que de otro modo sería un
      * único espacio plano. La referencia devuelta ya lo incluye, así que read()
      * y delete() la reciben tal cual salió de aquí.
+     * @param archivo el archivo
+     * @param prefijo el prefijo
+     * @return el resultado en forma de texto
      */
     String save(MultipartFile archivo, String prefijo);
 
@@ -43,6 +50,8 @@ public interface DocumentStorage {
      *
      * <p>Importa para video de portafolio: proxear cientos de MB por el backend
      * cuando Azure puede servirlos directamente es desperdiciar el servidor.
+     * @param referencia el referencia
+     * @return un Optional con String si existe, vacio en caso contrario
      */
     Optional<String> urlTemporal(String referencia);
 }

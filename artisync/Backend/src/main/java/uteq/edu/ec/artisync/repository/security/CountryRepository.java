@@ -18,9 +18,17 @@ import org.springframework.data.domain.Sort;
  */
 @Repository
 public interface CountryRepository extends JpaRepository<Country, Long>, CountryRepositoryCustom {
-    /** País por nombre exacto. */
+    /**
+     * País por nombre exacto.
+     * @param nombrePais el nombre de pais
+     * @return un Optional con Country si existe, vacio en caso contrario
+     */
     Optional<Country> findByNombrePais(String nombrePais);
-    /** Países activos, en el orden solicitado. */
+    /**
+     * Países activos, en el orden solicitado.
+     * @param sort el sort
+     * @return la lista de Country encontrados
+     */
     List<Country> findByEstadoTrue(Sort sort);
 }
 

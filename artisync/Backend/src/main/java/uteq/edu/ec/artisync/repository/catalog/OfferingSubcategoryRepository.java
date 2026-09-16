@@ -18,25 +18,50 @@ import java.util.List;
 @Repository
 public interface OfferingSubcategoryRepository extends JpaRepository<OfferingSubcategory, Long> {
 
-    /** Subcategorías asignadas a un servicio. */
+    /**
+     * Subcategorías asignadas a un servicio.
+     * @param idServicio el identificador de servicio
+     * @return la lista de OfferingSubcategory encontrados
+     */
     List<OfferingSubcategory> findByServicioIdServicio(Long idServicio);
 
-    /** Subcategorías asignadas a cualquiera de los servicios indicados. */
+    /**
+     * Subcategorías asignadas a cualquiera de los servicios indicados.
+     * @param idsServicio el ids servicio
+     * @return la lista de OfferingSubcategory encontrados
+     */
     List<OfferingSubcategory> findByServicioIdServicioIn(List<Long> idsServicio);
 
-    /** Elimina todas las asignaciones de subcategoría de un servicio. */
+    /**
+     * Elimina todas las asignaciones de subcategoría de un servicio.
+     * @param idServicio el identificador de servicio
+     */
     void deleteByServicioIdServicio(Long idServicio);
 
-    /** Elimina la asignación puntual de una subcategoría a un servicio. */
+    /**
+     * Elimina la asignación puntual de una subcategoría a un servicio.
+     * @param idServicio el identificador de servicio
+     * @param idSubcategoria el identificador de subcategoria
+     */
     void deleteByServicioIdServicioAndSubcategoriaIdSubcategoria(Long idServicio, Long idSubcategoria);
 
-    /** Cantidad de subcategorías asignadas a un servicio. */
+    /**
+     * Cantidad de subcategorías asignadas a un servicio.
+     * @param idServicio el identificador de servicio
+     * @return el valor numerico calculado
+     */
     long countByServicioIdServicio(Long idServicio);
 
-    /** @return {@code true} si alguna oferta usa esa subcategoría (bloquea su eliminación) */
+    /**
+     * @param idSubcategoria el identificador de subcategoria
+     * @return {@code true} si alguna oferta usa esa subcategoría (bloquea su eliminación)
+     */
     boolean existsBySubcategoriaIdSubcategoria(Long idSubcategoria);
 
-    /** @return {@code true} si alguna oferta usa una subcategoría de esa categoría */
+    /**
+     * @param idCategoria el identificador de categoria
+     * @return {@code true} si alguna oferta usa una subcategoría de esa categoría
+     */
     boolean existsBySubcategoriaCategoriaIdCategoria(Long idCategoria);
 }
 

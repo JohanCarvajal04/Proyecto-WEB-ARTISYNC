@@ -80,6 +80,8 @@ public final class FileExtensions {
      * Content-Type deducido de la extensión de la referencia. Un tipo
      * desconocido cae en octet-stream, que hace que el navegador descargue el
      * archivo en vez de intentar interpretarlo.
+     * @param referencia el referencia
+     * @return el resultado en forma de texto
      */
     public static String contentTypeDe(String referencia) {
         if (referencia == null) {

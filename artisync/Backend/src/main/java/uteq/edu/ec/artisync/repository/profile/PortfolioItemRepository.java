@@ -18,10 +18,18 @@ import java.util.List;
 @Repository
 public interface PortfolioItemRepository extends JpaRepository<PortfolioItem, Long> {
 
-    /** Obras de un portafolio, más recientes primero. */
+    /**
+     * Obras de un portafolio, más recientes primero.
+     * @param idPortafolio el identificador de portafolio
+     * @return la lista de PortfolioItem encontrados
+     */
     List<PortfolioItem> findByPortafolioIdPortafolioOrderByFechaSubidaDesc(Long idPortafolio);
 
-    /** Cantidad de obras de un portafolio. */
+    /**
+     * Cantidad de obras de un portafolio.
+     * @param idPortafolio el identificador de portafolio
+     * @return el valor numerico calculado
+     */
     long countByPortafolioIdPortafolio(Long idPortafolio);
 }
 

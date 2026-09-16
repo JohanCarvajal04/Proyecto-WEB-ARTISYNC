@@ -48,6 +48,11 @@ public class BackupConfig {
      * exactamente el datasource que DataSourceAutoConfiguration habría
      * creado y lo marca @Primary para que gane sobre backupDataSource en
      * cualquier punto de inyección sin @Qualifier.
+     * @param url la url
+     * @param username el username
+     * @param password el password
+     * @param driverClassName el driver class name
+     * @return el resultado de la operacion, de tipo {@code DataSource}
      */
     @Bean
     @Primary
@@ -108,6 +113,8 @@ public class BackupConfig {
      * desactiva (mismo mecanismo {@code @ConditionalOnMissingBean} que ya obliga a
      * declarar el datasource principal arriba) y el health check vuelve a
      * cubrir solo el datasource principal, como antes de este módulo.
+     * @param dataSource el data source
+     * @return el resultado de la operacion, de tipo {@code HealthContributor}
      */
     @Bean(name = "dbHealthContributor")
     public HealthContributor dbHealthContributor(DataSource dataSource) {

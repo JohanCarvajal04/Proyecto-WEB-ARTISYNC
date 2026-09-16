@@ -27,10 +27,18 @@ import java.util.Optional;
 public interface WithdrawalRequestRepository extends JpaRepository<WithdrawalRequest, Long>,
         JpaSpecificationExecutor<WithdrawalRequest> {
 
-    /** Solicitudes de retiro de un creador, más recientes primero. */
+    /**
+     * Solicitudes de retiro de un creador, más recientes primero.
+     * @param idUsuario el identificador de usuario
+     * @return la lista de WithdrawalRequest encontrados
+     */
     List<WithdrawalRequest> findByUsuarioCreadorIdUsuarioOrderByFechaSolicitudDesc(Long idUsuario);
 
-    /** @return {@code true} si el creador tiene alguna solicitud en uno de esos estados */
+    /**
+     * @param idUsuario el identificador de usuario
+     * @param estados los estados
+     * @return {@code true} si el creador tiene alguna solicitud en uno de esos estados
+     */
     boolean existsByUsuarioCreadorIdUsuarioAndEstadoIn(Long idUsuario, Collection<String> estados);
 
     /**
@@ -52,6 +60,8 @@ public interface WithdrawalRequestRepository extends JpaRepository<WithdrawalReq
      * aprobar/rechazar/reintentar concurrentes sobre la misma solicitud: la
      * segunda transacción espera a que la primera confirme antes de leer el
      * estado, evitando una doble decisión o un doble payout.
+     * @param idSolicitud el identificador de solicitud
+     * @return un Optional con WithdrawalRequest si existe, vacio en caso contrario
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM WithdrawalRequest s WHERE s.idSolicitud = :idSolicitud")
@@ -62,6 +72,9 @@ public interface WithdrawalRequestRepository extends JpaRepository<WithdrawalReq
      * (PayPal las dejó en PENDING/UNCLAIMED/PROCESSING) cuya decisión ya tiene
      * más del umbral configurado sin que nadie haya vuelto a consultar su
      * estado real en PayPal.
+     * @param estado el estado
+     * @param limite el limite
+     * @return la lista de WithdrawalRequest encontrados
      */
     List<WithdrawalRequest> findByEstadoAndFechaDecisionBefore(String estado, LocalDateTime limite);
 }

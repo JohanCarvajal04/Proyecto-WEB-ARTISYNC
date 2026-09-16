@@ -19,16 +19,35 @@ import java.util.List;
  */
 @Repository
 public interface AiCertificateRepository extends JpaRepository<AiCertificate, Long>, AiCertificateRepositoryCustom {
-    /** @return {@code true} si el usuario tiene un certificado en ese estado de verificación */
+    /**
+     * @param idUsuario el identificador de usuario
+     * @param nombreEstado el nombre de estado
+     * @return {@code true} si el usuario tiene un certificado en ese estado de verificación
+     */
     boolean existsByUsuarioIdUsuarioAndEstadoVerificacionNombreEstado(Long idUsuario, String nombreEstado);
-    /** Certificados de IA solicitados por un usuario. */
+    /**
+     * Certificados de IA solicitados por un usuario.
+     * @param idUsuario el identificador de usuario
+     * @return la lista de AiCertificate encontrados
+     */
     List<AiCertificate> findByUsuarioIdUsuario(Long idUsuario);
 
-    /** Gating de REQ-F-006 ampliado: ¿este usuario tiene su identidad aprobada? */
+    /**
+     * Gating de REQ-F-006 ampliado: ¿este usuario tiene su identidad aprobada?
+     * @param idUsuario el identificador de usuario
+     * @param tipoDocumento el tipo de documento
+     * @param nombreEstado el nombre de estado
+     * @return true si ya existe, false en caso contrario
+     */
     boolean existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(
             Long idUsuario, String tipoDocumento, String nombreEstado);
 
-    /** Última solicitud de identidad de un usuario, para mostrarle su estado actual. */
+    /**
+     * Última solicitud de identidad de un usuario, para mostrarle su estado actual.
+     * @param idUsuario el identificador de usuario
+     * @param tipoDocumento el tipo de documento
+     * @return un Optional con AiCertificate si existe, vacio en caso contrario
+     */
     java.util.Optional<AiCertificate> findTopByUsuarioIdUsuarioAndTipoDocumentoOrderByFechaAnalisisDesc(
             Long idUsuario, String tipoDocumento);
 
@@ -48,7 +67,12 @@ public interface AiCertificateRepository extends JpaRepository<AiCertificate, Lo
             @Param("p_id_moderador") Long idModerador,
             @Param("p_nota") String nota);
 
-    /** Certificados en un estado dado, analizados antes de una fecha límite (para el barrido de expiración). */
+    /**
+     * Certificados en un estado dado, analizados antes de una fecha límite (para el barrido de expiración).
+     * @param nombreEstado el nombre de estado
+     * @param limite el limite
+     * @return la lista de AiCertificate encontrados
+     */
     List<AiCertificate> findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore(
             String nombreEstado, LocalDateTime limite);
 }

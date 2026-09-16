@@ -22,7 +22,10 @@ public class TagServiceImpl implements ITagService {
 
     private final TagRepository etiquetaRepository;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @return la lista de TagResponse encontrados
+     */
     @Override
     @Transactional(readOnly = true)
     public List<TagResponse> listTags() {
@@ -32,7 +35,11 @@ public class TagServiceImpl implements ITagService {
                 .collect(Collectors.toList());
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idEtiqueta el identificador de etiqueta
+     * @return el resultado de la operacion, de tipo {@code TagResponse}
+     */
     @Override
     @Transactional(readOnly = true)
     public TagResponse getById(Long idEtiqueta) {
@@ -41,7 +48,11 @@ public class TagServiceImpl implements ITagService {
         return mapToTagResponse(et);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param peticion el peticion
+     * @return el resultado de la operacion, de tipo {@code TagResponse}
+     */
     @Override
     @Transactional
     @Auditable(accion = "ETIQUETA_CREAR", modulo = AuditModule.CATALOGO,
@@ -58,7 +69,10 @@ public class TagServiceImpl implements ITagService {
         return mapToTagResponse(et);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idEtiqueta el identificador de etiqueta
+     */
     @Override
     @Transactional
     @Auditable(accion = "ETIQUETA_ELIMINAR", modulo = AuditModule.CATALOGO,

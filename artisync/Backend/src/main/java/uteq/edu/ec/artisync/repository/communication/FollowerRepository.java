@@ -18,19 +18,40 @@ import java.util.Optional;
 @Repository
 public interface FollowerRepository extends JpaRepository<Follower, Long>, FollowerRepositoryCustom {
 
-    /** Relación de seguimiento entre un usuario y un perfil de creador, si existe. */
+    /**
+     * Relación de seguimiento entre un usuario y un perfil de creador, si existe.
+     * @param idUsuario el identificador de usuario
+     * @param idPerfil el identificador de perfil
+     * @return un Optional con Follower si existe, vacio en caso contrario
+     */
     Optional<Follower> findByUsuarioSeguidorIdUsuarioAndPerfilCreadorIdPerfil(Long idUsuario, Long idPerfil);
 
-    /** @return {@code true} si el usuario ya sigue a ese perfil de creador */
+    /**
+     * @param idUsuario el identificador de usuario
+     * @param idPerfil el identificador de perfil
+     * @return {@code true} si el usuario ya sigue a ese perfil de creador
+     */
     boolean existsByUsuarioSeguidorIdUsuarioAndPerfilCreadorIdPerfil(Long idUsuario, Long idPerfil);
 
-    /** Seguidores de un perfil de creador. */
+    /**
+     * Seguidores de un perfil de creador.
+     * @param idPerfil el identificador de perfil
+     * @return la lista de Follower encontrados
+     */
     List<Follower> findByPerfilCreadorIdPerfil(Long idPerfil);
 
-    /** Cantidad de seguidores de un perfil de creador. */
+    /**
+     * Cantidad de seguidores de un perfil de creador.
+     * @param idPerfil el identificador de perfil
+     * @return el valor numerico calculado
+     */
     long countByPerfilCreadorIdPerfil(Long idPerfil);
 
-    /** Perfiles de creador que sigue un usuario. */
+    /**
+     * Perfiles de creador que sigue un usuario.
+     * @param idUsuario el identificador de usuario
+     * @return la lista de Follower encontrados
+     */
     List<Follower> findByUsuarioSeguidorIdUsuario(Long idUsuario);
 }
 

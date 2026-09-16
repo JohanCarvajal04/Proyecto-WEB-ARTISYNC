@@ -30,41 +30,49 @@ public class AiCertificateRepositoryImpl implements AiCertificateRepositoryCusto
             String nombreEstado, String veredictoIa, BigDecimal puntajeConfianzaIa,
             LocalDateTime fechaAnalisis) implements VerificationQueueProjection {
 
+        /** @return el identificador del certificado */
         @Override
         public Long getIdCertificado() {
             return idCertificado;
         }
 
+        /** @return el identificador del usuario dueño del certificado */
         @Override
         public Long getIdUsuario() {
             return idUsuario;
         }
 
+        /** @return el nombre del usuario dueño del certificado */
         @Override
         public String getNombreUsuario() {
             return nombreUsuario;
         }
 
+        /** @return el tipo de documento analizado */
         @Override
         public String getTipoDocumento() {
             return tipoDocumento;
         }
 
+        /** @return el nombre del estado de verificación actual */
         @Override
         public String getNombreEstado() {
             return nombreEstado;
         }
 
+        /** @return el veredicto emitido por el análisis de IA */
         @Override
         public String getVeredictoIa() {
             return veredictoIa;
         }
 
+        /** @return el puntaje de confianza del análisis de IA */
         @Override
         public BigDecimal getPuntajeConfianzaIa() {
             return puntajeConfianzaIa;
         }
 
+        /** @return la fecha en que se realizó el análisis de IA */
         @Override
         public LocalDateTime getFechaAnalisis() {
             return fechaAnalisis;

@@ -18,7 +18,11 @@ import java.util.Optional;
 @Repository
 public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
 
-    /** La sala de chat de un pedido (relación 1:1), si existe. */
+    /**
+     * La sala de chat de un pedido (relación 1:1), si existe.
+     * @param idPedido el identificador de pedido
+     * @return un Optional con ChatRoom si existe, vacio en caso contrario
+     */
     Optional<ChatRoom> findByPedidoIdPedido(Long idPedido);
 }
 

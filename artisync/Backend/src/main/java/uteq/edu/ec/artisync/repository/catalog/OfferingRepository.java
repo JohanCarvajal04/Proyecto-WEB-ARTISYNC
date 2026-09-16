@@ -37,10 +37,19 @@ public interface OfferingRepository extends JpaRepository<Offering, Long>, JpaSp
     @EntityGraph(attributePaths = {"perfil", "perfil.usuario"})
     Page<Offering> findAll(Specification<Offering> spec, Pageable pageable);
 
-    /** Servicios publicados por un perfil de creador. */
+    /**
+     * Servicios publicados por un perfil de creador.
+     * @param idPerfil el identificador de perfil
+     * @return la lista de Offering encontrados
+     */
     List<Offering> findByPerfilIdPerfil(Long idPerfil);
 
-    /** Servicios de un perfil de creador en un estado de publicación dado. */
+    /**
+     * Servicios de un perfil de creador en un estado de publicación dado.
+     * @param idPerfil el identificador de perfil
+     * @param estadoPublicacion el estado de publicacion
+     * @return la lista de Offering encontrados
+     */
     List<Offering> findByPerfilIdPerfilAndEstadoPublicacion(Long idPerfil, String estadoPublicacion);
 }
 

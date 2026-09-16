@@ -19,10 +19,20 @@ import java.time.LocalDateTime;
 @Repository
 public interface ViolationRepository extends JpaRepository<MessageViolation, Long>, ViolationRepositoryCustom {
 
-    /** Cantidad de infracciones de un usuario desde una fecha (usado para la ventana de 30 días de REQ-F-015). */
+    /**
+     * Cantidad de infracciones de un usuario desde una fecha (usado para la ventana de 30 días de REQ-F-015).
+     * @param idUsuario el identificador de usuario
+     * @param fecha la fecha
+     * @return el valor numerico calculado
+     */
     long countByUsuarioIdUsuarioAndFechaInfraccionAfter(Long idUsuario, LocalDateTime fecha);
 
-    /** Infracciones de mensajería de un usuario, paginadas. */
+    /**
+     * Infracciones de mensajería de un usuario, paginadas.
+     * @param idUsuario el identificador de usuario
+     * @param pageable la pageable
+     * @return la pagina de MessageViolation encontrados
+     */
     Page<MessageViolation> findByUsuarioIdUsuario(Long idUsuario, Pageable pageable);
 }
 

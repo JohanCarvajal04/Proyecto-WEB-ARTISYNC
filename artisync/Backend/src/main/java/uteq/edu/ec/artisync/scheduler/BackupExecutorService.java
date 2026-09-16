@@ -26,14 +26,22 @@ public class BackupExecutorService {
     private final BackupScheduleRepository programacionRepository;
     private final AsyncBackupJobService trabajoAsincronoServicio;
 
-    /** Disparo manual (admin autenticado, sin programación asociada). */
+    /**
+     * Disparo manual (admin autenticado, sin programación asociada).
+     * @param tipo el tipo
+     * @param correoSolicitante el correo solicitante
+     * @return el resultado de la operacion, de tipo {@code Backup}
+     */
     public Backup startManual(BackupType tipo, String correoSolicitante) {
         Backup respaldo = createBackup(tipo, BackupOrigin.MANUAL, null, correoSolicitante);
         trabajoAsincronoServicio.execute(respaldo.getIdRespaldo());
         return respaldo;
     }
 
-    /** Disparo desde BackupScheduler. */
+    /**
+     * Disparo desde BackupScheduler.
+     * @param programacion el programacion
+     */
     public void startFromSchedule(BackupSchedule programacion) {
         Backup respaldo = createBackup(
                 programacion.getTipoRespaldo(), BackupOrigin.PROGRAMADO, programacion, "sistema:scheduler");

@@ -33,6 +33,7 @@ public class SessionRevocationService {
      * y el último paso se borraba de la base sin haberse revocado nunca en
      * Redis (lectura no repetible: A6 del plan). La escritura en Redis
      * permanece aquí porque no participa de la transacción de PostgreSQL.
+     * @param idUsuario el identificador de usuario
      */
     @Transactional
     public void revokeUserSessions(Long idUsuario) {
@@ -52,6 +53,8 @@ public class SessionRevocationService {
      * UserServiceImpl.deleteOwnAccount: sin el FOR UPDATE, dos administradores
      * concurrentes sobre el mismo usuario podian pisarse la decision de si
      * correspondia revocar sesiones (actualizacion perdida, A6 del plan).
+     * @param idUsuario el identificador de usuario
+     * @param estado el estado
      */
     @Transactional
     public void changeAccountStatus(Long idUsuario, boolean estado) {

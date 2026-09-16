@@ -18,28 +18,52 @@ import java.util.Optional;
 @Repository
 public interface WorkflowRepository extends JpaRepository<Workflow, Long> {
 
-    /** Flujos de trabajo definidos por un creador. */
+    /**
+     * Flujos de trabajo definidos por un creador.
+     * @param idUsuario el identificador de usuario
+     * @return la lista de Workflow encontrados
+     */
     List<Workflow> findByCreadorIdUsuario(Long idUsuario);
 
-    /** Para quien tiene FLUJO_MODERAR: todos los flujos, de cualquier creador. */
+    /**
+     * Para quien tiene FLUJO_MODERAR: todos los flujos, de cualquier creador.
+     * @return la lista de Workflow encontrados
+     */
     List<Workflow> findAllByOrderByIdFlujoAsc();
 
-    /** Un flujo puntual, solo si pertenece a ese creador (evita editar el flujo de otro). */
+    /**
+     * Un flujo puntual, solo si pertenece a ese creador (evita editar el flujo de otro).
+     * @param idFlujo el identificador de flujo
+     * @param idUsuario el identificador de usuario
+     * @return un Optional con Workflow si existe, vacio en caso contrario
+     */
     Optional<Workflow> findByIdFlujoAndCreadorIdUsuario(Long idFlujo, Long idUsuario);
 
-    /** @return {@code true} si ese creador ya tiene un flujo con ese nombre */
+    /**
+     * @param nombreFlujo el nombre de flujo
+     * @param idUsuario el identificador de usuario
+     * @return {@code true} si ese creador ya tiene un flujo con ese nombre
+     */
     boolean existsByNombreFlujoAndCreadorIdUsuario(String nombreFlujo, Long idUsuario);
 
-    /** @return {@code true} si ese creador ya tiene OTRO flujo (distinto id) con ese nombre; usado al renombrar */
+    /**
+     * @param nombreFlujo el nombre de flujo
+     * @param idUsuario el identificador de usuario
+     * @param idFlujo el identificador de flujo
+     * @return {@code true} si ese creador ya tiene OTRO flujo (distinto id) con ese nombre; usado al renombrar
+     */
     boolean existsByNombreFlujoAndCreadorIdUsuarioAndIdFlujoNot(String nombreFlujo, Long idUsuario, Long idFlujo);
 
     /**
      * Flujo de menor id para un creador.
+     * @param idUsuario el identificador de usuario
+     * @return un Optional con Workflow si existe, vacio en caso contrario
      */
     Optional<Workflow> findFirstByCreadorIdUsuarioOrderByIdFlujoAsc(Long idUsuario);
 
     /**
      * Flujo de menor id. Sirve de respaldo.
+     * @return un Optional con Workflow si existe, vacio en caso contrario
      */
     Optional<Workflow> findFirstByOrderByIdFlujoAsc();
 }

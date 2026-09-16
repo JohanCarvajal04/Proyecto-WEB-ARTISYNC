@@ -21,7 +21,11 @@ import java.util.List;
 @Repository
 public interface PaymentTransactionRepository extends JpaRepository<PaymentTransaction, Long>, PaymentTransactionRepositoryCustom {
 
-    /** Transacciones de un pago de garantía, más recientes primero. */
+    /**
+     * Transacciones de un pago de garantía, más recientes primero.
+     * @param idPago el identificador de pago
+     * @return la lista de PaymentTransaction encontrados
+     */
     List<PaymentTransaction> findByPagoIdPagoOrderByFechaEjecucionDesc(Long idPago);
 
     /**
@@ -30,6 +34,8 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
      * pedidos. Es la mitad "ingresos" del cálculo de saldo disponible para
      * retiro; la otra mitad (lo ya solicitado) vive en
      * WithdrawalRequestRepository.sumMontosEnCursoPorCreador.
+     * @param idUsuarioCreador el identificador de usuario creador
+     * @return el valor numerico calculado
      */
     @Query("SELECT COALESCE(SUM(t.monto), 0) FROM PaymentTransaction t WHERE t.tipoTransaccion = 'Egreso' AND t.pago.contrato.pedido.servicio.perfil.usuario.idUsuario = :idUsuarioCreador")
     BigDecimal sumEgresosPorCreador(@Param("idUsuarioCreador") Long idUsuarioCreador);

@@ -18,16 +18,34 @@ import java.util.List;
 @Repository
 public interface RaffleRepository extends JpaRepository<Raffle, Long>, RaffleRepositoryCustom {
 
-    /** Ya existía — usado internamente. Mantenido por compatibilidad. */
+    /**
+     * Ya existía — usado internamente. Mantenido por compatibilidad.
+     * @param fecha la fecha
+     * @param estadoSorteo el estado de sorteo
+     * @return la lista de Raffle encontrados
+     */
     List<Raffle> findByFechaCierreLessThanEqualAndEstadoSorteo(LocalDateTime fecha, String estadoSorteo);
 
-    /** Usado por el Scheduler para obtener sorteos "Activos" cuya fecha de cierre ya pasó. */
+    /**
+     * Usado por el Scheduler para obtener sorteos "Activos" cuya fecha de cierre ya pasó.
+     * @param estadoSorteo el estado de sorteo
+     * @param ahora el ahora
+     * @return la lista de Raffle encontrados
+     */
     List<Raffle> findByEstadoSorteoAndFechaCierreBefore(String estadoSorteo, LocalDateTime ahora);
 
-    /** Sorteos públicos de un creador específico. */
+    /**
+     * Sorteos públicos de un creador específico.
+     * @param idPerfil el identificador de perfil
+     * @return la lista de Raffle encontrados
+     */
     List<Raffle> findByPerfilCreadorIdPerfil(Long idPerfil);
 
-    /** Todos los sorteos con estado "Activo" (listado público). */
+    /**
+     * Todos los sorteos con estado "Activo" (listado público).
+     * @param estadoSorteo el estado de sorteo
+     * @return la lista de Raffle encontrados
+     */
     List<Raffle> findByEstadoSorteo(String estadoSorteo);
 }
 

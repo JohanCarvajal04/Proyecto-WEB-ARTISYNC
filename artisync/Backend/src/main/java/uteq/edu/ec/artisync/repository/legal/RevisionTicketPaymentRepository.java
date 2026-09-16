@@ -22,13 +22,25 @@ import java.util.Optional;
 @Repository
 public interface RevisionTicketPaymentRepository extends JpaRepository<RevisionTicketPayment, Long> {
 
-    /** El pago asociado a un ticket de revisión (relación 1:1), si existe. */
+    /**
+     * El pago asociado a un ticket de revisión (relación 1:1), si existe.
+     * @param idTicket el identificador de ticket
+     * @return un Optional con RevisionTicketPayment si existe, vacio en caso contrario
+     */
     Optional<RevisionTicketPayment> findByTicketIdTicket(Long idTicket);
 
-    /** El pago por el id de orden de PayPal, usado por el webhook. */
+    /**
+     * El pago por el id de orden de PayPal, usado por el webhook.
+     * @param idOrdenPaypal el identificador de orden paypal
+     * @return un Optional con RevisionTicketPayment si existe, vacio en caso contrario
+     */
     Optional<RevisionTicketPayment> findByIdOrdenPaypal(String idOrdenPaypal);
 
-    /** Con bloqueo pesimista: serializa la carrera entre el webhook de PayPal y RevisionTicketExpirationService. */
+    /**
+     * Con bloqueo pesimista: serializa la carrera entre el webhook de PayPal y RevisionTicketExpirationService.
+     * @param idTicket el identificador de ticket
+     * @return un Optional con RevisionTicketPayment si existe, vacio en caso contrario
+     */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM RevisionTicketPayment p WHERE p.ticket.idTicket = :idTicket")
     Optional<RevisionTicketPayment> findByTicketIdTicketParaActualizar(@Param("idTicket") Long idTicket);

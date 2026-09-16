@@ -20,6 +20,12 @@ public interface ContractRepositoryCustom {
      * Proyección para el reporte de contratos (service/legal/impl/ContractReportServiceImpl).
      * "Firmado" se deriva de que el hash de firma no sea nulo — igual criterio
      * que ContratoVistaComponent.yaFirme en el frontend.
+     * @param desde el desde
+     * @param hasta el hasta
+     * @param idPerfilCreador el identificador de perfil creador
+     * @param soloFirmados el solo firmados
+     * @param pageable la pageable
+     * @return la pagina de ContractReportRow encontrados
      */
     Page<ContractReportRow> findForReport(LocalDateTime desde, LocalDateTime hasta,
                                                  Long idPerfilCreador, Boolean soloFirmados,

@@ -53,6 +53,8 @@ public class UserMapper {
      * (findByUsuarioIdUsuarioIn de roles y de 2FA), en vez de invocar
      * toUserResponse() por cada fila -- eso disparaba dos consultas por
      * usuario (N+1): con una pagina de 20 usuarios, ~40 consultas en vez de 2.
+     * @param usuarios los usuarios
+     * @return la lista de UserResponse encontrados
      */
     public List<UserResponse> toUserResponseList(List<User> usuarios) {
         if (usuarios.isEmpty()) {

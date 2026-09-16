@@ -51,7 +51,12 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
         log.info("Offering de IA NVIDIA NIM inicializado [modelo={}]", config.getModel());
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param imagenBytes el imagen bytes
+     * @param mimeType el mime type
+     * @return el resultado de la operacion, de tipo {@code AiVerificationResponse}
+     */
     @Override
     public AiVerificationResponse verifyIdentity(byte[] imagenBytes, String mimeType) {
         String prompt = loadPrompt("prompt_verificacion_identidad.md");
@@ -59,7 +64,12 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
         return parseStrictVerification(respuesta, true);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param imagenBytes el imagen bytes
+     * @param mimeType el mime type
+     * @return el resultado de la operacion, de tipo {@code AiVerificationResponse}
+     */
     @Override
     public AiVerificationResponse analyzeCertificate(byte[] imagenBytes, String mimeType) {
         String prompt = loadPrompt("prompt_verificacion_certificado.md");
@@ -71,6 +81,8 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
      * {@inheritDoc}
      * Implementación NVIDIA NIM: ante cualquier error de IA se degrada a
      * "apropiado" en vez de bloquear el mensaje (fail-open).
+     * @param textoMensaje el texto mensaje
+     * @return el resultado de la operacion, de tipo {@code IaModeracionResponse}
      */
     @Override
     public IaModeracionResponse moderarContenido(String textoMensaje) {
@@ -91,7 +103,13 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param titulo el titulo
+     * @param descripcion el descripcion
+     * @param categoriasDisponibles el categorias disponibles
+     * @return el resultado de la operacion, de tipo {@code AiClassificationResponse}
+     */
     @Override
     public AiClassificationResponse classifyOffering(String titulo, String descripcion, List<String> categoriasDisponibles) {
         String categorias = String.join(", ", categoriasDisponibles);
@@ -115,7 +133,13 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param categoria el categoria
+     * @param titulo el titulo
+     * @param descripcion el descripcion
+     * @return la lista de String encontrados
+     */
     @Override
     public List<String> sugerirPreguntasBriefing(String categoria, String titulo, String descripcion) {
         String prompt = loadPrompt("prompt_sugerencia_briefing.md", sanitizeForPrompt(categoria),
@@ -132,7 +156,12 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param textoResena el texto resena
+     * @param estrellas los estrellas
+     * @return el resultado de la operacion, de tipo {@code AiReviewResponse}
+     */
     @Override
     public AiReviewResponse analyzeReview(String textoResena, int estrellas) {
         String prompt = loadPrompt("prompt_analisis_resena.md", estrellas, sanitizeForPrompt(textoResena));

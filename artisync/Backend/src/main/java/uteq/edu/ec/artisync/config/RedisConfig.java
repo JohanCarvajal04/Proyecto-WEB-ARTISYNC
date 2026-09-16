@@ -45,6 +45,8 @@ public class RedisConfig {
      * ADR-004: caché del catálogo con TTL corto configurable externamente (sin
      * recompilar el backend), habilita el escenario "frío vs caliente" de las
      * mediciones de rendimiento (Bloque C.1).
+     * @param connectionFactory el connection factory
+     * @return el resultado de la operacion, de tipo {@code RedisCacheManager}
      */
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {

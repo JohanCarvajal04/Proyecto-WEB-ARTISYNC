@@ -90,6 +90,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      * real por WebSocket (solo se detecta con un cliente STOMP real — las
      * pruebas unitarias que invocan el controlador directamente en Java no lo
      * ejercitan).
+     * @param argumentResolvers el argument resolvers
      */
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {

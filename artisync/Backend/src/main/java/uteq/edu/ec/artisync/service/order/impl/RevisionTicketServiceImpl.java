@@ -37,7 +37,13 @@ public class RevisionTicketServiceImpl implements IRevisionTicketService {
     private final ContractRepository contratoRepository;
     private final IRevisionTicketPaymentService pagoTicketRevisionServicio;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPedido el identificador de pedido
+     * @param idCliente el identificador de cliente
+     * @param peticion el peticion
+     * @return el resultado de la operacion, de tipo {@code RevisionTicketResponse}
+     */
     @Override
     @Transactional
     @Auditable(accion = "TICKET_CREAR", modulo = AuditModule.PEDIDOS,
@@ -91,7 +97,12 @@ public class RevisionTicketServiceImpl implements IRevisionTicketService {
         return mapToRespuesta(ticket);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPedido el identificador de pedido
+     * @param idUsuarioSolicitante el identificador de usuario solicitante
+     * @return la lista de RevisionTicketResponse encontrados
+     */
     @Override
     @Transactional(readOnly = true)
     public List<RevisionTicketResponse> listTicketsByOrder(Long idPedido, Long idUsuarioSolicitante) {
@@ -106,7 +117,13 @@ public class RevisionTicketServiceImpl implements IRevisionTicketService {
                 .collect(Collectors.toList());
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idTicket el identificador de ticket
+     * @param idCreador el identificador de creador
+     * @param nuevoEstado el nuevo estado
+     * @return el resultado de la operacion, de tipo {@code RevisionTicketResponse}
+     */
     @Override
     @Transactional
     @Auditable(accion = "TICKET_CAMBIAR_ESTADO", modulo = AuditModule.PEDIDOS,

@@ -18,7 +18,11 @@ import java.util.Optional;
 @Repository
 public interface CreatorPaymentDetailsRepository extends JpaRepository<CreatorPaymentDetails, Long> {
 
-    /** Datos de pago (retiro) de un creador, si los ha configurado. */
+    /**
+     * Datos de pago (retiro) de un creador, si los ha configurado.
+     * @param idUsuario el identificador de usuario
+     * @return un Optional con CreatorPaymentDetails si existe, vacio en caso contrario
+     */
     Optional<CreatorPaymentDetails> findByUsuarioIdUsuario(Long idUsuario);
 }
 

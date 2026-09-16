@@ -23,10 +23,18 @@ import java.util.Optional;
 @Repository
 public interface RevisionTicketRepository extends JpaRepository<RevisionTicket, Long> {
 
-    /** Tickets de revisión de un pedido, más recientes primero. */
+    /**
+     * Tickets de revisión de un pedido, más recientes primero.
+     * @param idPedido el identificador de pedido
+     * @return la lista de RevisionTicket encontrados
+     */
     List<RevisionTicket> findByPedidoIdPedidoOrderByIdTicketDesc(Long idPedido);
 
-    /** Cantidad de tickets de revisión de un pedido. */
+    /**
+     * Cantidad de tickets de revisión de un pedido.
+     * @param idPedido el identificador de pedido
+     * @return el valor numerico calculado
+     */
     long countByPedidoIdPedido(Long idPedido);
 
     /**
@@ -35,13 +43,19 @@ public interface RevisionTicketRepository extends JpaRepository<RevisionTicket, 
      * tiene nada que pagar y no debe auto-rechazarse (costoAdicionalGenerado = 0
      * los excluye). LEFT JOIN con ON explícito: RevisionTicketPayment no tiene una
      * relación mapeada de vuelta a RevisionTicket.
+     * @param limite el limite
+     * @return la lista de RevisionTicket encontrados
      */
     @Query("SELECT t FROM RevisionTicket t LEFT JOIN RevisionTicketPayment p ON p.ticket = t " +
             "WHERE t.estadoTicket = 'Abierto' AND t.costoAdicionalGenerado > 0 " +
             "AND t.fechaCreacion < :limite AND (p IS NULL OR p.estadoPago <> 'Pagado')")
     List<RevisionTicket> findVencidosSinPagoConfirmado(@Param("limite") LocalDateTime limite);
 
-    /** Con bloqueo pesimista: serializa la carrera entre RevisionTicketExpirationService y el webhook/creador. */
+    /**
+     * Con bloqueo pesimista: serializa la carrera entre RevisionTicketExpirationService y el webhook/creador.
+     * @param idTicket el identificador de ticket
+     * @return un Optional con RevisionTicket si existe, vacio en caso contrario
+     */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM RevisionTicket t WHERE t.idTicket = :idTicket")
     Optional<RevisionTicket> findByIdParaActualizar(@Param("idTicket") Long idTicket);

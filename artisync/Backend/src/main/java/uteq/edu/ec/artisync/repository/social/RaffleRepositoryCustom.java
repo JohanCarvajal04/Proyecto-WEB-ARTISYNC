@@ -9,6 +9,8 @@ public interface RaffleRepositoryCustom {
     /**
      * REQ-F-023 - fn_seleccionar_ganadores_sorteo: sortea ganadores y actualiza
      * participantes+sorteo en bloque. Devuelve JSONB serializado como texto.
+     * @param idSorteo el identificador de sorteo
+     * @return el resultado en forma de texto
      */
     String seleccionarGanadores(Long idSorteo);
 }

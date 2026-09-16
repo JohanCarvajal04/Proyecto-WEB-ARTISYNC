@@ -16,7 +16,12 @@ import java.util.Optional;
  */
 public interface OrderTermsProposalRepository extends JpaRepository<OrderTermsProposal, Long> {
 
-    /** Propuesta de términos de un pedido en un estado dado (p. ej. la pendiente de respuesta), si existe. */
+    /**
+     * Propuesta de términos de un pedido en un estado dado (p. ej. la pendiente de respuesta), si existe.
+     * @param idPedido el identificador de pedido
+     * @param estado el estado
+     * @return un Optional con OrderTermsProposal si existe, vacio en caso contrario
+     */
     Optional<OrderTermsProposal> findByPedidoIdPedidoAndEstado(Long idPedido, String estado);
 }
 

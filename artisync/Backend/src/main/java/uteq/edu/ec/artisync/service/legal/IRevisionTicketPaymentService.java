@@ -21,6 +21,7 @@ public interface IRevisionTicketPaymentService {
      * ninguna orden creada. Lectura pura: no llama a PayPal.
      *
      * @param idTicket id del ticket
+     * @return el resultado en forma de texto
      */
     String getPendingPaymentUrl(Long idTicket);
 

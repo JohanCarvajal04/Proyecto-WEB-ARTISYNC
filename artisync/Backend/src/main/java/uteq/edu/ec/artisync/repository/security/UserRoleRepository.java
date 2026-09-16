@@ -19,7 +19,11 @@ import java.util.List;
 @Repository
 public interface UserRoleRepository extends JpaRepository<UserRole, Long>, UserRoleRepositoryCustom {
 
-    /** Roles asignados a un usuario. */
+    /**
+     * Roles asignados a un usuario.
+     * @param idUsuario el identificador de usuario
+     * @return la lista de UserRole encontrados
+     */
     List<UserRole> findByUsuarioIdUsuario(Long idUsuario);
 
     /**
@@ -28,13 +32,22 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Long>, UserR
      * usuarios de {@code idsUsuario}. La usa UserMapper.toUserResponseList
      * para eliminar el N+1 de invocar findByUsuarioIdUsuario por cada fila de
      * una pagina de administracion de usuarios.
+     * @param idsUsuario el ids usuario
+     * @return la lista de UserRole encontrados
      */
     List<UserRole> findByUsuarioIdUsuarioIn(List<Long> idsUsuario);
 
-    /** Roles asignados a un usuario, identificado por su correo. */
+    /**
+     * Roles asignados a un usuario, identificado por su correo.
+     * @param correo el correo
+     * @return la lista de UserRole encontrados
+     */
     List<UserRole> findByUsuarioCorreo(String correo);
 
-    /** @return {@code true} si algún usuario tiene asignado ese rol (bloquea su eliminación) */
+    /**
+     * @param idRol el identificador de rol
+     * @return {@code true} si algún usuario tiene asignado ese rol (bloquea su eliminación)
+     */
     boolean existsByRolIdRol(Long idRol);
 
     /**
@@ -42,6 +55,8 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Long>, UserR
      * permisos de un rol para revocar sus sesiones: los permisos viajan en el
      * claim `permisos` del JWT, así que sin revocar seguirían operando con los
      * permisos antiguos hasta que el token caducara.
+     * @param nombreRol el nombre de rol
+     * @return la lista de Long encontrados
      */
     @Query("SELECT ur.usuario.idUsuario FROM UserRole ur WHERE UPPER(ur.rol.nombreRol) = UPPER(:nombreRol)")
     List<Long> findIdsUsuarioByNombreRol(@Param("nombreRol") String nombreRol);

@@ -216,6 +216,9 @@ public class JwtService {
      * Valida un access token de forma completa: firma, issuer, audience, tolerancia
      * de reloj (todo a cargo del {@link #parser}), tipo (allowlist: solo "access"),
      * titular y que la cuenta siga habilitada y no bloqueada (§2.4 — OBS-AUTO-05).
+     * @param token el token
+     * @param userDetails el user details
+     * @return true si corresponde, false en caso contrario
      */
     public boolean isAccessTokenValid(String token, UserDetails userDetails) {
         try {

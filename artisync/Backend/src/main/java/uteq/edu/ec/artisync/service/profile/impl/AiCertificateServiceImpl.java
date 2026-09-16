@@ -27,7 +27,11 @@ public class AiCertificateServiceImpl implements IAiCertificateService {
     private final UserRepository usuarioRepository;
     private final VerificationStatusRepository estadoRepository;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param peticion el peticion
+     * @return el resultado de la operacion, de tipo {@code AiCertificateResponse}
+     */
     @Override
     @Transactional
     @Auditable(accion = "CERTIFICADO_EMITIR", modulo = AuditModule.PORTAFOLIO,
@@ -51,7 +55,11 @@ public class AiCertificateServiceImpl implements IAiCertificateService {
         return mapToResponse(guardado);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idCertificado el identificador de certificado
+     * @return el resultado de la operacion, de tipo {@code AiCertificateResponse}
+     */
     @Override
     @Transactional(readOnly = true)
     public AiCertificateResponse getCertificateById(Long idCertificado) {
@@ -60,7 +68,11 @@ public class AiCertificateServiceImpl implements IAiCertificateService {
         return mapToResponse(certificado);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idUsuario el identificador de usuario
+     * @return la lista de AiCertificateResponse encontrados
+     */
     @Override
     @Transactional(readOnly = true)
     public List<AiCertificateResponse> listCertificatesByUser(Long idUsuario) {
@@ -69,7 +81,10 @@ public class AiCertificateServiceImpl implements IAiCertificateService {
                 .collect(Collectors.toList());
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @return la lista de AiCertificateResponse encontrados
+     */
     @Override
     @Transactional(readOnly = true)
     public List<AiCertificateResponse> listAllCertificates() {
@@ -78,7 +93,10 @@ public class AiCertificateServiceImpl implements IAiCertificateService {
                 .collect(Collectors.toList());
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idCertificado el identificador de certificado
+     */
     @Override
     @Transactional
     @Auditable(accion = "CERTIFICADO_ELIMINAR", modulo = AuditModule.PORTAFOLIO,

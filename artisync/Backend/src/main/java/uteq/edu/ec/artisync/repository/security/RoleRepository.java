@@ -17,7 +17,11 @@ import java.util.Optional;
 @Repository
 public interface RoleRepository extends JpaRepository<Role, Long>, RoleRepositoryCustom {
 
-    /** Rol por nombre exacto. */
+    /**
+     * Rol por nombre exacto.
+     * @param nombreRol el nombre de rol
+     * @return un Optional con Role si existe, vacio en caso contrario
+     */
     Optional<Role> findByNombreRol(String nombreRol);
 }
 

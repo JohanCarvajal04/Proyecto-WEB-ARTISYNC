@@ -50,7 +50,11 @@ public class PdfGenerator implements ReportGenerator {
         return ReportFormat.PDF;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param modelo el modelo
+     * @return el resultado de la operacion, de tipo {@code GeneratedDocument}
+     */
     @Override
     public <T> GeneratedDocument generate(ReportModel<T> modelo) {
         Context contexto = new Context();

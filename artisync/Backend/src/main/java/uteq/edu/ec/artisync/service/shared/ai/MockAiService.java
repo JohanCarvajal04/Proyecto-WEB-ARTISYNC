@@ -22,7 +22,12 @@ public class MockAiService extends AbstractAiService implements AiService {
         log.info("Offering de IA MOCK inicializado — no se realizarán llamadas reales a APIs de IA");
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param imagenBytes el imagen bytes
+     * @param mimeType el mime type
+     * @return el resultado de la operacion, de tipo {@code AiVerificationResponse}
+     */
     @Override
     public AiVerificationResponse verifyIdentity(byte[] imagenBytes, String mimeType) {
         return AiVerificationResponse.builder()
@@ -36,7 +41,12 @@ public class MockAiService extends AbstractAiService implements AiService {
                 .build();
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param imagenBytes el imagen bytes
+     * @param mimeType el mime type
+     * @return el resultado de la operacion, de tipo {@code AiVerificationResponse}
+     */
     @Override
     public AiVerificationResponse analyzeCertificate(byte[] imagenBytes, String mimeType) {
         return AiVerificationResponse.builder()
@@ -50,7 +60,11 @@ public class MockAiService extends AbstractAiService implements AiService {
                 .build();
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param textoMensaje el texto mensaje
+     * @return el resultado de la operacion, de tipo {@code IaModeracionResponse}
+     */
     @Override
     public IaModeracionResponse moderarContenido(String textoMensaje) {
         return IaModeracionResponse.builder()
@@ -58,7 +72,13 @@ public class MockAiService extends AbstractAiService implements AiService {
                 .confianza(new BigDecimal("0.95")).build();
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param titulo el titulo
+     * @param descripcion el descripcion
+     * @param categoriasDisponibles el categorias disponibles
+     * @return el resultado de la operacion, de tipo {@code AiClassificationResponse}
+     */
     @Override
     public AiClassificationResponse classifyOffering(String titulo, String descripcion, List<String> categoriasDisponibles) {
         String categoria = categoriasDisponibles.isEmpty() ? "General" : categoriasDisponibles.get(0);
@@ -68,13 +88,24 @@ public class MockAiService extends AbstractAiService implements AiService {
                 .confianza(new BigDecimal("0.80")).build();
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param categoria el categoria
+     * @param titulo el titulo
+     * @param descripcion el descripcion
+     * @return la lista de String encontrados
+     */
     @Override
     public List<String> sugerirPreguntasBriefing(String categoria, String titulo, String descripcion) {
         return List.of("¿Cuál es el objetivo del proyecto?", "¿Tienes referencias visuales?");
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param textoResena el texto resena
+     * @param estrellas los estrellas
+     * @return el resultado de la operacion, de tipo {@code AiReviewResponse}
+     */
     @Override
     public AiReviewResponse analyzeReview(String textoResena, int estrellas) {
         return AiReviewResponse.builder()

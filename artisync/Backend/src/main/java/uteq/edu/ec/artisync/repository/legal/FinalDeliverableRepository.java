@@ -21,10 +21,17 @@ import java.util.Optional;
 @Repository
 public interface FinalDeliverableRepository extends JpaRepository<FinalDeliverable, Long> {
 
-    /** El entregable final de un pedido (relación 1:1), si existe. */
+    /**
+     * El entregable final de un pedido (relación 1:1), si existe.
+     * @param idPedido el identificador de pedido
+     * @return un Optional con FinalDeliverable si existe, vacio en caso contrario
+     */
     Optional<FinalDeliverable> findByPedidoIdPedido(Long idPedido);
 
-    /** @return {@code true} si el pedido ya tiene un entregable final subido */
+    /**
+     * @param idPedido el identificador de pedido
+     * @return {@code true} si el pedido ya tiene un entregable final subido
+     */
     boolean existsByPedidoIdPedido(Long idPedido);
 
     /**
@@ -34,6 +41,8 @@ public interface FinalDeliverableRepository extends JpaRepository<FinalDeliverab
      * llamadas concurrentes a aprobarEntrega sobre el mismo pedido: la
      * segunda transacción espera a que la primera confirme antes de leer
      * estaLiberado, evitando liberar el escrow dos veces.
+     * @param idPedido el identificador de pedido
+     * @return un Optional con FinalDeliverable si existe, vacio en caso contrario
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT e FROM FinalDeliverable e WHERE e.pedido.idPedido = :idPedido")

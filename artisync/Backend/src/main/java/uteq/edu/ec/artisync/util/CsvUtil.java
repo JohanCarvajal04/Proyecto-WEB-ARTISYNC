@@ -26,7 +26,11 @@ public final class CsvUtil {
      */
     private static final String CARACTERES_FORMULA = "=+-@\t\r";
 
-    /** Escapa caracteres especiales de CSV (comillas, comas, saltos de línea) y neutraliza inyección de fórmulas. */
+    /**
+     * Escapa caracteres especiales de CSV (comillas, comas, saltos de línea) y neutraliza inyección de fórmulas.
+     * @param valor el valor
+     * @return el resultado en forma de texto
+     */
     public static String escapeCsv(String valor) {
         if (valor == null) {
             return "";

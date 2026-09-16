@@ -40,6 +40,10 @@ public class AuthAttemptsService {
      * límite. En forgotPassword() se invoca de forma incondicional al inicio,
      * porque ahí no hay noción de "fallo": cada llamada implica el mismo
      * costo de abuso (email potencialmente enviado) exista o no la cuenta.
+     * @param ambito el ambito
+     * @param identificador el identificador
+     * @param limite el limite
+     * @param ventana el ventana
      */
     public void checkQuota(String ambito, String identificador, int limite, Duration ventana) {
         String clave = buildKey(ambito, identificador);

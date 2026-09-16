@@ -8,6 +8,10 @@ import java.util.List;
  */
 public interface UserSessionRepositoryCustom {
 
-    /** fn_revocar_sesiones_usuario: DELETE ... RETURNING atómico; borra y devuelve las sesiones revocadas en una sola sentencia. */
+    /**
+     * fn_revocar_sesiones_usuario: DELETE ... RETURNING atómico; borra y devuelve las sesiones revocadas en una sola sentencia.
+     * @param idUsuario el identificador de usuario
+     * @return la lista de RevokedSessionProjection encontrados
+     */
     List<RevokedSessionProjection> revocarSesionesUsuario(Long idUsuario);
 }

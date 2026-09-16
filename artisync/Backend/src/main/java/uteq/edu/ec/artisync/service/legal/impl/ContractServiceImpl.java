@@ -273,7 +273,12 @@ public class ContractServiceImpl implements IContractService {
                 .build();
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idContrato el identificador de contrato
+     * @param idUsuarioSolicitante el identificador de usuario solicitante
+     * @return el resultado de la operacion, de tipo {@code byte[]}
+     */
     @Override
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long idContrato, Long idUsuarioSolicitante) {

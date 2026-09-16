@@ -20,15 +20,25 @@ import java.util.Optional;
 @Repository
 public interface OfferingReviewRepository extends JpaRepository<OfferingReview, Long> {
 
-    /** Verifica si un pedido ya tiene reseña (constraint UNIQUE en BD). */
+    /**
+     * Verifica si un pedido ya tiene reseña (constraint UNIQUE en BD).
+     * @param idPedido el identificador de pedido
+     * @return true si ya existe, false en caso contrario
+     */
     boolean existsByPedidoIdPedido(Long idPedido);
 
-    /** Obtiene la reseña de un pedido (relación 1:1), si existe. */
+    /**
+     * Obtiene la reseña de un pedido (relación 1:1), si existe.
+     * @param idPedido el identificador de pedido
+     * @return un Optional con OfferingReview si existe, vacio en caso contrario
+     */
     Optional<OfferingReview> findByPedidoIdPedido(Long idPedido);
 
     /**
      * Lista las reseñas de todos los pedidos de un creador específico.
      * Se navega: resena → pedido → servicio → perfilCreador.
+     * @param idPerfil el identificador de perfil
+     * @return la lista de OfferingReview encontrados
      */
     @Query("SELECT r FROM OfferingReview r " +
            "JOIN r.pedido p " +
@@ -39,6 +49,8 @@ public interface OfferingReviewRepository extends JpaRepository<OfferingReview, 
 
     /**
      * Calcula el promedio de calificaciones de un creador.
+     * @param idPerfil el identificador de perfil
+     * @return el valor numerico calculado
      */
     @Query("SELECT AVG(r.calificacionEstrellas) FROM OfferingReview r " +
            "JOIN r.pedido p " +

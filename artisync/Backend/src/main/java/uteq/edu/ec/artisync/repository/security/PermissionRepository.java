@@ -19,10 +19,18 @@ import java.util.Optional;
 @Repository
 public interface PermissionRepository extends JpaRepository<Permission, Long> {
 
-    /** Permiso por nombre exacto. */
+    /**
+     * Permiso por nombre exacto.
+     * @param nombrePermiso el nombre de permiso
+     * @return un Optional con Permission si existe, vacio en caso contrario
+     */
     Optional<Permission> findByNombrePermiso(String nombrePermiso);
 
-    /** Permisos de un módulo de la aplicación. */
+    /**
+     * Permisos de un módulo de la aplicación.
+     * @param moduloAplicacion el modulo aplicacion
+     * @return la lista de Permission encontrados
+     */
     List<Permission> findByModuloAplicacion(String moduloAplicacion);
 }
 

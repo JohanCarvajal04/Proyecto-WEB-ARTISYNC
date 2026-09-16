@@ -17,7 +17,11 @@ import java.util.Optional;
  */
 @Repository
 public interface VerificationStatusRepository extends JpaRepository<VerificationStatus, Long> {
-    /** Estado de verificación maestro por nombre exacto. */
+    /**
+     * Estado de verificación maestro por nombre exacto.
+     * @param nombreEstado el nombre de estado
+     * @return un Optional con VerificationStatus si existe, vacio en caso contrario
+     */
     Optional<VerificationStatus> findByNombreEstado(String nombreEstado);
 }
 

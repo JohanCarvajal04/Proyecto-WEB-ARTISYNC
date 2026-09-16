@@ -18,7 +18,11 @@ import java.util.Optional;
 @Repository
 public interface PortfolioRepository extends JpaRepository<Portfolio, Long> {
 
-    /** El portafolio de un perfil de creador (relación 1:1), si existe. */
+    /**
+     * El portafolio de un perfil de creador (relación 1:1), si existe.
+     * @param idPerfil el identificador de perfil
+     * @return un Optional con Portfolio si existe, vacio en caso contrario
+     */
     Optional<Portfolio> findByPerfilIdPerfil(Long idPerfil);
 }
 

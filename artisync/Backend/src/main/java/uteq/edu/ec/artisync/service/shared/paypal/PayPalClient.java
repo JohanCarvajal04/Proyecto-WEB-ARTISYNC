@@ -78,6 +78,11 @@ public class PayPalClient {
      * principio que el `sender_batch_id` idempotente de los payouts en
      * WithdrawalRequestServiceImpl, aplicado aquí vía el mecanismo propio que
      * PayPal expone para checkout/orders y captures/refund.
+     * @param ruta la ruta
+     * @param metodo el metodo
+     * @param cuerpo el cuerpo
+     * @param idempotencyKey el idempotency key
+     * @return el resultado de la operacion, de tipo {@code JsonNode}
      */
     public JsonNode callPayPalIdempotent(String ruta, HttpMethod metodo, JsonNode cuerpo, String idempotencyKey) {
         return callPayPal(ruta, metodo, cuerpo, idempotencyKey);

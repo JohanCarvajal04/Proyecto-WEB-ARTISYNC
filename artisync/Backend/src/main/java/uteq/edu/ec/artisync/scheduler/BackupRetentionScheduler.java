@@ -71,6 +71,8 @@ public class BackupRetentionScheduler {
      * Reutilizado también por la eliminación manual del controlador
      * (BackupServiceImpl#eliminar): un admin tampoco puede borrar a mano
      * un FULL del que dependen incrementales vivos.
+     * @param respaldo el respaldo
+     * @return true si corresponde, false en caso contrario
      */
     public boolean isSafeToDelete(Backup respaldo) {
         if (respaldo.getTipoRespaldo() == BackupType.INCREMENTAL) {

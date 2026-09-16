@@ -69,6 +69,9 @@ public class AdminUserController {
      * @param formato formato del documento a generar (CSV, XLSX o PDF)
      * @param authentication autenticación del administrador que solicita la exportación
      * @return el documento generado con el listado de usuarios
+     * @param grafica el grafica
+     * @param page la page
+     * @param size el size
      */
     @Operation(summary = "Exportar el listado de usuarios en CSV, XLSX o PDF con gráficas y paginación opcionales")
     @GetMapping("/exportar")

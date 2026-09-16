@@ -18,10 +18,18 @@ import java.util.Optional;
 @Repository
 public interface TwoFactorAuthenticationRepository extends JpaRepository<TwoFactorAuthentication, Long>, TwoFactorAuthenticationRepositoryCustom {
 
-    /** Configuración 2FA de un usuario, si la tiene. */
+    /**
+     * Configuración 2FA de un usuario, si la tiene.
+     * @param idUsuario el identificador de usuario
+     * @return un Optional con TwoFactorAuthentication si existe, vacio en caso contrario
+     */
     Optional<TwoFactorAuthentication> findByUsuarioIdUsuario(Long idUsuario);
 
-    /** Configuración 2FA de un usuario, identificado por su correo. */
+    /**
+     * Configuración 2FA de un usuario, identificado por su correo.
+     * @param correo el correo
+     * @return un Optional con TwoFactorAuthentication si existe, vacio en caso contrario
+     */
     Optional<TwoFactorAuthentication> findByUsuarioCorreo(String correo);
 
     /**
@@ -30,6 +38,8 @@ public interface TwoFactorAuthenticationRepository extends JpaRepository<TwoFact
      * {@code idsUsuario}. La usa UserMapper.toUserResponseList para eliminar
      * el N+1 de invocar findByUsuarioIdUsuario por cada fila de una pagina de
      * administracion de usuarios.
+     * @param idsUsuario el ids usuario
+     * @return la lista de TwoFactorAuthentication encontrados
      */
     List<TwoFactorAuthentication> findByUsuarioIdUsuarioIn(List<Long> idsUsuario);
 }

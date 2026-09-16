@@ -54,6 +54,8 @@ public class IncrementalBackupExporter {
      * @param respaldo parametro requerido para la correcta ejecucion del procedimiento
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws IOException si ocurre un error de entrada/salida
+     * @throws SQLException si ocurre un error durante la operacion
      */
     public Path execute(Backup respaldo) throws IOException, SQLException {
         String nombreArchivo = "respaldo_incremental_" + LocalDateTime.now().format(MARCA_TIEMPO) + ".zip";
@@ -116,6 +118,7 @@ public class IncrementalBackupExporter {
          *
          * @param b parametro requerido para la correcta ejecucion del procedimiento
          * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+         * @throws IOException si ocurre un error de entrada/salida
          */
         public void write(int b) throws IOException {
             delegado.write(b);
@@ -129,6 +132,7 @@ public class IncrementalBackupExporter {
          * @param off parametro requerido para la correcta ejecucion del procedimiento
          * @param len parametro requerido para la correcta ejecucion del procedimiento
          * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+         * @throws IOException si ocurre un error de entrada/salida
          */
         public void write(byte[] b, int off, int len) throws IOException {
             delegado.write(b, off, len);
@@ -139,6 +143,7 @@ public class IncrementalBackupExporter {
          * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
          *
          * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+         * @throws IOException si ocurre un error de entrada/salida
          */
         public void flush() throws IOException {
             delegado.flush();

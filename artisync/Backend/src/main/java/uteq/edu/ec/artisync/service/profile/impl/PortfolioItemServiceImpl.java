@@ -37,7 +37,14 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
     private final PortfolioRepository portafolioRepository;
     private final DocumentStorage almacenamiento;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPortafolio el identificador de portafolio
+     * @param idUsuario el identificador de usuario
+     * @param peticion el peticion
+     * @param archivo el archivo
+     * @return el resultado de la operacion, de tipo {@code PortfolioItemResponse}
+     */
     @Override
     @Transactional
     public PortfolioItemResponse uploadItem(Long idPortafolio, Long idUsuario,
@@ -76,7 +83,12 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
         return map(item);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPortafolio el identificador de portafolio
+     * @param idUsuario el identificador de usuario
+     * @return la lista de PortfolioItemResponse encontrados
+     */
     @Override
     @Transactional(readOnly = true)
     public List<PortfolioItemResponse> listItems(Long idPortafolio, Long idUsuario) {
@@ -92,7 +104,12 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
                 .toList();
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idItem el identificador de item
+     * @param idUsuario el identificador de usuario
+     * @return el resultado de la operacion, de tipo {@code PortfolioItemResponse}
+     */
     @Override
     @Transactional(readOnly = true)
     public PortfolioItemResponse getItem(Long idItem, Long idUsuario) {
@@ -101,7 +118,12 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
         return map(item);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idItem el identificador de item
+     * @param idUsuario el identificador de usuario
+     * @return el resultado de la operacion, de tipo {@code DownloadedFile}
+     */
     @Override
     @Transactional(readOnly = true)
     public DownloadedFile downloadFile(Long idItem, Long idUsuario) {
@@ -115,7 +137,13 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
                 FileExtensions.contentTypeDe(referencia));
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idItem el identificador de item
+     * @param idUsuario el identificador de usuario
+     * @param peticion el peticion
+     * @return el resultado de la operacion, de tipo {@code PortfolioItemResponse}
+     */
     @Override
     @Transactional
     public PortfolioItemResponse updateItem(Long idItem, Long idUsuario, CreatePortfolioItemRequest peticion) {
@@ -130,7 +158,11 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
         return map(item);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idItem el identificador de item
+     * @param idUsuario el identificador de usuario
+     */
     @Override
     @Transactional
     public void deleteItem(Long idItem, Long idUsuario) {

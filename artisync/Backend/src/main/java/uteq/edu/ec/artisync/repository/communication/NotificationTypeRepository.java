@@ -18,7 +18,11 @@ import java.util.Optional;
 @Repository
 public interface NotificationTypeRepository extends JpaRepository<NotificationType, Long> {
 
-    /** Tipo de notificación por nombre de evento exacto (p. ej. "CUENTA_SUSPENDIDA"). */
+    /**
+     * Tipo de notificación por nombre de evento exacto (p. ej. "CUENTA_SUSPENDIDA").
+     * @param nombreEvento el nombre de evento
+     * @return un Optional con NotificationType si existe, vacio en caso contrario
+     */
     Optional<NotificationType> findByNombreEvento(String nombreEvento);
 }
 

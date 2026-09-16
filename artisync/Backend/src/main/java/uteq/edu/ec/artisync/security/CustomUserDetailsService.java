@@ -39,6 +39,9 @@ public class CustomUserDetailsService implements UserDetailsService {
      * entre si (mismo snapshot), algo que las consultas independientes no
      * garantizaban bajo READ COMMITTED si una sincronizacion de roles o
      * permisos se colaba justo entre ellas.
+     * @param correo el correo
+     * @return el resultado de la operacion, de tipo {@code UserDetails}
+     * @throws UsernameNotFoundException si ocurre un error durante la operacion
      */
     @Override
     @Transactional(readOnly = true)

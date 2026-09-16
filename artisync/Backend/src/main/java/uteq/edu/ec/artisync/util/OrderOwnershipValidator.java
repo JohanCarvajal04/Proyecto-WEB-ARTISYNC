@@ -21,6 +21,8 @@ public final class OrderOwnershipValidator {
      * Solo el cliente dueño del pedido, el creador del servicio pedido o un
      * ADMIN pueden acceder al recurso. Lanza AccessDeniedException (403) en
      * cualquier otro caso.
+     * @param pedido el pedido
+     * @param idUsuarioSolicitante el identificador de usuario solicitante
      */
     public static void validateOwnershipOrAdmin(Order pedido, Long idUsuarioSolicitante) {
         boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuarioSolicitante);

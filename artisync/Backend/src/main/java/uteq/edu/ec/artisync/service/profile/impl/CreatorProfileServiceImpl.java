@@ -28,7 +28,13 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
     private final UserRepository usuarioRepository;
     private final IVerificationService verificacionServicio;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param peticion el peticion
+     * @param correoSolicitante el correo solicitante
+     * @param esAdmin el es admin
+     * @return el resultado de la operacion, de tipo {@code ProfileResponse}
+     */
     @Override
     @Transactional
     public ProfileResponse createProfile(CreateProfileRequest peticion, String correoSolicitante, boolean esAdmin) {
@@ -57,7 +63,11 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
         return mapToResponse(guardado);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPerfil el identificador de perfil
+     * @return el resultado de la operacion, de tipo {@code ProfileResponse}
+     */
     @Override
     @Transactional(readOnly = true)
     public ProfileResponse getProfileById(Long idPerfil) {
@@ -67,7 +77,11 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
         return mapToResponse(perfil);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idUsuario el identificador de usuario
+     * @return el resultado de la operacion, de tipo {@code ProfileResponse}
+     */
     @Override
     @Transactional(readOnly = true)
     public ProfileResponse getProfileByUser(Long idUsuario) {
@@ -93,7 +107,10 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @return la lista de ProfileResponse encontrados
+     */
     @Override
     @Transactional(readOnly = true)
     public List<ProfileResponse> listProfiles() {
@@ -102,7 +119,10 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
                 .collect(Collectors.toList());
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @return la lista de ProfileResponse encontrados
+     */
     @Override
     @Transactional(readOnly = true)
     public List<ProfileResponse> listActiveProfiles() {
@@ -111,7 +131,14 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
                 .collect(Collectors.toList());
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPerfil el identificador de perfil
+     * @param peticion el peticion
+     * @param correoSolicitante el correo solicitante
+     * @param esAdmin el es admin
+     * @return el resultado de la operacion, de tipo {@code ProfileResponse}
+     */
     @Override
     @Transactional
     public ProfileResponse updateProfile(Long idPerfil, UpdateProfileRequest peticion,
@@ -143,7 +170,10 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
         return mapToResponse(actualizado);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPerfil el identificador de perfil
+     */
     @Override
     @Transactional
     public void deleteProfile(Long idPerfil) {

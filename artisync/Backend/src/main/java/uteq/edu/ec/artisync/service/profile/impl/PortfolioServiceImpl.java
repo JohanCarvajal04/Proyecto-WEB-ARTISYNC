@@ -37,7 +37,12 @@ public class PortfolioServiceImpl implements IPortfolioService {
     private final CreatorProfileRepository perfilRepository;
     private final StringRedisTemplate redisTemplate;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param peticion el peticion
+     * @param idUsuarioLogueado el identificador de usuario logueado
+     * @return el resultado de la operacion, de tipo {@code PortfolioResponse}
+     */
     @Override
     @Transactional
     public PortfolioResponse createPortfolio(CreatePortfolioRequest peticion, Long idUsuarioLogueado) {
@@ -69,7 +74,11 @@ public class PortfolioServiceImpl implements IPortfolioService {
         return mapToResponse(guardado);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPortafolio el identificador de portafolio
+     * @return el resultado de la operacion, de tipo {@code PortfolioResponse}
+     */
     @Override
     @Transactional(readOnly = true)
     public PortfolioResponse getPortfolioById(Long idPortafolio) {
@@ -79,7 +88,11 @@ public class PortfolioServiceImpl implements IPortfolioService {
         return mapToResponse(portafolio);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPerfil el identificador de perfil
+     * @return el resultado de la operacion, de tipo {@code PortfolioResponse}
+     */
     @Override
     @Transactional(readOnly = true)
     public PortfolioResponse getPortfolioByProfile(Long idPerfil) {
@@ -103,7 +116,10 @@ public class PortfolioServiceImpl implements IPortfolioService {
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @return la lista de PortfolioResponse encontrados
+     */
     @Override
     @Transactional(readOnly = true)
     public List<PortfolioResponse> listPortfolios() {
@@ -112,7 +128,13 @@ public class PortfolioServiceImpl implements IPortfolioService {
                 .collect(Collectors.toList());
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPortafolio el identificador de portafolio
+     * @param peticion el peticion
+     * @param idUsuarioLogueado el identificador de usuario logueado
+     * @return el resultado de la operacion, de tipo {@code PortfolioResponse}
+     */
     @Override
     @Transactional
     @Auditable(accion = "PORTAFOLIO_ACTUALIZAR", modulo = AuditModule.PORTAFOLIO,
@@ -138,7 +160,11 @@ public class PortfolioServiceImpl implements IPortfolioService {
         return mapToResponse(actualizado);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPortafolio el identificador de portafolio
+     * @param idUsuario el identificador de usuario
+     */
     @Override
     @Transactional
     public void incrementVisits(Long idPortafolio, Long idUsuario) {
@@ -172,7 +198,10 @@ public class PortfolioServiceImpl implements IPortfolioService {
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idPortafolio el identificador de portafolio
+     */
     @Override
     @Transactional
     @Auditable(accion = "PORTAFOLIO_ELIMINAR", modulo = AuditModule.PORTAFOLIO,

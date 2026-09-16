@@ -7,15 +7,30 @@ package uteq.edu.ec.artisync.repository.communication;
  */
 public interface FollowerRepositoryCustom {
 
-    /** @return {@code true} si la operación de seguir se realizó */
+    /**
+     * @param idUsuario el identificador de usuario
+     * @param idPerfil el identificador de perfil
+     * @return {@code true} si la operación de seguir se realizó
+     */
     Boolean ejecutarFnSeguirCreador(Long idUsuario, Long idPerfil);
 
-    /** @return {@code true} si la operación de dejar de seguir se realizó */
+    /**
+     * @param idUsuario el identificador de usuario
+     * @param idPerfil el identificador de perfil
+     * @return {@code true} si la operación de dejar de seguir se realizó
+     */
     Boolean ejecutarFnDejarDeSeguirCreador(Long idUsuario, Long idPerfil);
 
-    /** @return {@code true} si el usuario sigue a ese perfil de creador */
+    /**
+     * @param idUsuario el identificador de usuario
+     * @param idPerfil el identificador de perfil
+     * @return {@code true} si el usuario sigue a ese perfil de creador
+     */
     Boolean ejecutarFnEsSeguidor(Long idUsuario, Long idPerfil);
 
-    /** @return la cantidad de seguidores de ese perfil */
+    /**
+     * @param idPerfil el identificador de perfil
+     * @return la cantidad de seguidores de ese perfil
+     */
     Long ejecutarFnConteoSeguidores(Long idPerfil);
 }

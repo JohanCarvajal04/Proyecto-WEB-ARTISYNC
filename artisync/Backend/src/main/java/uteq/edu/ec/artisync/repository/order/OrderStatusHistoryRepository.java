@@ -20,10 +20,18 @@ import java.util.Optional;
 @Repository
 public interface OrderStatusHistoryRepository extends JpaRepository<OrderStatusHistory, Long> {
 
-    /** Historial completo de transiciones de un pedido, en el orden en que ocurrieron. */
+    /**
+     * Historial completo de transiciones de un pedido, en el orden en que ocurrieron.
+     * @param idPedido el identificador de pedido
+     * @return la lista de OrderStatusHistory encontrados
+     */
     List<OrderStatusHistory> findByPedidoIdPedidoOrderByFechaTransicionAsc(Long idPedido);
 
-    /** La transición más reciente de un pedido (su etapa/estado actual). */
+    /**
+     * La transición más reciente de un pedido (su etapa/estado actual).
+     * @param idPedido el identificador de pedido
+     * @return un Optional con OrderStatusHistory si existe, vacio en caso contrario
+     */
     Optional<OrderStatusHistory> findTopByPedidoIdPedidoOrderByFechaTransicionDesc(Long idPedido);
 
     /**
@@ -33,6 +41,9 @@ public interface OrderStatusHistoryRepository extends JpaRepository<OrderStatusH
      * OrderServiceImpl.obtenerOrdenActual no encuentra la etapa en la
      * configuración del flujo y el pedido "retrocede" a la primera etapa en
      * el siguiente avance (ver H-flujo-01).
+     * @param idFlujo el identificador de flujo
+     * @param idEtapa el identificador de etapa
+     * @return true o false segun el resultado de la operacion
      */
     @Query("""
             SELECT CASE WHEN COUNT(h) > 0 THEN true ELSE false END

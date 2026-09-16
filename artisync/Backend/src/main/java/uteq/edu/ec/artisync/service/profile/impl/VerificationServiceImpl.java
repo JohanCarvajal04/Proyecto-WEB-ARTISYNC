@@ -92,7 +92,13 @@ public class VerificationServiceImpl implements IVerificationService {
         return mapToResponse(guardado);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param nombreEstado el nombre de estado
+     * @param limite el limite
+     * @param offset el offset
+     * @return la lista de VerificationQueueResponse encontrados
+     */
     @Override
     @Transactional(readOnly = true)
     public List<VerificationQueueResponse> listQueue(String nombreEstado, int limite, int offset) {
@@ -110,7 +116,13 @@ public class VerificationServiceImpl implements IVerificationService {
                 .toList();
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idCertificado el identificador de certificado
+     * @param idUsuarioSolicitante el identificador de usuario solicitante
+     * @param esRevisor el es revisor
+     * @return el resultado de la operacion, de tipo {@code VerificationResponse}
+     */
     @Override
     @Transactional(readOnly = true)
     public VerificationResponse getById(Long idCertificado, Long idUsuarioSolicitante, boolean esRevisor) {
@@ -122,7 +134,11 @@ public class VerificationServiceImpl implements IVerificationService {
         return mapToResponse(certificado);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idCertificado el identificador de certificado
+     * @return el resultado de la operacion, de tipo {@code byte[]}
+     */
     @Override
     @Transactional(readOnly = true)
     public byte[] getDocument(Long idCertificado) {
@@ -130,7 +146,11 @@ public class VerificationServiceImpl implements IVerificationService {
         return almacenamiento.read(certificado.getUrlDocumentoS3());
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idCertificado el identificador de certificado
+     * @return el resultado de la operacion, de tipo {@code VerificationResponse}
+     */
     @Override
     @Transactional
     public VerificationResponse analyzeWithAi(Long idCertificado) {
@@ -157,7 +177,14 @@ public class VerificationServiceImpl implements IVerificationService {
         return mapToResponse(guardado);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idCertificado el identificador de certificado
+     * @param idModerador el identificador de moderador
+     * @param idNuevoEstado el identificador de nuevo estado
+     * @param notaModerador el nota moderador
+     * @return el resultado de la operacion, de tipo {@code VerificationResponse}
+     */
     @Override
     @Transactional
     @Auditable(accion = "VERIFICACION_DECIDIR", modulo = AuditModule.PORTAFOLIO,
@@ -252,7 +279,11 @@ public class VerificationServiceImpl implements IVerificationService {
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idUsuario el identificador de usuario
+     * @return true si corresponde, false en caso contrario
+     */
     @Override
     @Transactional(readOnly = true)
     public boolean isIdentityVerified(Long idUsuario) {
@@ -260,7 +291,11 @@ public class VerificationServiceImpl implements IVerificationService {
                 idUsuario, "IDENTIDAD", "APROBADO");
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * @param idUsuario el identificador de usuario
+     * @return el resultado de la operacion, de tipo {@code IdentityStatusResponse}
+     */
     @Override
     @Transactional(readOnly = true)
     public IdentityStatusResponse getIdentityStatus(Long idUsuario) {

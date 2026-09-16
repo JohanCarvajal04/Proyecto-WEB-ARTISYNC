@@ -35,6 +35,10 @@ public class WithdrawalPayoutReconciliationScheduler {
     @Value("${paypal.reconciliacion-retiros.umbral-minutos:30}")
     private int umbralMinutos;
 
+    /**
+     * Busca solicitudes de retiro en estado {@code Aprobado} cuya decisión lleva más del umbral
+     * configurado sin confirmarse en PayPal, y dispara su reconciliación.
+     */
     @Scheduled(fixedRateString = "${paypal.reconciliacion-retiros.intervalo-ms:900000}") // 15 min
     public void reconciliarRetirosAprobados() {
         LocalDateTime limite = LocalDateTime.now().minusMinutes(umbralMinutos);

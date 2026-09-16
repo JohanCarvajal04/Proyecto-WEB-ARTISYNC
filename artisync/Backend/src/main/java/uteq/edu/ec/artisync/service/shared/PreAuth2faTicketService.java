@@ -93,6 +93,8 @@ public class PreAuth2faTicketService {
      * resultado). Si supera {@link #INTENTOS_MAXIMOS}, el ticket se invalida de
      * inmediato y hay que rehacer el login. Vacío si el ticket no existe, ya
      * expiró, o se acaba de invalidar por exceso de intentos.
+     * @param ticketPlano el ticket plano
+     * @return un Optional con TicketData si existe, vacio en caso contrario
      */
     public Optional<TicketData> resolve(String ticketPlano) {
         if (ticketPlano == null || ticketPlano.isBlank()) {
@@ -125,6 +127,8 @@ public class PreAuth2faTicketService {
      * Consume (borra) el ticket tras un código correcto — uso único, sin carrera
      * de doble envío: {@code delete} devuelve true solo para quien de verdad
      * borró la clave, así que solo esa petición puede continuar y emitir tokens.
+     * @param ticketPlano el ticket plano
+     * @return true o false segun el resultado de la operacion
      */
     public boolean consume(String ticketPlano) {
         String clave = buildKey(ticketPlano);

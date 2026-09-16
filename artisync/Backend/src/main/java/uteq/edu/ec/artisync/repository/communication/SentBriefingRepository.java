@@ -18,10 +18,17 @@ import java.util.Optional;
 @Repository
 public interface SentBriefingRepository extends JpaRepository<SentBriefing, Long> {
 
-    /** El briefing enviado para un pedido (relación 1:1), si existe. */
+    /**
+     * El briefing enviado para un pedido (relación 1:1), si existe.
+     * @param idPedido el identificador de pedido
+     * @return un Optional con SentBriefing si existe, vacio en caso contrario
+     */
     Optional<SentBriefing> findByPedidoIdPedido(Long idPedido);
 
-    /** @return {@code true} si el pedido ya tiene un briefing enviado */
+    /**
+     * @param idPedido el identificador de pedido
+     * @return {@code true} si el pedido ya tiene un briefing enviado
+     */
     boolean existsByPedidoIdPedido(Long idPedido);
 }
 

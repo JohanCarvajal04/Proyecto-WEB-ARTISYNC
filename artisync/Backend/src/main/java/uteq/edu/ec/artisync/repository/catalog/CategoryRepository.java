@@ -19,19 +19,35 @@ import java.util.Optional;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
-    /** Categorías activas, para el catálogo público, ordenadas alfabéticamente. */
+    /**
+     * Categorías activas, para el catálogo público, ordenadas alfabéticamente.
+     * @return la lista de Category encontrados
+     */
     List<Category> findByEstadoActivaTrueOrderByNombreCategoriaAsc();
 
-    /** Todas las categorías (incluidas inactivas), para administración, ordenadas alfabéticamente. */
+    /**
+     * Todas las categorías (incluidas inactivas), para administración, ordenadas alfabéticamente.
+     * @return la lista de Category encontrados
+     */
     List<Category> findAllByOrderByNombreCategoriaAsc();
 
-    /** Categoría por nombre exacto, sin distinguir mayúsculas/minúsculas. */
+    /**
+     * Categoría por nombre exacto, sin distinguir mayúsculas/minúsculas.
+     * @param nombreCategoria el nombre de categoria
+     * @return un Optional con Category si existe, vacio en caso contrario
+     */
     Optional<Category> findByNombreCategoriaIgnoreCase(String nombreCategoria);
 
-    /** @return {@code true} si ya existe una categoría con ese nombre (sin distinguir mayúsculas/minúsculas) */
+    /**
+     * @param nombreCategoria el nombre de categoria
+     * @return {@code true} si ya existe una categoría con ese nombre (sin distinguir mayúsculas/minúsculas)
+     */
     boolean existsByNombreCategoriaIgnoreCase(String nombreCategoria);
 
-    /** Categorías creadas por un creador aún sin revisar por un moderador, más recientes primero. */
+    /**
+     * Categorías creadas por un creador aún sin revisar por un moderador, más recientes primero.
+     * @return la lista de Category encontrados
+     */
     List<Category> findByRevisadoFalseOrderByActualizadoEnDesc();
 }
 

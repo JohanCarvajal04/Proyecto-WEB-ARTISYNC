@@ -50,6 +50,8 @@ public class ReportChartGenerator {
 
     /**
      * Genera una gráfica moderna tipo Donut de usuarios agrupados por rol.
+     * @param datosRol los datos rol
+     * @return el resultado de la operacion, de tipo {@code byte[]}
      */
     public byte[] generateRoleChart(Map<String, Long> datosRol) {
         BufferedImage imagen = new BufferedImage(ANCHO, ALTO, BufferedImage.TYPE_INT_ARGB);
@@ -159,6 +161,8 @@ public class ReportChartGenerator {
 
     /**
      * Genera una gráfica moderna de barras horizontales de usuarios agrupados por país.
+     * @param datosPais los datos pais
+     * @return el resultado de la operacion, de tipo {@code byte[]}
      */
     public byte[] generateCountryChart(Map<String, Long> datosPais) {
         BufferedImage imagen = new BufferedImage(ANCHO, ALTO, BufferedImage.TYPE_INT_ARGB);

@@ -21,12 +21,25 @@ public interface ViolationService {
      */
     void registerViolation(Long idUsuario, Long idPedido, String mensaje);
 
-    /** Lista todas las infracciones (solo ADMIN). */
+    /**
+     * Lista todas las infracciones (solo ADMIN).
+     * @param pageable la pageable
+     * @return la pagina de ViolationResponse encontrados
+     */
     Page<ViolationResponse> listViolations(Pageable pageable);
 
-    /** Historial de infracciones de un usuario específico (solo ADMIN). */
+    /**
+     * Historial de infracciones de un usuario específico (solo ADMIN).
+     * @param idUsuario el identificador de usuario
+     * @param pageable la pageable
+     * @return la pagina de ViolationResponse encontrados
+     */
     Page<ViolationResponse> getHistoryByUser(Long idUsuario, Pageable pageable);
 
-    /** Revierte una suspensión reactivando la cuenta del usuario (solo ADMIN). */
+    /**
+     * Revierte una suspensión reactivando la cuenta del usuario (solo ADMIN).
+     * @param idUsuario el identificador de usuario
+     * @return el resultado de la operacion, de tipo {@code MessageResponse}
+     */
     MessageResponse revertSuspension(Long idUsuario);
 }

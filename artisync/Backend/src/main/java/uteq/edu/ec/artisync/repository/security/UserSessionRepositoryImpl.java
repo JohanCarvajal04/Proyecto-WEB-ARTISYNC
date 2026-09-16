@@ -20,11 +20,13 @@ public class UserSessionRepositoryImpl implements UserSessionRepositoryCustom {
 
     private record RevokedSessionRow(String jti, Integer segundosRestantes) implements RevokedSessionProjection {
 
+        /** @return el JTI (identificador único) de la sesión revocada */
         @Override
         public String getJti() {
             return jti;
         }
 
+        /** @return los segundos restantes de vigencia del token en el momento de la revocación */
         @Override
         public Integer getSegundosRestantes() {
             return segundosRestantes;

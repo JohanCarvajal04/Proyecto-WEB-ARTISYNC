@@ -55,6 +55,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
      *                       su mensaje se usa como detalle solo si el filtro JWT no dejó uno más
      *                       específico en el atributo de petición {@code JWT_ERROR}
      * @throws IOException si falla la escritura de la respuesta
+     * @throws ServletException si ocurre un error durante la operacion
      */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {

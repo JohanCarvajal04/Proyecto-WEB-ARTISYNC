@@ -41,6 +41,8 @@ public class PgDumpExecutor {
      * @param respaldo parametro requerido para la correcta ejecucion del procedimiento
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws IOException si ocurre un error de entrada/salida
+     * @throws InterruptedException si ocurre un error durante la operacion
      */
     public Path execute(Backup respaldo) throws IOException, InterruptedException {
         BackupProperties.Db db = respaldoProperties.getDb();

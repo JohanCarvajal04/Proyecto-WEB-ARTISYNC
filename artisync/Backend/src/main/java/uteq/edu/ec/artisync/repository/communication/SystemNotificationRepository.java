@@ -20,10 +20,19 @@ import uteq.edu.ec.artisync.entity.communication.SystemNotification;
 @Repository
 public interface SystemNotificationRepository extends JpaRepository<SystemNotification, Long> {
 
-    /** Notificaciones de un usuario, más recientes primero. */
+    /**
+     * Notificaciones de un usuario, más recientes primero.
+     * @param idUsuario el identificador de usuario
+     * @param pageable la pageable
+     * @return la pagina de SystemNotification encontrados
+     */
     Page<SystemNotification> findByUsuarioIdUsuarioOrderByFechaEmisionDesc(Long idUsuario, Pageable pageable);
 
-    /** Cantidad de notificaciones no leídas de un usuario. */
+    /**
+     * Cantidad de notificaciones no leídas de un usuario.
+     * @param idUsuario el identificador de usuario
+     * @return el valor numerico calculado
+     */
     long countByUsuarioIdUsuarioAndEstaLeidaFalse(Long idUsuario);
 
     /**

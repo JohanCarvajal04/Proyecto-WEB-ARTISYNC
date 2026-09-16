@@ -19,19 +19,38 @@ import java.util.Optional;
 @Repository
 public interface SubcategoryRepository extends JpaRepository<Subcategory, Long> {
 
-    /** Subcategorías de una categoría, ordenadas alfabéticamente. */
+    /**
+     * Subcategorías de una categoría, ordenadas alfabéticamente.
+     * @param idCategoria el identificador de categoria
+     * @return la lista de Subcategory encontrados
+     */
     List<Subcategory> findByCategoriaIdCategoriaOrderByNombreSubcategoriaAsc(Long idCategoria);
 
-    /** Todas las subcategorías, ordenadas alfabéticamente. */
+    /**
+     * Todas las subcategorías, ordenadas alfabéticamente.
+     * @return la lista de Subcategory encontrados
+     */
     List<Subcategory> findAllByOrderByNombreSubcategoriaAsc();
 
-    /** Subcategoría por categoría y nombre exacto, sin distinguir mayúsculas/minúsculas. */
+    /**
+     * Subcategoría por categoría y nombre exacto, sin distinguir mayúsculas/minúsculas.
+     * @param idCategoria el identificador de categoria
+     * @param nombreSubcategoria el nombre de subcategoria
+     * @return un Optional con Subcategory si existe, vacio en caso contrario
+     */
     Optional<Subcategory> findByCategoriaIdCategoriaAndNombreSubcategoriaIgnoreCase(Long idCategoria, String nombreSubcategoria);
 
-    /** @return {@code true} si ya existe esa subcategoría en esa categoría (sin distinguir mayúsculas/minúsculas) */
+    /**
+     * @param idCategoria el identificador de categoria
+     * @param nombreSubcategoria el nombre de subcategoria
+     * @return {@code true} si ya existe esa subcategoría en esa categoría (sin distinguir mayúsculas/minúsculas)
+     */
     boolean existsByCategoriaIdCategoriaAndNombreSubcategoriaIgnoreCase(Long idCategoria, String nombreSubcategoria);
 
-    /** Subcategorías creadas por un creador aún sin revisar por un moderador, más recientes primero. */
+    /**
+     * Subcategorías creadas por un creador aún sin revisar por un moderador, más recientes primero.
+     * @return la lista de Subcategory encontrados
+     */
     List<Subcategory> findByRevisadoFalseOrderByActualizadoEnDesc();
 }
 
