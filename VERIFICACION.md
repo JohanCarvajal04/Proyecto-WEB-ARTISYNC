@@ -321,6 +321,49 @@ internos del DSL (`cliente`, `artista`) no son texto visible en el diagrama.
 **Archivos:** [`docs/diagramas/workspace.dsl`](docs/diagramas/workspace.dsl),
 [`docs/diagramas/C4-nivel1-context_diagram.svg`](docs/diagramas/C4-nivel1-context_diagram.svg).
 
+**Corrección aplicada en esta ronda — cobertura completa de las figuras del informe:** la ronda
+anterior solo verificó el SVG de arriba. `docs/informe-final/secciones/*.tex` referencia 4 imágenes
+más vía `\includegraphics` que nunca se habían comprobado:
+
+**Orden:**
+```bash
+grep -n "includegraphics" docs/informe-final/secciones/*.tex
+```
+
+**Salida real:**
+```
+docs/informe-final/secciones/06-diseno-arquitectura.tex:32:\includegraphics[...]{c4-nivel2-contenedores.png}
+docs/informe-final/secciones/06-diseno-arquitectura.tex:176:\includegraphics[...]{Entidad_Relacion.png}
+docs/informe-final/secciones/07-implementacion.tex:73:\includegraphics[...]{secuencia_login_jwt.png}
+docs/informe-final/secciones/08-evaluacion-resultados.tex:239:\includegraphics[...]{boxplot-sus.png}
+```
+
+Al ser PNG rasterizados (no SVG/DSL con texto extraíble), la comprobación fue inspección visual
+directa de cada archivo (2026-09-16), verificando que todo el texto visible — títulos, ejes,
+leyendas, cajas y rótulos de flujo — esté en inglés:
+
+- [`docs/diagramas/c4-nivel2-contenedores.png`](docs/diagramas/c4-nivel2-contenedores.png): actores
+  ("Client / Talent Seeker", "Artist / Content Creator", "Platform Administrator"), contenedores
+  ("Web SPA Application", "REST API Server", "Relational Database", "Cache & JTI Blacklist") y
+  relaciones ("Requests and approves orders", "Manages portfolio and deliverables") en inglés.
+- [`docs/diagramas/Entidad_Relacion.png`](docs/diagramas/Entidad_Relacion.png): nombres de entidad y
+  atributo derivados directamente de las clases/campos Java (`UserAccount`, `Offering`, `Contract`,
+  etc.), ya verificados en inglés por P8 — sin texto en español propio del diagrama.
+- [`docs/diagramas/secuencia_login_jwt.png`](docs/diagramas/secuencia_login_jwt.png): actores,
+  mensajes y anotaciones del diagrama de secuencia ("POST /auth/login", "generateToken() /
+  generateRefreshToken()", "Every subsequent authenticated request", "Refresh and logout") en inglés.
+- [`docs/mediciones/sus/boxplot-sus.png`](docs/mediciones/sus/boxplot-sus.png): título, ejes y
+  leyenda ("Distribution of SUS Scores (n=16)", "Score (0-100)", "Acceptance Threshold (68)") en
+  inglés.
+
+Las 5 figuras del informe (1 diagrama C4 nivel 1 + estas 4) están en inglés, no solo la que se
+había comprobado antes.
+
+**Archivos adicionales:** [`docs/diagramas/c4-nivel2-contenedores.png`](docs/diagramas/c4-nivel2-contenedores.png),
+[`docs/diagramas/Entidad_Relacion.png`](docs/diagramas/Entidad_Relacion.png),
+[`docs/diagramas/secuencia_login_jwt.png`](docs/diagramas/secuencia_login_jwt.png),
+[`docs/mediciones/sus/boxplot-sus.png`](docs/mediciones/sus/boxplot-sus.png).
+
 ---
 
 ## P10 — Abstract de 183 palabras
@@ -555,20 +598,64 @@ confirmado contra el PDF físico, ninguno aparece como rechazo). Detalle de la p
 
 ## Los 4 pisos (criterios de cero)
 
-- **Piso 1** (repo público + etiqueta antes del cierre): **pendiente — el más urgente de todo el
-  expediente.** La etiqueta `v1.1.0` sigue apuntando al commit `671a3925` (1-sep-2026), **294
-  commits detrás** del HEAD actual (`e7bba444`, 16-sep-2026) — más atrás que en la medición
-  anterior, porque el trabajo de cierre siguió avanzando. Mientras no se mueva al commit final que
-  el equipo va a defender, nada de lo cerrado en esos 294 commits cuenta para la nota (Aviso 4 de
-  la guía).
-- **Piso 2** (el informe se regenera desde el README): sin cambios respecto a la sección 1 de la
-  guía (ya verificada por el docente); no se ha tocado el pipeline de compilación.
+- **Piso 1** (repo público + etiqueta antes del cierre): **corregido — la alarma de la ronda
+  anterior ya no aplica.** Reverificado el 2026-09-16:
+  ```bash
+  git rev-parse HEAD
+  git rev-parse v1.1.0
+  git rev-list --count v1.1.0..HEAD
+  git ls-remote --tags origin | grep v1.1.0
+  ```
+  ```
+  HEAD:        c6b814d627329e0325b1b49b0f05bbe8e629b38d
+  v1.1.0:      c6b814d627329e0325b1b49b0f05bbe8e629b38d
+  commits v1.1.0..HEAD: 0
+  origin/refs/tags/v1.1.0: c6b814d627329e0325b1b49b0f05bbe8e629b38d
+  ```
+  El tag está en `HEAD`, igual en local que en `origin`, con margen hasta el cierre (viernes
+  18-sep-2026, 23:55). **Advertencia operativa, no un hallazgo de esta ronda:** esta corrección de
+  `VERIFICACION.md` y la de P9 más abajo son, en sí mismas, cambios posteriores a `c6b814d6` — el
+  equipo debe volver a mover `v1.1.0` al commit que resulte de comitear esta ronda (y no tocar nada
+  después de ese movimiento final del tag), o Piso 1 vuelve a fallar de verdad.
+- **Piso 2** (el informe se regenera desde el README): reverificado el 2026-09-16 vía CI real sobre
+  el commit exacto `c6b814d6` (no una corrida anterior sobre otro commit):
+  ```bash
+  curl .../repos/JohanCarvajal04/Proyecto-WEB-ARTISYNC/actions/runs?head_sha=c6b814d627329e0325b1b49b0f05bbe8e629b38d
+  ```
+  ```
+  CI: completed / success — https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/actions/runs/35085378341
+  ```
+  Además, `docs/informe-final/main.pdf` se recompiló en esta misma ronda con `make docs` (contenedor
+  `texlive/texlive`, tal como documenta el README para quien no tenga TeX local) — `BUILD` limpio,
+  84 páginas, código de salida `0`.
 - **Piso 3** (ningún dato inventado): el hallazgo de `RALPH2021` (P11) se corrigió en cuanto se
   detectó, no se dejó ni se disimuló; la discrepancia de cifras de P5 (jacoco desactualizado) y el
   "48 vs 45" de P11 se investigaron y documentaron en vez de dejarse pasar. Ningún número de este
-  expediente se escribió a mano; todos son salida literal de los comandos listados.
-- **Piso 4** (sin commits ajenos ni correos falsos): sin cambios; no se tocó la configuración de
-  identidad de git en esta sesión.
+  expediente se escribió a mano; todos son salida literal de los comandos listados. **Corrección
+  adicional en esta ronda:** el Resumen y el Abstract de
+  [`00-portada-resumen.tex`](docs/informe-final/secciones/00-portada-resumen.tex) citaban la
+  cobertura JaCoCo *anterior* a la corrección de P5 (82.93 %/71.50 %) mientras la sección de
+  resultados y el `jacoco.csv` real ya decían 91.15 %/81.89 % — no era un dato inventado (venía de
+  una medición real de una ronda previa), pero sí una cifra desactualizada presentada como vigente
+  en el mismo documento. Se corrigió a 91.15 %/81.89 % en ambos idiomas y se recompiló el PDF;
+  verificado extrayendo el texto del PDF recompilado con `pdftotext` que ambos párrafos ya
+  coinciden con la sección de resultados.
+- **Piso 4** (sin commits ajenos ni correos falsos): reverificado el 2026-09-16 —
+  ```bash
+  git log --since="2026-09-01" --format="%an <%ae>" | sort | uniq -c | sort -rn
+  ```
+  ```
+      187 Bryan Figueroa <bfigueroam@uteq.edu.ec>
+       51 Johan Stalin Carvajal Loor <carvajalstalin.10@gmail.com>
+       33 Johan_Loor <91645452+JohanCarvajal04@users.noreply.github.com>
+       19 Scarleth Bone <nbonea@uteq.edu.ec>
+       14 Jhon-Kevin-Rios-Cuyabazo <JhonRios_180@hotmail.com>
+        1 Jk-RiosC <161248207+Jhon-Kevin-Rios-Cuyabazo@users.noreply.github.com>
+  ```
+  Los 6 identificadores de autor mapean a los 4 integrantes declarados en la portada del informe y
+  en `CONTRIBUTORS.md` (cada uno usó más de una identidad de git/GitHub a lo largo del proyecto,
+  pero ninguna es ajena al equipo). Sin cambios en la configuración de identidad de git en esta
+  sesión.
 
 ## Cómo reproducir todo el expediente de una vez
 
