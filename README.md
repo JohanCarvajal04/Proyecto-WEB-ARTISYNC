@@ -9,6 +9,8 @@
 Proyecto Fin de Curso (PFC) — Aplicaciones Web, Quinto nivel.
 Universidad Técnica Estatal de Quevedo · Facultad de Ciencias de la Computación y Diseño Digital · Carrera de Ingeniería de Software.
 
+**Despliegue público:** [`https://artisync-frontend.onrender.com`](https://artisync-frontend.onrender.com)
+
 Artisync centraliza la comercialización de servicios y productos digitales de profesionales creativos (ilustradores, músicos, diseñadores, desarrolladores). Conecta **Creadores** con **Clientes** y gestiona perfiles, catálogo dinámico, mensajería, contratos con firma electrónica, flujo de pedidos, pagos con patrón *escrow* vía PayPal, y funciones sociales.
 
 > **DOI persistente.** El archivo Zenodo del tag `v1.0.0` está publicado con el DOI [`10.5281/zenodo.21978572`](https://doi.org/10.5281/zenodo.21978572), declarado también en `CITATION.cff` y en la portada del documento académico final (`docs/informe-final/secciones/00-portada-resumen.tex`). La versión anterior, `v0.9.0-rc`, quedó archivada con el DOI [`10.5281/zenodo.21730559`](https://doi.org/10.5281/zenodo.21730559). El dataset de mediciones (`docs/mediciones/`) está depositado por separado, con licencia CC BY 4.0, en el DOI [`10.5281/zenodo.22236251`](https://doi.org/10.5281/zenodo.22236251), siguiendo el principio de citación independiente de software y datos (Bloque D.3 de la guía).
