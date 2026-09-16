@@ -36,9 +36,9 @@ inventado, no una brecha admitida.
 sesión"; `acepta` se marca `si` en los 16 porque los 16 tienen hash registrado y ninguno aparece
 como rechazo.
 
-**Advertencia — esto no está verificado de forma independiente.** Nadie en esta revisión tuvo
-acceso a `G:\EPSCAN\` para recalcular los 16 SHA-256 contra los PDF reales y confirmar que
-correspondan. Antes de defender esto como constancia cerrada, quien tenga esos archivos localmente
-debería volver a correr `sha256sum p0.PDF ... p15.PDF` y confirmar que coinciden con la tabla de
-`REPORTE-SUS.md` — esa orden y su salida son las que deberían entrar al expediente de verificación
-(`VERIFICACION.md`) para que P14 pase de "transcrito" a "comprobado".
+**Actualizado 2026-09-16 — verificado de forma independiente.** Con `G:\EPSCAN\` montada de nuevo
+en el equipo, se corrió `python scripts/verificar-consentimientos-sus.py "G:\EPSCAN"`: los 16
+SHA-256 recalculados contra los PDF reales coinciden exactamente con la tabla de
+`REPORTE-SUS.md` (16/16, código de salida 0). La salida literal del comando está pegada en
+[`VERIFICACION.md`, sección P14](../../../VERIFICACION.md#p14--consentimientos-informados-del-sus).
+P14 pasa de "transcrito" a "comprobado".

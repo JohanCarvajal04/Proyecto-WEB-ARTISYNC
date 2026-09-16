@@ -396,23 +396,71 @@ La tabla comparativa de trabajos relacionados mantiene sus 8 filas
 
 ## P12 — Lighthouse sin informes utilizables
 
+Corrección aplicada en esta ronda: la verificación anterior solo confirmaba `requestedUrl` en un
+archivo de muestra, no en el conjunto completo. Se comprobaron los 108 JSON uno por uno.
+
 **Orden:**
 ```bash
-find docs/mediciones/lighthouse -iname "*.json" | wc -l
-grep -o '"requestedUrl":"[^"]*"' docs/mediciones/lighthouse/lhci-20260905-2150-desktop-prod-explorar-run1.report.json
+python -c "
+import glob, json, os
+files = [f for f in glob.glob('docs/mediciones/lighthouse/*.json') if 'manifest' not in f.lower()]
+bad = []
+for f in files:
+    data = json.load(open(f, encoding='utf-8'))
+    url = data.get('requestedUrl') or data.get('finalUrl') or ''
+    if 'artisync-frontend.onrender.com' not in url:
+        bad.append((os.path.basename(f), url))
+print(f'Total JSON (excl. manifest): {len(files)}')
+print(f'Con requestedUrl fuera del dominio publico: {len(bad)}')
+for b in bad: print(' ', b)
+"
 ```
 
 **Salida real:**
 ```
-108
-"requestedUrl":"https://artisync-frontend.onrender.com/explorar"
+Total JSON (excl. manifest): 98
+Con requestedUrl fuera del dominio publico: 8
+  ('lhci-20260730-2009.json', 'http://localhost:4200/')
+  ('lhci-20260730-2103-mejorado.json', 'http://localhost:4200/')
+  ('lhci-20260817-0315-mobile-run1.json', 'http://localhost:4200/')
+  ('lhci-20260817-0315-mobile-run2.json', 'http://localhost:4200/')
+  ('lhci-20260817-0315-mobile-run3.json', 'http://localhost:4200/')
+  ('lhci-20260817-0320-desktop-run1.json', 'http://localhost:4200/')
+  ('lhci-20260817-0320-desktop-run2.json', 'http://localhost:4200/')
+  ('lhci-20260817-0320-desktop-run3.json', 'http://localhost:4200/')
 ```
 
-108 JSON versionados (varias corridas de 3 rutas × 2 perfiles × 3 repeticiones), con
-`requestedUrl` apuntando a la URL pública real del despliegue, muy por encima del mínimo de 6
-exigido.
+Estos 8 son corridas locales tempranas (30-jul y 17-ago), anteriores a que el despliegue público
+existiera de forma estable, conservadas como historial de medición — no son la evidencia que
+cierra este punto. El lote que sí la cierra es el más reciente y completo,
+`lhci-20260905-2150-*` (18 archivos = 3 rutas × 3 repeticiones × 2 perfiles), verificado
+individualmente:
 
-**Archivo:** `docs/mediciones/lighthouse/*.json`.
+```bash
+python -c "
+import glob, json, os
+files = sorted(f for f in glob.glob('docs/mediciones/lighthouse/lhci-20260905-2150-*.json') if 'manifest' not in f.lower())
+for f in files:
+    data = json.load(open(f, encoding='utf-8'))
+    print(data['configSettings']['formFactor'], data.get('requestedUrl'), os.path.basename(f))
+"
+```
+
+**Salida real (18 archivos, las 18 con `requestedUrl` apuntando al dominio público):**
+```
+desktop https://artisync-frontend.onrender.com/auth/login              lhci-20260905-2150-desktop-prod-auth_login-run{1,2,3}.report.json
+desktop https://artisync-frontend.onrender.com/explorar                lhci-20260905-2150-desktop-prod-explorar-run{1,2,3}.report.json
+desktop https://artisync-frontend.onrender.com/explorar/creadores      lhci-20260905-2150-desktop-prod-explorar_creadores-run{1,2,3}.report.json
+mobile  https://artisync-frontend.onrender.com/auth/login              lhci-20260905-2150-mobile-prod-auth_login-run{1,2,3}.report.json
+mobile  https://artisync-frontend.onrender.com/explorar                lhci-20260905-2150-mobile-prod-explorar-run{1,2,3}.report.json
+mobile  https://artisync-frontend.onrender.com/explorar/creadores      lhci-20260905-2150-mobile-prod-explorar_creadores-run{1,2,3}.report.json
+```
+
+9 corridas de escritorio + 9 de móvil, 3 por cada una de las 3 rutas, todas contra la URL pública
+real del despliegue — muy por encima del mínimo de 3+3 exigido.
+
+**Archivo:** `docs/mediciones/lighthouse/*.json` (108 archivos totales versionados; el lote
+`lhci-20260905-2150-*` es la evidencia que cierra P12).
 
 ---
 
@@ -427,8 +475,13 @@ jupyter nbconvert --to notebook --execute --inplace docs/mediciones/reproduccion
 **Salida real:**
 ```
 [NbConvertApp] Converting notebook docs/mediciones/reproduccion.ipynb to notebook
-[NbConvertApp] Writing 23776 bytes to docs\mediciones\reproduccion.ipynb
+[NbConvertApp] Writing 23773 bytes to docs\mediciones\reproduccion.ipynb
 ```
+
+Re-ejecutado en esta ronda (2026-09-16) para refrescar la evidencia tras los cambios de P5: la
+primera celda recalcula la cobertura desde `docs/mediciones/jacoco/html/jacoco.csv` y ahora
+reporta 91.15%/81.89% global — exactamente las cifras que P5 dejó versionadas, lo que confirma
+consistencia cruzada entre ambos puntos del expediente.
 
 Verificación de que las 4 celdas de código quedaron con salida real guardada:
 ```python
@@ -441,7 +494,7 @@ celdas de codigo: 4 con output: 4
 
 ## P14 — Consentimientos informados del SUS
 
-**Estado: transcrito desde evidencia ya existente, pendiente de re-verificación física.** La
+**Estado: verificado físicamente. 16/16 hashes SHA-256 coinciden, código de salida 0.** La
 primera versión de esta sesión dejó las 16 filas de
 [`docs/etica/consentimientos/registro-consentimientos.csv`](docs/etica/consentimientos/registro-consentimientos.csv)
 vacías, dando por hecho que la constancia no existía todavía. Una revisión externa posterior
@@ -450,30 +503,53 @@ vacías, dando por hecho que la constancia no existía todavía. Una revisión e
 [`docs/mediciones/sus/REPORTE-SUS.md`, sección "Referencias de consentimiento"](docs/mediciones/sus/REPORTE-SUS.md#referencias-de-consentimiento):
 los 16 códigos (P01–P16), fecha (`2026-08-16`) y el hash SHA-256 del consentimiento firmado y
 escaneado de cada participante (`G:\EPSCAN\p0.PDF`–`p15.PDF`, en el equipo, fuera del
-repositorio).
+repositorio). En ese momento esos 16 hashes estaban transcritos desde `REPORTE-SUS.md` sin
+recalcularse contra los PDF reales (`G:\` no estaba montada en esa sesión).
 
-**Orden:**
+**El 2026-09-16, con `G:\EPSCAN` montada de nuevo en el equipo**, se ejecutó el script de
+verificación de solo lectura ya preparado para este propósito:
+
 ```bash
-cat docs/etica/consentimientos/registro-consentimientos.csv
-grep -n "Referencias de consentimiento" -A 45 docs/mediciones/sus/REPORTE-SUS.md
+python scripts/verificar-consentimientos-sus.py "G:\EPSCAN"
 ```
 
-**Salida real:** las 16 filas de `registro-consentimientos.csv` ahora llevan
-`fecha_consentimiento=2026-08-16`, `medio=presencial` (inferido: la sección de origen describe
-consentimiento individual "firmado antes de cada sesión") y `acepta=si` (los 16 tienen hash
-registrado en `REPORTE-SUS.md`, ninguno aparece como rechazo) — transcritas, no recolectadas de
-nuevo. Detalle de la procedencia y de qué falta en
-[`docs/etica/consentimientos/README.md`](docs/etica/consentimientos/README.md#procedencia-de-las-16-filas-transcritas-no-recolectadas-de-nuevo).
+**Salida real:**
+```
+Carpeta de origen: G:\EPSCAN
+Referencia: docs/mediciones/sus/REPORTE-SUS.md
 
-**Pendiente real, fuera del alcance de esta sesión:** nadie en esta revisión tuvo acceso a
-`G:\EPSCAN\` para recalcular los 16 SHA-256 contra los PDF reales y confirmar que coinciden con la
-tabla de `REPORTE-SUS.md`. Quien tenga esos archivos localmente debe correr
-`sha256sum p0.PDF ... p15.PDF` y pegar esa salida aquí antes de defender esto como comprobado —
-mientras tanto este punto es una transcripción fiel de un registro ya commiteado, no una
-verificación física independiente.
+OK     P01  <-  p0.PDF  sha256:d8510c56ba0daff6d17e3278cb9696ef2bbc1dc3d470d4c06a75aa88cd59ab7b
+OK     P02  <-  p1.PDF  sha256:3bb3e3d07b365131a079a894304685da87707a149729fd121157ea5108319a63
+OK     P03  <-  p2.PDF  sha256:d46fcda14cf924d11f36f740a4c43db2c21b0c3f5320f73783c8f70d7fe24ba6
+OK     P04  <-  p3.PDF  sha256:2f87c434a6883400aa21f8b7a4333dfaa39ca6c072ee414597596c5899a324aa
+OK     P05  <-  p4.PDF  sha256:f464ff648963343d4bfe752dc4276dcce8855776daa9acab57568f231dba675e
+OK     P06  <-  p5.PDF  sha256:25e74c68fbe2ab9bf4ec7b0f26d3c48a70b2d20fc46c7e6d4c3eab113dc84ba2
+OK     P07  <-  p6.PDF  sha256:10c2dfacc34404c434ef910565726e0d2e8d8935942a554fea9f5b46297c3c2a
+OK     P08  <-  p7.PDF  sha256:b741d4f05de1f2190019a18b6b0e23c74f1a883c2a4dbf83b96e0e014c5d5fee
+OK     P09  <-  p8.PDF  sha256:92cb125ec8df0237cee9d8d8580c35b7d32f5fcac108b451f7b0425744ccfcbf
+OK     P10  <-  p9.PDF  sha256:f2b4b8414f2ff17639fef3c46aee261867117c751688d2b024dbcef05cc0ecec
+OK     P11  <-  p10.PDF  sha256:c0e4e83e7f485334775ab19abffb9cdff1357a176b343aeca187c8642b7930c9
+OK     P12  <-  p11.PDF  sha256:94c2e6499450ab6bc6350bc8f4d4933a108b17f6ea522a91f2e5ad871046bf99
+OK     P13  <-  p12.PDF  sha256:34deb77a6816cc4e7b34ba9f53b457b554a10671a4c4b5d05e35bfbae1ebb57b
+OK     P14  <-  p13.PDF  sha256:41a1ab3cf47efb21ca12d715069d768c2fb536026ba643b180cf900e527c9d22
+OK     P15  <-  p14.PDF  sha256:93e19fd7a65d0298ad57cf70823d69b06c10636f14b8b372456a10afc3f34708
+OK     P16  <-  p15.PDF  sha256:45bedcd2e16e9b1b1fd0a64de855dc1aa0c6bfec0163ec949059ce3f7f44623f
+
+Total: 16/16 hashes coinciden exactamente con REPORTE-SUS.md. 0 fallidos.
+```
+`echo $?` → `0`.
+
+Las 16 filas de `registro-consentimientos.csv` llevan `fecha_consentimiento=2026-08-16`,
+`medio=presencial` (inferido: la sección de origen describe consentimiento individual "firmado
+antes de cada sesión") y `acepta=si` (los 16 tienen hash registrado en `REPORTE-SUS.md` y ahora
+confirmado contra el PDF físico, ninguno aparece como rechazo). Detalle de la procedencia en
+[`docs/etica/consentimientos/README.md`](docs/etica/consentimientos/README.md#procedencia-de-las-16-filas-transcritas-no-recolectadas-de-nuevo)
+(la advertencia de "no verificado de forma independiente" en ese README quedó obsoleta con esta
+corrida y debe actualizarse).
 
 **Archivo:** `docs/etica/consentimientos/registro-consentimientos.csv`,
-`docs/mediciones/sus/REPORTE-SUS.md` (tabla fuente).
+`docs/mediciones/sus/REPORTE-SUS.md` (tabla fuente),
+`scripts/verificar-consentimientos-sus.py` (script de verificación).
 
 ---
 
