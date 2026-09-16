@@ -1,58 +1,78 @@
-OK    JWT2015         doi=10.17487/RFC7519                    http_final=200 -> https://www.rfc-editor.org/info/rfc7519/
+=== Referencias bibliograficas (docs/informe-final/referencias.bib) ===
+OK    JWT2015              doi=10.17487/RFC7519                    http_final=200 -> https://www.rfc-editor.org/info/rfc7519/
       Metadatos: titulo='JSON Web Token (JWT)' venue/publisher='RFC Editor'
-OK    PRISMA2021      doi=10.1136/bmj.n71                     http_final=403 -> https://www.bmj.com/lookup/doi/10.1136/bmj.n71
+OK    BROOKE1996           doi=10.1201/9781498710411-35            http_final=200 -> https://www.taylorfrancis.com/chapters/edit/10.1201/9781498710411-35/sus-quick-dirty-usability-scale-john-brooke
+      Metadatos: titulo="SUS: A 'Quick and Dirty' Usability Scale" venue/publisher='Usability Evaluation In Industry'
+OK    PRISMA2021           doi=10.1136/bmj.n71                     http_final=403 -> https://www.bmj.com/lookup/doi/10.1136/bmj.n71
       Metadatos: titulo='The PRISMA 2020 statement: an updated guideline for reporting systematic reviews' venue/publisher='BMJ'
-OK    RALPH2021       doi=10.48550/arXiv.2010.03525           http_final=200 -> https://arxiv.org/abs/2010.03525
+OK    RALPH2021            doi=10.48550/arXiv.2010.03525           http_final=200 -> https://arxiv.org/abs/2010.03525
       Metadatos: titulo='Empirical Standards for Software Engineering Research' venue/publisher='arXiv'
-OK    PEFFERS2007     doi=10.2753/MIS0742-1222240302          http_final=403 -> https://www.tandfonline.com/doi/full/10.2753/MIS0742-1222240302
+OK    PEFFERS2007          doi=10.2753/MIS0742-1222240302          http_final=403 -> https://www.tandfonline.com/doi/full/10.2753/MIS0742-1222240302
       Metadatos: titulo='A Design Science Research Methodology for Information Systems Research' venue/publisher='Journal of Management Information Systems'
-OK    RUNESON2009     doi=10.1007/s10664-008-9102-8           http_final=200 -> https://link.springer.com/article/10.1007/s10664-008-9102-8
+OK    HEVNER2004           doi=10.2307/25148625                    http_final=403 -> https://misq.umn.edu/misq/article/28/1/75/261/Design-Science-in-Information-Systems-Research1
+      Metadatos: titulo='Design Science in Information Systems Research1' venue/publisher='MIS Quarterly'
+OK    RUNESON2009          doi=10.1007/s10664-008-9102-8           http_final=200 -> https://link.springer.com/article/10.1007/s10664-008-9102-8
       Metadatos: titulo='Guidelines for conducting and reporting case study research in software engineering' venue/publisher='Empirical Software Engineering'
-OK    WOHLIN2012      doi=10.1007/978-3-642-29044-2           http_final=200 -> https://link.springer.com/book/10.1007/978-3-642-29044-2
+OK    WOHLIN2012           doi=10.1007/978-3-642-29044-2           http_final=200 -> https://link.springer.com/book/10.1007/978-3-642-29044-2
       Metadatos: titulo='Experimentation in Software Engineering' venue/publisher='Springer Berlin Heidelberg'
-OK    BALTES2022      doi=10.1007/s10664-021-10072-8          http_final=200 -> https://link.springer.com/10.1007/s10664-021-10072-8
+OK    BALTES2022           doi=10.1007/s10664-021-10072-8          http_final=200 -> https://link.springer.com/10.1007/s10664-021-10072-8
       Metadatos: titulo='Sampling in software engineering research: a critical review and guidelines' venue/publisher='Empirical Software Engineering'
-OK    WILKINSON2016   doi=10.1038/sdata.2016.18               http_final=200 -> https://www.nature.com/articles/sdata201618
+OK    BASILI1994           doi=10.1002/0471028959.sof142           http_final=403 -> https://onlinelibrary.wiley.com/doi/10.1002/0471028959.sof142
+      Metadatos: titulo='Goal Question Metric (\n            <scp>GQM</scp>\n            ) Approach' venue/publisher='Encyclopedia of Software Engineering'
+OK    WILKINSON2016        doi=10.1038/sdata.2016.18               http_final=200 -> https://www.nature.com/articles/sdata201618
       Metadatos: titulo='The FAIR Guiding Principles for scientific data management and stewardship' venue/publisher='Scientific Data'
-OK    ZHU1997         doi=10.1145/267580.267590               http_final=403 -> https://dl.acm.org/doi/10.1145/267580.267590
+OK    ZHU1997              doi=10.1145/267580.267590               http_final=403 -> https://dl.acm.org/doi/10.1145/267580.267590
       Metadatos: titulo='Software unit test coverage and adequacy' venue/publisher='ACM Computing Surveys'
-OK    INOZEMTSEVA2014 doi=10.1145/2568225.2568271             http_final=403 -> https://dl.acm.org/doi/10.1145/2568225.2568271
+OK    INOZEMTSEVA2014      doi=10.1145/2568225.2568271             http_final=403 -> https://dl.acm.org/doi/10.1145/2568225.2568271
       Metadatos: titulo='Coverage is not strongly correlated with test suite effectiveness' venue/publisher='Proceedings of the 36th International Conference on Software Engineering'
-OK    ARCURI2011      doi=10.1145/1985793.1985795             http_final=403 -> https://dl.acm.org/doi/10.1145/1985793.1985795
+OK    ARCURI2011           doi=10.1145/1985793.1985795             http_final=403 -> https://dl.acm.org/doi/10.1145/1985793.1985795
       Metadatos: titulo='A practical guide for using statistical tests to assess randomized algorithms in software engineering' venue/publisher='Proceedings of the 33rd International Conference on Software Engineering'
-OK    HALFOND2005     doi=10.1145/1101908.1101935             http_final=403 -> https://dl.acm.org/doi/10.1145/1101908.1101935
+OK    HALFOND2005          doi=10.1145/1101908.1101935             http_final=403 -> https://dl.acm.org/doi/10.1145/1101908.1101935
       Metadatos: titulo='AMNESIA' venue/publisher='Proceedings of the 20th IEEE/ACM International Conference on Automated Software Engineering'
-OK    GOULD2004       doi=10.1109/ICSE.2004.1317486           http_final=202 -> https://ieeexplore.ieee.org/document/1317486/
+OK    GOULD2004            doi=10.1109/ICSE.2004.1317486           http_final=202 -> https://ieeexplore.ieee.org/document/1317486/
       Metadatos: titulo='Static checking of dynamically generated queries in database applications' venue/publisher='Proceedings. 26th International Conference on Software Engineering'
-OK    WANG2021        doi=10.1007/s10664-020-09910-y          http_final=200 -> https://link.springer.com/10.1007/s10664-020-09910-y
+OK    WANG2021             doi=10.1007/s10664-020-09910-y          http_final=200 -> https://link.springer.com/10.1007/s10664-020-09910-y
       Metadatos: titulo='Promises and challenges of microservices: an exploratory study' venue/publisher='Empirical Software Engineering'
-OK    HAGIU2015       doi=10.1016/j.ijindorg.2015.03.003      http_final=200 -> https://linkinghub.elsevier.com/retrieve/pii/S0167718715000363
+OK    HAGIU2015            doi=10.1016/j.ijindorg.2015.03.003      http_final=200 -> https://linkinghub.elsevier.com/retrieve/pii/S0167718715000363
       Metadatos: titulo='Multi-sided platforms' venue/publisher='International Journal of Industrial Organization'
-OK    ASGAONKAR2019   doi=10.1109/BLOC.2019.8751482           http_final=202 -> https://ieeexplore.ieee.org/document/8751482/
+OK    ASGAONKAR2019        doi=10.1109/BLOC.2019.8751482           http_final=202 -> https://ieeexplore.ieee.org/document/8751482/
       Metadatos: titulo='Solving the Buyer and Seller’s Dilemma: A Dual-Deposit Escrow Smart Contract for Provably Cheat-Proof Delivery and Payment for a Digital Good without a Trusted Mediator' venue/publisher='2019 IEEE International Conference on Blockchain and Cryptocurrency (ICBC)'
-OK    PERES2024       doi=10.1016/j.ijresmar.2024.07.005      http_final=200 -> https://linkinghub.elsevier.com/retrieve/pii/S0167811624000594
+OK    PERES2024            doi=10.1016/j.ijresmar.2024.07.005      http_final=200 -> https://linkinghub.elsevier.com/retrieve/pii/S0167811624000594
       Metadatos: titulo='The creator economy: An introduction and a call for scholarly research' venue/publisher='International Journal of Research in Marketing'
-OK    GUSSEK2023      doi=10.1007/s12525-023-00675-y          http_final=200 -> https://link.springer.com/10.1007/s12525-023-00675-y
+OK    GUSSEK2023           doi=10.1007/s12525-023-00675-y          http_final=200 -> https://link.springer.com/10.1007/s12525-023-00675-y
       Metadatos: titulo='Challenges of IT freelancers on digital labor platforms: A topic model approach' venue/publisher='Electronic Markets'
-OK    WULFERT2022     doi=10.1007/s42979-022-01098-w          http_final=200 -> https://link.springer.com/10.1007/s42979-022-01098-w
+OK    WULFERT2022          doi=10.1007/s42979-022-01098-w          http_final=200 -> https://link.springer.com/10.1007/s42979-022-01098-w
       Metadatos: titulo='Retailer’s Dual Role in Digital Marketplaces' venue/publisher='SN Computer Science'
-OK    MONSALVE2023    doi=10.3390/app13148362                 http_final=403 -> https://www.mdpi.com/2076-3417/13/14/8362
+OK    MONSALVE2023         doi=10.3390/app13148362                 http_final=403 -> https://www.mdpi.com/2076-3417/13/14/8362
       Metadatos: titulo='Proposal to Improve the E-Commerce Platform Development Process with an Exploratory Case Study in Chile' venue/publisher='Applied Sciences'
-OK    LAKSONO2024     doi=10.32664/smatika.v14i01.1227        http_final=200 -> https://jurnal.ubhinus.ac.id/SMATIKA/en/article/view/1227
+OK    COELLO2023           doi=10.53591/iti.v15i19.1525            http_final=200 -> https://revistas.ug.edu.ec/index.php/iti/es/article/view/1525
+      Metadatos: titulo='Desarrollo de una aplicación web e-commerce B2C mediante tecnologías de desarrollo front-end y back-end. Caso de estudio ferretería “El Descanso”' venue/publisher='Investigación, Tecnología e Innovación'
+OK    LAKSONO2024          doi=10.32664/smatika.v14i01.1227        http_final=200 -> https://jurnal.ubhinus.ac.id/SMATIKA/en/article/view/1227
       Metadatos: titulo='Implementasi Payment Gateway pada Platform Freelance Digital Menggunakan Rest API' venue/publisher='SMATIKA JURNAL'
-OK    TSMART2021      doi=10.3390/jtaer16060132               http_final=403 -> https://www.mdpi.com/0718-1876/16/6/132
+OK    TSMART2021           doi=10.3390/jtaer16060132               http_final=403 -> https://www.mdpi.com/0718-1876/16/6/132
       Metadatos: titulo='T-Smart: Trust Model for Blockchain Based Smart Marketplace' venue/publisher='Journal of Theoretical and Applied Electronic Commerce Research'
-OK    GU2021          doi=10.1287/mnsc.2020.3583              http_final=403 -> https://pubsonline.informs.org/doi/10.1287/mnsc.2020.3583
+OK    GU2021               doi=10.1287/mnsc.2020.3583              http_final=403 -> https://pubsonline.informs.org/doi/10.1287/mnsc.2020.3583
       Metadatos: titulo='Trust and Disintermediation: Evidence from an Online Freelance Marketplace' venue/publisher='Management Science'
-OK    BANDARI2026     doi=10.22214/ijraset.2026.79868         http_final=200 -> https://www.ijraset.com/best-journal/society-network-an-integrated-platform-for-smart-community-management-and-hyperlocal-services
+OK    BANDARI2026          doi=10.22214/ijraset.2026.79868         http_final=200 -> https://www.ijraset.com/best-journal/society-network-an-integrated-platform-for-smart-community-management-and-hyperlocal-services
       Metadatos: titulo='Society Network: An Integrated Platform for Smart Community Management and Hyperlocal Services' venue/publisher='International Journal for Research in Applied Science and Engineering Technology'
-OK    ROCHET2003      doi=10.1162/154247603322493212          http_final=403 -> https://academic.oup.com/jeea/article/2280902/Platform
+OK    ROCHET2003           doi=10.1162/154247603322493212          http_final=403 -> https://academic.oup.com/jeea/article/2280902/Platform
       Metadatos: titulo='Platform Competition in Two-Sided Markets' venue/publisher='Journal of the European Economic Association'
-OK    RESNICK2000     doi=10.1145/355112.355122               http_final=403 -> https://dl.acm.org/doi/10.1145/355112.355122
+OK    RESNICK2000          doi=10.1145/355112.355122               http_final=403 -> https://dl.acm.org/doi/10.1145/355112.355122
       Metadatos: titulo='Reputation systems' venue/publisher='Communications of the ACM'
-OK    TAFESSE2023     doi=10.1016/j.jretconser.2023.103357    http_final=200 -> https://linkinghub.elsevier.com/retrieve/pii/S0969698923001042
+OK    TAFESSE2023          doi=10.1016/j.jretconser.2023.103357    http_final=200 -> https://linkinghub.elsevier.com/retrieve/pii/S0969698923001042
       Metadatos: titulo="Content creators' participation in the creator economy: Examining the effect of creators’ content sharing frequency on user engagement behavior on digital platforms" venue/publisher='Journal of Retailing and Consumer Services'
-OK    CHIGBU2026      doi=10.3389/fsoc.2026.1743445           http_final=200 -> https://www.frontiersin.org/journals/sociology/articles/10.3389/fsoc.2026.1743445/full
+OK    CHIGBU2026           doi=10.3389/fsoc.2026.1743445           http_final=200 -> https://www.frontiersin.org/journals/sociology/articles/10.3389/fsoc.2026.1743445/full
       Metadatos: titulo='Algorithmic management in the global gig economy: an interdisciplinary systematic literature review and critical discourse analysis' venue/publisher='Frontiers in Sociology'
 
-Total: 28 DOI verificados, 0 fallidos.
+=== DOI de software/dataset (CITATION.cff / README.md) ===
+OK    zenodo(CITATION.cff+README.md) doi=10.5281/zenodo.21978572             http_final=200 -> https://zenodo.org/records/21978572
+      Metadatos: titulo='Proyecto WEB-ARTISYNC' venue/publisher='Zenodo'
+OK    zenodo(README.md)    doi=10.5281/zenodo.22236251             http_final=200 -> https://zenodo.org/records/22236251
+      Metadatos: titulo='Artisync — Dataset de mediciones empíricas (rendimiento, seguridad, usabilidad, cobertura, calidad web) v1.0.0' venue/publisher='Zenodo'
+OK    zenodo(README.md)    doi=10.5281/zenodo.21730559             http_final=200 -> https://zenodo.org/records/21730559
+      Metadatos: titulo='Proyecto WEB-ARTISYNC' venue/publisher='Zenodo'
+
+Total: 35 DOI verificados (32 bibliograficos + 3 de software/dataset), 0 fallidos.
+
+=== Cobertura DOI-o-razon en docs/informe-final/referencias.bib ===
+Total: 45, con DOI: 32, sin DOI con razon documentada: 13, sin nada: 0

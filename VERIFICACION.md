@@ -40,6 +40,11 @@ era solo contra localhost).
 
 ## P2 — 133 de 184 etiquetas sin referenciar
 
+Corrección aplicada en esta ronda: la barra de P2 exige "un script ... que sale con error si
+queda alguna" etiqueta huérfana. `seccion_p12()` solo imprimía el conteo, sin `sys.exit(1)`, y no
+estaba en `make verify` — una regresión futura no rompería la comprobación automática. Se agregó
+`sys.exit(1)` cuando `total_huerfanas > 0` y se sumó `p12` al target `verify` del `Makefile`.
+
 **Orden:** `python scripts/auditoria-rubrica.py p12`
 
 **Salida real:**
@@ -50,8 +55,15 @@ Total comandos de referencia (\ref/\autoref/\cref/\pageref/\nameref/\hyperref): 
 
 Etiquetas SIN ninguna referencia: 0 de 62
 ```
+Código de salida: `0`.
 
-**Archivo:** `docs/informe-final/secciones/*.tex`
+**Verificación del propio chequeo de error:** se creó temporalmente un archivo `.tex` con una
+etiqueta sin referenciar, se confirmó que el script termina con código de salida `1` y lista el
+archivo/etiqueta ofensora, y se eliminó el archivo de prueba (no forma parte del repositorio).
+
+**Archivo:** [`docs/informe-final/secciones/*.tex`](docs/informe-final/secciones/),
+[`scripts/auditoria-rubrica.py`](scripts/auditoria-rubrica.py) (`seccion_p12`),
+[`Makefile`](Makefile) (target `verify`, paso P2).
 
 ---
 
@@ -327,22 +339,52 @@ Abstract (.tex): 213 palabras  [OK, objetivo 200-250]
 
 ## P11 — Referencias sin verificar una por una
 
+**Reconciliación del conteo "48" (corrección aplicada en esta ronda):** la guía exige "las 48
+referencias con su DOI resuelto", pero `referencias.bib` tiene 45 entradas. La diferencia está
+documentada en el propio historial del repositorio, no es un hueco sin explicar: el commit
+`b80b268c` (2026-09-06, *"fix(informe-final): corregir referencias bibliográficas y regenerar PDF
+final"*) eliminó 4 entradas fabricadas que un integrante había añadido para inflar artificialmente
+el conteo de referencias de "alto impacto" (`KUMAR2023`, `PARK2023`, `CHEN2021` — con DOI de
+relleno del patrón `...1234567`, sin rastro de que las obras existan — y `RAO2022`, cuyo DOI
+resolvía al registro de un comité organizador, no a un artículo real). Ver
+`docs/observaciones/observaciones_para_el_examen.md` (líneas 410–419, hallazgo `OBS-D6-04`) para
+el detalle completo de esa limpieza. El corpus correcto y honesto es el que existe hoy: 45
+entradas, todas verificables; no se añaden referencias de relleno para llegar a 48, porque eso
+sería exactamente el tipo de dato inventado que el Piso 3 de la guía castiga con la nota en cero.
+
+**Corrección adicional aplicada en esta ronda — DOI-o-razón en el 100% de las entradas:** de las
+45, 17 no declaraban `doi`. Se investigó cada una contra Crossref/DataCite (no se asumió ausencia
+sin buscar): se encontraron y verificaron 4 DOI reales que faltaban (`BROOKE1996`, `HEVNER2004`,
+`BASILI1994`, `COELLO2023` — los tres primeros bloqueados por anti-bot del editor, 403, pero
+`doi.org` los resuelve a la página real con título/venue coincidentes; `COELLO2023` resuelve 200
+directo). Para las 13 restantes (estándares ISO/IEC, páginas OWASP, un blog, una tesis doctoral y
+reportes técnicos EBSE/INCOSE, que legítimamente no tienen DOI) se documentó en el propio `.bib`
+la razón concreta de la ausencia (campo `note`), en vez de omitirlas en silencio.
+
+La cobertura DOI-o-razón ya no se retalla a mano: `scripts/verificar-doi.py` la calcula y hace
+`sys.exit(1)` si alguna entrada del `.bib` queda sin DOI y sin nota — verificado creando
+temporalmente una entrada sin ninguno de los dos y confirmando que el script sale con código 1 y
+la señala por nombre; se eliminó esa entrada de prueba, no forma parte del repositorio.
+
 **Orden:** `python scripts/verificar-doi.py`
 
-**Salida real** (28 DOI declarados en `referencias.bib`, cada uno resuelto contra doi.org con
-User-Agent de navegador y contrastado contra Crossref/DataCite):
+**Salida real:**
 ```
-Total: 28 DOI verificados, 0 fallidos.
+Total: 35 DOI verificados (32 bibliograficos + 3 de software/dataset), 0 fallidos.
+
+=== Cobertura DOI-o-razon en docs/informe-final/referencias.bib ===
+Total: 45, con DOI: 32, sin DOI con razon documentada: 13, sin nada: 0
 ```
+Código de salida: `0`.
 
 Salida completa línea por línea en [`docs/mediciones/verificacion-doi.txt`](docs/mediciones/verificacion-doi.txt).
 
-**Hallazgo y corrección durante esta verificación:** `RALPH2021` citaba
-`10.1145/3437479.3437483`, que resuelve a un registro real de ACM SIGSOFT — pero es el anuncio
-breve "ACM SIGSOFT Empirical Standards Released" (un solo autor), no el reporte de 36 autores
-"Empirical Standards for Software Engineering Research" que el `.bib` declara. Se sustituyó por
-`10.48550/arXiv.2010.03525` (preprint verificado contra DataCite: mismo título exacto, misma lista
-de autores). Nota de integridad dejada en la propia entrada del `.bib`.
+**Hallazgo y corrección de una ronda anterior:** `RALPH2021` citaba `10.1145/3437479.3437483`, que
+resuelve a un registro real de ACM SIGSOFT — pero es el anuncio breve "ACM SIGSOFT Empirical
+Standards Released" (un solo autor), no el reporte de 36 autores "Empirical Standards for Software
+Engineering Research" que el `.bib` declara. Se sustituyó por `10.48550/arXiv.2010.03525`
+(preprint verificado contra DataCite: mismo título exacto, misma lista de autores). Nota de
+integridad dejada en la propia entrada del `.bib`.
 
 La tabla comparativa de trabajos relacionados mantiene sus 8 filas
 (`python scripts/auditoria-rubrica.py p3` → 8 claves citadas, las 8 con campo `doi`).

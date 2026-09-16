@@ -129,6 +129,7 @@ def seccion_p12():
         for ruta, lab in huerfanas_detalle[:40]:
             rel = os.path.relpath(ruta, RAIZ)
             print(f"  {rel}: {lab}")
+        sys.exit(1)
 
 
 # ---------------------------------------------------------------------------

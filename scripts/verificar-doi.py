@@ -37,6 +37,24 @@ def extraer_dois(ruta):
     return resultado
 
 
+def verificar_cobertura_doi_o_razon(ruta):
+    """P11: cada entrada de referencias.bib debe tener `doi` o una nota explicando por que no
+    tiene uno (campo `note` con el texto "DOI no disponible") -- nunca omitirlo en silencio.
+    Devuelve (total, con_doi, con_razon, sin_nada)."""
+    texto = open(ruta, encoding="utf-8").read()
+    entradas = re.findall(r"@\w+\{([^,]+),((?:(?!\n@).)*)", texto, re.S)
+    con_doi = con_razon = 0
+    sin_nada = []
+    for clave, cuerpo in entradas:
+        if re.search(r'doi\s*=\s*[{"]', cuerpo, re.I):
+            con_doi += 1
+        elif "DOI no disponible" in cuerpo:
+            con_razon += 1
+        else:
+            sin_nada.append(clave)
+    return len(entradas), con_doi, con_razon, sin_nada
+
+
 def extraer_dois_zenodo(ruta_citation, ruta_readme):
     """DOI de software/dataset declarados fuera de referencias.bib: el campo `doi:` de
     CITATION.cff y cualquier 10.5281/zenodo.NNNNNNNN mencionado en README.md (badges, notas de
@@ -142,8 +160,18 @@ def main():
     print()
     print(f"Total: {total} DOI verificados ({len(entradas_bib)} bibliograficos + "
           f"{len(entradas_zenodo)} de software/dataset), {len(fallos)} fallidos.")
-    if fallos:
-        print("FALLIDOS:", fallos)
+
+    total_bib, con_doi, con_razon, sin_nada = verificar_cobertura_doi_o_razon(RUTA_BIB)
+    print()
+    print(f"=== Cobertura DOI-o-razon en {RUTA_BIB} ===")
+    print(f"Total: {total_bib}, con DOI: {con_doi}, sin DOI con razon documentada: {con_razon}, "
+          f"sin nada: {len(sin_nada)}")
+    if sin_nada:
+        print("SIN DOI NI RAZON DOCUMENTADA:", sin_nada)
+
+    if fallos or sin_nada:
+        if fallos:
+            print("FALLIDOS:", fallos)
         sys.exit(1)
 
 

@@ -441,20 +441,22 @@ javadoc:
 ## encadenarlos sin logica adicional -- make ya se detiene en el primero que
 ## falle.
 verify:
-	@echo "--- [1/7] mvn test (backend, regenera jacoco.csv) ---"
+	@echo "--- [1/8] mvn test (backend, regenera jacoco.csv) ---"
 	cd artisync/Backend && ./mvnw -B test
-	@echo "--- [2/7] P5: cobertura >=70% en los 9 paquetes controller.* ---"
+	@echo "--- [2/8] P5: cobertura >=70% en los 9 paquetes controller.* ---"
 	python scripts/verificar-cobertura-controladores.py
-	@echo "--- [3/7] P6: cero nativeQuery=true para procedimientos/funciones SQL ---"
+	@echo "--- [3/8] P6: cero nativeQuery=true para procedimientos/funciones SQL ---"
 	python scripts/auditoria-rubrica.py p6 | tee /tmp/auditoria-p6.txt
 	@grep -q "nativeQuery = true (real, fuera de comentario): 0" /tmp/auditoria-p6.txt
 	@rm -f /tmp/auditoria-p6.txt
-	@echo "--- [4/7] P3+P11: los DOI declarados (bib + software/dataset) resuelven contra doi.org ---"
+	@echo "--- [4/8] P2: cero etiquetas .tex huerfanas ---"
+	python scripts/auditoria-rubrica.py p12
+	@echo "--- [5/8] P3+P11: los DOI declarados resuelven contra doi.org, y toda referencia tiene DOI o razon documentada ---"
 	python scripts/verificar-doi.py
-	@echo "--- [5/7] sincronia db/procs <-> R__procedimientos.sql ---"
+	@echo "--- [6/8] sincronia db/procs <-> R__procedimientos.sql ---"
 	bash scripts/sync-procs.sh --check
-	@echo "--- [6/7] P7: Javadoc completo (@param/@return/@throws) en >=90% de metodos publicos ---"
+	@echo "--- [7/8] P7: Javadoc completo (@param/@return/@throws) en >=90% de metodos publicos ---"
 	python scripts/auditoria-rubrica.py e2c
-	@echo "--- [7/7] P7: Javadoc sin errores de doclint ---"
+	@echo "--- [8/8] P7: Javadoc sin errores de doclint ---"
 	cd artisync/Backend && ./mvnw -o javadoc:javadoc
 	@echo "OK: make verify termino sin errores."
