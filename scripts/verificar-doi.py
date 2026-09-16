@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Resuelve cada DOI declarado en referencias.bib contra doi.org y contra Crossref/DataCite,
-y deja evidencia verbatim para VERIFICACION.md (P11 de la guia del examen suspenso: "las 48
-referencias con su DOI resuelto").
+"""Resuelve cada DOI declarado en el repositorio contra doi.org y contra Crossref/DataCite, y
+deja evidencia verbatim para VERIFICACION.md: las referencias de referencias.bib (P11, "las 48
+referencias con su DOI resuelto") y ademas los DOI de software/dataset declarados en
+CITATION.cff y README.md (P3, "resolver cada DOI declarado contra doi.org devolviendo 200" --
+no solo el de marcador que ya se elimino, sino todos los que quedan vigentes).
 
-Es de solo lectura: no modifica referencias.bib, solo imprime.
+Es de solo lectura: no modifica ningun archivo, solo imprime.
 
 Uso:
     python scripts/verificar-doi.py [ruta/a/referencias.bib]
@@ -17,6 +19,8 @@ import urllib.error
 import urllib.request
 
 RUTA_BIB = sys.argv[1] if len(sys.argv) > 1 else "docs/informe-final/referencias.bib"
+RUTA_CITATION = "CITATION.cff"
+RUTA_README = "README.md"
 
 NAVEGADOR_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                 "(KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
@@ -31,6 +35,28 @@ def extraer_dois(ruta):
         if m:
             resultado.append((clave, m.group(1)))
     return resultado
+
+
+def extraer_dois_zenodo(ruta_citation, ruta_readme):
+    """DOI de software/dataset declarados fuera de referencias.bib: el campo `doi:` de
+    CITATION.cff y cualquier 10.5281/zenodo.NNNNNNNN mencionado en README.md (badges, notas de
+    DOI persistente, tabla de tags) -- incluye versiones superseded si siguen declaradas."""
+    doi_a_origenes = {}
+
+    def registrar(doi, origen):
+        doi_a_origenes.setdefault(doi, []).append(origen)
+
+    texto_citation = open(ruta_citation, encoding="utf-8").read()
+    m = re.search(r'^doi:\s*["\']?([^"\'\s]+)["\']?', texto_citation, re.M)
+    if m:
+        registrar(m.group(1), "CITATION.cff")
+
+    texto_readme = open(ruta_readme, encoding="utf-8").read()
+    for doi in re.findall(r"10\.5281/zenodo\.\d+", texto_readme):
+        registrar(doi, "README.md")
+
+    return [(f"zenodo({'+'.join(sorted(set(origenes)))})", doi)
+            for doi, origenes in doi_a_origenes.items()]
 
 
 def resolver_doi(doi):
@@ -84,9 +110,7 @@ def crossref_meta(doi):
         return datacite_meta(doi)
 
 
-def main():
-    entradas = extraer_dois(RUTA_BIB)
-    fallos = []
+def verificar_lote(entradas, fallos):
     for clave, doi in entradas:
         status, resolved_url = resolver_doi(doi)
         titulo, venue, editor = crossref_meta(doi)
@@ -96,13 +120,28 @@ def main():
         doi_reconocido = resolved_url and "doi.org" not in resolved_url.split("://", 1)[-1].split("/", 1)[0]
         ok = bool(doi_reconocido and titulo)
         marca = "OK   " if ok else "FALLA"
-        print(f"{marca} {clave:15s} doi={doi:35s} http_final={status} -> {resolved_url}")
+        print(f"{marca} {clave:20s} doi={doi:35s} http_final={status} -> {resolved_url}")
         print(f"      Metadatos: titulo={titulo!r} venue/publisher={venue or editor!r}")
         if not ok:
             fallos.append(clave)
 
+
+def main():
+    fallos = []
+
+    entradas_bib = extraer_dois(RUTA_BIB)
+    print(f"=== Referencias bibliograficas ({RUTA_BIB}) ===")
+    verificar_lote(entradas_bib, fallos)
+
+    entradas_zenodo = extraer_dois_zenodo(RUTA_CITATION, RUTA_README)
     print()
-    print(f"Total: {len(entradas)} DOI verificados, {len(fallos)} fallidos.")
+    print(f"=== DOI de software/dataset (CITATION.cff / README.md) ===")
+    verificar_lote(entradas_zenodo, fallos)
+
+    total = len(entradas_bib) + len(entradas_zenodo)
+    print()
+    print(f"Total: {total} DOI verificados ({len(entradas_bib)} bibliograficos + "
+          f"{len(entradas_zenodo)} de software/dataset), {len(fallos)} fallidos.")
     if fallos:
         print("FALLIDOS:", fallos)
         sys.exit(1)

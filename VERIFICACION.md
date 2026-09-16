@@ -61,9 +61,34 @@ Etiquetas SIN ninguna referencia: 0 de 62
 
 **Salida real:** *(sin resultados — el patrón de marcador ya no existe en el árbol)*
 
-**Archivo:** [`docs/informe-final/referencias.bib`](docs/informe-final/referencias.bib). Ver además
-P11 más abajo: las 28 entradas con DOI se verificaron una por una, incluida una corrección
-adicional encontrada en esta ronda (`RALPH2021`, ver P11).
+**Archivo:** [`docs/informe-final/referencias.bib`](docs/informe-final/referencias.bib).
+
+Corrección aplicada en esta ronda: la barra de P3 exige resolver **cada** DOI declarado, no solo
+los del `.bib` — [`scripts/verificar-doi.py`](scripts/verificar-doi.py) ahora también extrae y
+resuelve el DOI de `CITATION.cff` y todos los `10.5281/zenodo.*` mencionados en `README.md`
+(software vigente, dataset y la versión software superseded que el propio README sigue
+declarando), no solo las 28 referencias bibliográficas.
+
+**Orden:** `python scripts/verificar-doi.py`
+
+**Salida real (sección de software/dataset; ver P11 más abajo para la sección bibliográfica):**
+```
+=== DOI de software/dataset (CITATION.cff / README.md) ===
+OK    zenodo(CITATION.cff+README.md) doi=10.5281/zenodo.21978572             http_final=200 -> https://zenodo.org/records/21978572
+      Metadatos: titulo='Proyecto WEB-ARTISYNC' venue/publisher='Zenodo'
+OK    zenodo(README.md)    doi=10.5281/zenodo.22236251             http_final=200 -> https://zenodo.org/records/22236251
+      Metadatos: titulo='Artisync — Dataset de mediciones empíricas (rendimiento, seguridad, usabilidad, cobertura, calidad web) v1.0.0' venue/publisher='Zenodo'
+OK    zenodo(README.md)    doi=10.5281/zenodo.21730559             http_final=200 -> https://zenodo.org/records/21730559
+      Metadatos: titulo='Proyecto WEB-ARTISYNC' venue/publisher='Zenodo'
+
+Total: 31 DOI verificados (28 bibliograficos + 3 de software/dataset), 0 fallidos.
+```
+
+Los tres DOI de Zenodo declarados en el árbol (software vigente, dataset, y el software
+superseded que el README todavía menciona) resuelven 200 contra doi.org, con metadatos reales en
+Zenodo/DataCite. Ver P11 más abajo: las 28 entradas bibliográficas con DOI también se verificaron
+una por una en la misma corrida, incluida una corrección adicional encontrada en esta ronda
+(`RALPH2021`, ver P11).
 
 ---
 
