@@ -11,25 +11,30 @@ clon limpio.
 
 **Archivo:** [`artisync/Backend/src/main/java/uteq/edu/ec/artisync/controller/security/AuthController.java`](artisync/Backend/src/main/java/uteq/edu/ec/artisync/controller/security/AuthController.java)
 
-**Orden:**
+**Orden (contra el backend público desplegado, no localhost):**
 ```bash
-curl -sS -i -X POST http://localhost:8080/api/v1/auth/login \
+curl -sD - -o /dev/null -X POST https://artisync-backend.onrender.com/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"correo":"admin@artisync.com","contrasena":"ArtisyncAdmin2026!"}'
 ```
 
-**Salida real** (backend local contra Postgres real, 2026-09-14):
+**Salida real** (2026-09-15, contra `artisync-backend.onrender.com` en producción; el valor del
+token se redacta aquí porque es un JWT válido de sesión — el objeto de la prueba es la cabecera,
+no el secreto — pero la corrida completa se hizo tal cual, sin editar):
 ```
-HTTP/1.1 200
-Set-Cookie: refreshToken=eyJhbGciOiJIUzM4NCJ9...; Path=/api/v1/auth; Max-Age=604800;
-Expires=Mon, 21 Sep 2026 23:32:34 GMT; Secure; HttpOnly; SameSite=Strict
+HTTP/1.1 200 OK
+Date: Wed, 16 Sep 2026 03:43:21 GMT
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+content-security-policy: default-src 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
+Server: cloudflare
+Set-Cookie: refreshToken=<redactado>; Path=/api/v1/auth; Max-Age=604800; Expires=Wed, 23 Sep 2026 03:43:21 GMT; Secure; HttpOnly; SameSite=Strict
+x-content-type-options: nosniff
+x-frame-options: DENY
 ```
 
-`Secure`, `HttpOnly` y `SameSite=Strict` presentes. **Pendiente:** esta captura es contra el
-backend corriendo localmente sobre el commit que se defiende, no contra el despliegue público —
-`artisync-frontend.onrender.com` no había redesplegado ese commit al momento de esta corrida
-(`Last-Modified` de la portada seguía en 12-sep). Repetir `curl -i` contra la URL pública en el
-Bloque 6 (cierre), después de mover la etiqueta y confirmar el redespliegue.
+`Secure`, `HttpOnly` y `SameSite=Strict` presentes en la cookie emitida por el despliegue público
+real, no por un backend local. Esto cierra el pendiente que dejó la ronda anterior (esa captura sí
+era solo contra localhost).
 
 ---
 
