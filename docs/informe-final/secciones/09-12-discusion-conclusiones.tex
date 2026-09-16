@@ -10,8 +10,8 @@ usabilidad, cobertura y calidad web declarados?} Parcialmente. De los
 cinco bloques evaluados (Capítulo~\ref{cap:evaluacion-resultados}), cuatro
 cumplen sus umbrales por completo (rendimiento, seguridad
 manual+automatizada, calidad web en ambos perfiles, y cobertura de
-código --- líneas 92.88\,\% y ramas 81.93\,\% $\geq$70\,\%, sin excepción
-en ninguno de los 48 paquetes con código ejecutable, tanto en el
+código --- líneas 91.15\,\% y ramas 81.89\,\% $\geq$70\,\%, sin excepción
+en ninguno de los 9 paquetes \texttt{controller.*}, tanto en el
 agregado global como en cada una de las capas exigidas por
 OBS-P1-01). El bloque de cobertura no llegó limpio a esta cifra: el
 2026-09-11, una ronda anterior había detectado que la capa de
@@ -36,17 +36,26 @@ formalmente del catálogo por no tener nunca un consumidor real desde
 código Java (decisión documentada en
 Capítulo~\ref{cap:diseno-arquitectura}, ADR-006) y la sexta,
 \texttt{fn\_reporte\_comisiones\_creador}, está conectada desde el
-26-08-2026; existe además una nuance de conformidad literal sobre el
-mecanismo de invocación
-(\texttt{@Query(nativeQuery=true)} parametrizado en vez de
-\texttt{@Procedure}/\texttt{@NamedStoredProcedureQuery} estrictos,
-Capítulo~\ref{cap:implementacion}~\S7.4). Dos revisiones técnicas
-independientes (2026-09-05 y 2026-09-14, esta última con reproducción
+26-08-2026. Tres revisiones técnicas independientes (2026-09-05,
+2026-09-14 y una verificación adicional la misma noche, con reproducción
 contra Postgres real e inspección del bytecode de Hibernate~7.4.1)
-confirmaron que esta nuance es una restricción estructural de la
-combinación exacta Hibernate~7.4.1 + Spring Data JPA + PostgreSQL --- no
-un pendiente por falta de esfuerzo --- por lo que se documenta como
-excepción arquitectónica aceptada (ADR-006), no como trabajo abierto.
+confirmaron que ninguna anotación JPA declarativa
+(\texttt{@Procedure}/\texttt{@NamedStoredProcedureQuery}) puede invocar
+una rutina con retorno escalar contra esta combinación exacta de
+versiones (Hibernate~7.4.1 + Spring Data JPA + PostgreSQL) sin
+reproducir un defecto de serialización de parámetros --- una restricción
+estructural, no un pendiente por falta de esfuerzo
+(Capítulo~\ref{cap:implementacion}~\S7.4). Para cerrar el Punto~P6 de la
+guía del examen suspenso (cero apariciones de \texttt{nativeQuery=true})
+sin renunciar a esa conclusión, las 23 rutinas afectadas se sacaron por
+completo de JPA/Hibernate: se invocan hoy vía
+\texttt{NamedParameterJdbcTemplate} (JDBC directo, patrón \textit{repository
+fragment}), que nunca instancia un \texttt{Session}/\texttt{EntityManager}
+de Hibernate y por tanto nunca llega a las clases donde se origina el
+defecto. El mecanismo de acceso a datos resultante --- 3 rutinas vía
+\texttt{@Procedure}, 0 vía \texttt{@NamedStoredProcedureQuery}, 0 vía
+\texttt{nativeQuery=true} y 25 vía \texttt{NamedParameterJdbcTemplate} ---
+se documenta como híbrido por diseño (ADR-006), no como trabajo abierto.
 
 \textbf{RQ3 --- ¿Produce el proceso de ingeniería de requisitos aplicado
 un corpus verificable y trazable?} Sí, con una brecha de conformidad
@@ -193,8 +202,8 @@ backend, no una caché de aplicación potencialmente ya poblada.
   \item \textbf{Activar \texttt{jacoco:check} en \texttt{pom.xml}} para
     que el build falle bajo el umbral de 70\,\% en vez de solo
     reportarlo --- el umbral por líneas y ramas, tanto global como por
-    cada uno de los 48 paquetes con código ejecutable, ya se supera
-    (92.88\,\%/81.93\,\% global; ver \S\ref{cap:evaluacion-resultados}),
+    cada uno de los 9 paquetes \texttt{controller.*}, ya se supera
+    (91.15\,\%/81.89\,\% global; ver \S\ref{cap:evaluacion-resultados}),
     pero nada en el pipeline impide hoy que una regresión futura pase
     desapercibida hasta la siguiente lectura manual del reporte, como
     ocurrió brevemente el 2026-09-11 con la capa de Controladores.

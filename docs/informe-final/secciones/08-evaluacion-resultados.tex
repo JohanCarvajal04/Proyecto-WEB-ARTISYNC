@@ -297,10 +297,10 @@ el nivel en el que la guía fija el umbral del 70\,\%.
 \toprule
 \textbf{Métrica} & \textbf{Cobertura} & \textbf{Umbral} & \textbf{Cumple} \\
 \midrule
-Lines         & 92.88\,\% (6823/7346)   & $\geq$70\,\% & \checkmark \\
-Branches      & 81.93\,\% (1795/2191)   & $\geq$70\,\% & \checkmark \\
-Instructions  & 92.42\,\% (32018/34643) & ---          & --- \\
-Complexity    & 79.74\,\% (1991/2497)   & ---          & --- \\
+Lines         & 91.15\,\% (6860/7526)   & $\geq$70\,\% & \checkmark \\
+Branches      & 81.89\,\% (1809/2209)   & $\geq$70\,\% & \checkmark \\
+Instructions  & 90.69\,\% (32187/35493) & ---          & --- \\
+Complexity    & 78.81\,\% (2012/2553)   & ---          & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -313,8 +313,8 @@ Complexity    & 79.74\,\% (1991/2497)   & ---          & --- \\
 \toprule
 \textbf{Capa} & \textbf{Lines} & \textbf{Branches} & \textbf{Cumple ambas} \\
 \midrule
-Servicios      & 93.02\,\% (5247/5641) & 81.52\,\% (1385/1699) & \checkmark \\
-Controladores  & 91.42\,\% (426/466)   & 89.02\,\% (73/82)     & \checkmark \\
+Servicios      & 93.21\,\% (5259/5642) & 82.17\,\% (1396/1699) & \checkmark \\
+Controladores  & 95.06\,\% (443/466)   & 91.46\,\% (75/82)     & \checkmark \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -328,18 +328,21 @@ incorporar funcionalidad nueva (plantillas de acuerdo por creador,
 reconciliación PayPal, expiración de tickets de revisión, integridad de
 contratos) sin pruebas equivalentes; se cerró la misma tarde añadiendo
 pruebas para los cinco controladores y el servicio sin cobertura propia.
-El cierre del Punto 7 de la rúbrica del examen final (2026-09-14) fue más
-allá del mínimo agregado: se verificó, paquete por paquete, que ninguno de
-los 48 paquetes con código ejecutable quedara por debajo del 70\,\% de
-líneas ni de ramas (el más ajustado, \texttt{controller.catalog}, cierra
-en 70.18\,\%/78.57\,\%), subiendo el agregado global a
-92.88\,\%/81.93\,\% (ver \texttt{docs/mediciones/jacoco/REPORTE-JACOCO.md}
-para el detalle de todas las rondas). Cabe además la advertencia empírica
-de Inozemtseva y Holmes~\cite{INOZEMTSEVA2014}: un porcentaje de cobertura
-alto no implica por sí solo una suite de pruebas efectiva para detectar
-defectos, por lo que estas cifras deben leerse como una medida de
-exhaustividad estructural, no como un sustituto de la efectividad real de
-las 1441 pruebas. Además, \texttt{pom.xml} configura JaCoCo solo para
+El cierre del Punto~P5 de la guía del examen suspenso (2026-09-15/16) fue
+más allá del mínimo agregado: se verificó, paquete por paquete, que
+ninguno de los 9 paquetes \texttt{controller.*} quedara por debajo del
+70\,\% de líneas ni de ramas (el más ajustado, \texttt{controller.security},
+cierra en 84.9\,\%/89.3\,\%; \texttt{controller.catalog}, el más flojo en
+la ronda anterior con 63.16\,\%/78.57\,\%, subió a 100.0\,\%/92.9\,\% con
+pruebas nuevas para \texttt{OfferingController}/\texttt{CategoryController}),
+dejando el agregado global en 91.15\,\%/81.89\,\% (ver
+\texttt{docs/mediciones/jacoco/REPORTE-JACOCO.md} para el detalle de todas
+las rondas). Cabe además la advertencia empírica de Inozemtseva y
+Holmes~\cite{INOZEMTSEVA2014}: un porcentaje de cobertura alto no implica
+por sí solo una suite de pruebas efectiva para detectar defectos, por lo
+que estas cifras deben leerse como una medida de exhaustividad
+estructural, no como un sustituto de la efectividad real de las 1448
+pruebas. Además, \texttt{pom.xml} configura JaCoCo solo para
 reportar, sin \texttt{jacoco:check} que falle el build bajo el umbral
 (Capítulo~\ref{cap:diseno-arquitectura}, brecha declarada también en
 \texttt{docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md}).
