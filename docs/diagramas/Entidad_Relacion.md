@@ -383,7 +383,7 @@ erDiagram
     Backup {
         Long backupId PK
         BackupType backupType
-        BackupOrigin origen
+        BackupOrigin origin
         Long scheduleId FK
         Long baseFullBackupId PK
         String fileName
